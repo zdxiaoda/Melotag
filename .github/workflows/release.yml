@@ -173,7 +173,9 @@ jobs:
 
           install -m755 artifacts/publish-linux-x64/Melotag "$root/usr/bin/melotag"
           install -m644 docs/branding/melotag-logo.png "$root/usr/share/icons/hicolor/512x512/apps/melotag.png"
-          sed 's/^Exec=Melotag/Exec=melotag/' packaging/linux/melotag.desktop \
+          sed -e 's/^Exec=Melotag/Exec=melotag/' \
+              -e 's/^StartupWMClass=Melotag/StartupWMClass=melotag/' \
+              packaging/linux/melotag.desktop \
             > "$root/usr/share/applications/$pkg.desktop"
           chmod 644 "$root/usr/share/applications/$pkg.desktop"
 
@@ -197,6 +199,8 @@ jobs:
           } | gzip -9n > "$root/usr/share/doc/$pkg/changelog.Debian.gz"
 
           size=$(du -sk "$root" | cut -f1)
+          (cd "$root" && find usr -type f -print0 | sort -z | xargs -0 md5sum -t) > "$root/DEBIAN/md5sums"
+          chmod 644 "$root/DEBIAN/md5sums"
           cat > "$root/DEBIAN/control" <<EOF
           Package: $pkg
           Version: ${APP_VERSION}
