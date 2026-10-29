@@ -35,12 +35,14 @@ Android 上的数据目录是应用私有空间 `files/data`。
 
 ```bash
 dotnet workload install android                      # 需要一次管理员权限的安装
-dotnet publish src/Melotag.Android/Melotag.Android.csproj -c Release -p:AndroidPackageFormat=apk
-# 产物：src/Melotag.Android/bin/Release/net10.0-android/publish/*.apk
+dotnet publish src/Melotag.Android/Melotag.Android.csproj -c Release \
+  -p:AndroidPackageFormat=apk -p:RuntimeIdentifier=android-arm64
+# 产物：src/Melotag.Android/bin/Release/net10.0-android/android-arm64/publish/*.apk
 ```
 
 也可以直接用 CI 编译：`.github/workflows/android.yml` 在 Ubuntu 上装 Android 工作负载 + SDK 36，
-发布 APK 并上传 artifact（`melotag-android-apk`），同时跑共享核心的单元测试。
+按 `android-arm64`（真机）与 `android-x64`（模拟器）并行出包，上传 artifact
+（`melotag-android-arm64-apk` / `melotag-android-x64-apk`），同时跑共享核心的单元测试。
 
 Android 与桌面的差异：
 

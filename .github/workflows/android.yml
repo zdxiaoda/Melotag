@@ -25,8 +25,13 @@ env:
 
 jobs:
   build-apk:
-    name: build apk (Android)
+    name: build apk (${{ matrix.rid }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 真机用 arm64，模拟器用 x64；两个 ABI 并行各出一个包
+        rid: [ android-arm64, android-x64 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -54,9 +59,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-android-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          key: nuget-android-${{ matrix.rid }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
           restore-keys: |
-            nuget-android-${{ runner.os }}-
+            nuget-android-${{ matrix.rid }}-
 
       - name: Restore
         run: dotnet restore src/Melotag.Android/Melotag.Android.csproj
@@ -66,12 +71,16 @@ jobs:
           dotnet publish src/Melotag.Android/Melotag.Android.csproj
           -c Release --no-restore
           -p:AndroidPackageFormat=apk
+          -p:RuntimeIdentifier=${{ matrix.rid }}
+
+      - name: List APK
+        run: find src/Melotag.Android/bin/Release -name '*.apk' -exec ls -lh {} \;
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: melotag-android-apk
-          path: src/Melotag.Android/bin/Release/**/*.apk
+          name: melotag-${{ matrix.rid }}-apk
+          path: src/Melotag.Android/bin/Release/**/publish/*.apk
           if-no-files-found: error
           retention-days: 14
 
