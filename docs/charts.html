@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音签 Melotag 1.0.0 · 项目图表</title>
+<style>
+  :root{
+    --bg:#0d1017; --card:#151a23; --card2:#1b2130; --line:#273041;
+    --text:#e8ecf3; --muted:#93a0b4; --accent:#6ea8fe; --accent2:#34d399;
+    --warn:#fbbf24; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#16203a 0%,var(--bg) 55%);
+       color:var(--text);font:14px/1.6 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:36px 24px 64px}
+  header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;margin-bottom:28px}
+  h1{margin:0;font-size:30px;letter-spacing:.5px}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);margin-top:6px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{border:1px solid var(--line);background:var(--card);padding:5px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+  .badge b{color:var(--text);font-weight:600}
+  .grid{display:grid;gap:18px}
+  .cols-2{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+  .card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);
+        border-radius:14px;padding:18px 20px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .card p.hint{margin:0 0 16px;color:var(--muted);font-size:12px}
+  /* bar chart */
+  .bars{display:flex;flex-direction:column;gap:10px}
+  .bar-row{display:grid;grid-template-columns:120px 1fr 64px;gap:12px;align-items:center;font-size:12.5px}
+  .track{height:10px;background:#0f1420;border-radius:6px;overflow:hidden;border:1px solid #1f2838}
+  .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),#9c8cff)}
+  .fill.green{background:linear-gradient(90deg,#2dd4bf,var(--accent2))}
+  .num{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* progress list */
+  .prog{display:flex;flex-direction:column;gap:9px}
+  .prog-row{display:grid;grid-template-columns:150px 1fr 52px;gap:12px;align-items:center;font-size:12.5px}
+  .prog .track{height:8px}
+  .prog .fill{background:linear-gradient(90deg,#34d399,#6ee7b7)}
+  .prog .fill.partial{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+  .prog .fill.zero{background:#3a4456}
+  /* matrix */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #202838}
+  th{color:var(--muted);font-weight:500}
+  td.c,th.c{text-align:center;width:64px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#334055;border:1px solid #43516a}
+  .dot.on{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
+  .dot.soft{background:#31435f;border-color:#3f5a80}
+  .tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;border:1px solid var(--line);color:var(--muted)}
+  .tag.ok{color:#a7f3d0;border-color:#1f6f54;background:#0f2a22}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:4px}
+  .kpi{background:#101624;border:1px solid #1f2838;border-radius:10px;padding:12px 14px}
+  .kpi b{display:block;font-size:24px;letter-spacing:.5px}
+  .kpi span{color:var(--muted);font-size:12px}
+  footer{margin-top:28px;color:#6c7890;font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>音签 <span>Melotag</span> <span style="font-size:18px;color:var(--muted)">1.0.0</span></h1>
+    <div class="sub">跨平台音乐标签编辑器 · 项目图表（2026-10-26）</div>
+  </div>
+  <div class="badges">
+    <span class="badge"><b>52</b> 单元测试通过</span>
+    <span class="badge"><b>9</b> 在线源</span>
+    <span class="badge"><b>14</b> 音频容器</span>
+    <span class="badge"><b>5.8k</b> 行代码</span>
+  </div>
+</header>
+
+<div class="card" style="margin-bottom:18px">
+  <h2>系统架构</h2>
+  <p class="hint">桌面端（Win/Linux）已实现；Android head 复用同一 UI 与核心，仅替换文件访问层。</p>
+  <svg viewBox="0 0 1000 330" width="100%" height="auto" role="img" aria-label="系统架构图">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#4b5b76"/>
+      </marker>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1d2b45"/><stop offset="1" stop-color="#172033"/>
+      </linearGradient>
+    </defs>
+
+    <rect x="20" y="20" width="960" height="56" rx="10" fill="url(#g1)" stroke="#2b3a55"/>
+    <text x="40" y="46" fill="#e8ecf3" font-size="14" font-weight="600">表现层</text>
+    <text x="40" y="64" fill="#93a0b4" font-size="12">Avalonia 12 + FluentAvalonia · MainWindow / 6 个对话框 / MVVM</text>
+    <text x="960" y="46" fill="#93a0b4" font-size="12" text-anchor="end">Win · Linux · (Android 待接)</text>
+
+    <rect x="20" y="100" width="960" height="56" rx="10" fill="url(#g1)" stroke="#2b3a55"/>
+    <text x="40" y="126" fill="#e8ecf3" font-size="14" font-weight="600">应用服务</text>
+    <text x="40" y="144" fill="#93a0b4" font-size="12">MainWindowViewModel · 批量匹配 · 重命名应用 · 历史恢复 · 主题与设置</text>
+
+    <rect x="20" y="180" width="230" height="70" rx="10" fill="#14233a" stroke="#2f4a75"/>
+    <text x="40" y="206" fill="#e8ecf3" font-size="13" font-weight="600">Core</text>
+    <text x="40" y="224" fill="#93a0b4" font-size="11.5">模型 · 模板/正则 · 合并</text>
+    <text x="40" y="240" fill="#93a0b4" font-size="11.5">LRC · 简繁 · 封面处理</text>
+
+    <rect x="270" y="180" width="220" height="70" rx="10" fill="#14233a" stroke="#2f4a75"/>
+    <text x="290" y="206" fill="#e8ecf3" font-size="13" font-weight="600">Tags</text>
+    <text x="290" y="224" fill="#93a0b4" font-size="11.5">TagLib# 读写</text>
+    <text x="290" y="240" fill="#93a0b4" font-size="11.5">封面 / 属性 / mtime</text>
+
+    <rect x="510" y="180" width="220" height="70" rx="10" fill="#14233a" stroke="#2f4a75"/>
+    <text x="530" y="206" fill="#e8ecf3" font-size="13" font-weight="600">Storage</text>
+    <text x="530" y="224" fill="#93a0b4" font-size="11.5">SQLite 历史</text>
+    <text x="530" y="240" fill="#93a0b4" font-size="11.5">JSON 设置 / 数据目录迁移</text>
+
+    <rect x="750" y="180" width="230" height="70" rx="10" fill="#102b27" stroke="#1f6f54"/>
+    <text x="770" y="206" fill="#e8ecf3" font-size="13" font-weight="600">Sources</text>
+    <text x="770" y="224" fill="#93a0b4" font-size="11.5">9 个在线源适配器</text>
+    <text x="770" y="240" fill="#93a0b4" font-size="11.5">并发 · 限流 · 重试</text>
+
+    <rect x="20" y="276" width="960" height="40" rx="8" fill="#101624" stroke="#1f2838"/>
+    <text x="40" y="301" fill="#93a0b4" font-size="12">TagLib# · ImageSharp · Microsoft.Data.Sqlite · OpenCC · System.Text.Json · HttpClient</text>
+
+    <path d="M500,76 L500,96" stroke="#4b5b76" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M500,156 L500,176" stroke="#4b5b76" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M135,250 L135,272" stroke="#4b5b76" stroke-width="1.2"/>
+    <path d="M380,250 L380,272" stroke="#4b5b76" stroke-width="1.2"/>
+    <path d="M620,250 L620,272" stroke="#4b5b76" stroke-width="1.2"/>
+    <path d="M865,250 L865,272" stroke="#4b5b76" stroke-width="1.2"/>
+  </svg>
+</div>
+
+<div class="grid cols-2" style="margin-bottom:18px">
+  <div class="card">
+    <h2>代码规模</h2>
+    <p class="hint">按 .cs / .axaml 行数（不含 obj/bin）</p>
+    <div class="bars">
+      <div class="bar-row"><span>UI 层</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">2,400</span></div>
+      <div class="bar-row"><span>Core</span><div class="track"><div class="fill" style="width:76.4%"></div></div><span class="num">1,833</span></div>
+      <div class="bar-row"><span>测试</span><div class="track"><div class="fill" style="width:32%"></div></div><span class="num">767</span></div>
+      <div class="bar-row"><span>Storage</span><div class="track"><div class="fill" style="width:17.2%"></div></div><span class="num">412</span></div>
+      <div class="bar-row"><span>Tags</span><div class="track"><div class="fill" style="width:7.1%"></div></div><span class="num">170</span></div>
+      <div class="bar-row"><span>Desktop</span><div class="track"><div class="fill" style="width:6.7%"></div></div><span class="num">161</span></div>
+      <div class="bar-row"><span>Probe</span><div class="track"><div class="fill" style="width:4.3%"></div></div><span class="num">102</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>功能完成度</h2>
+    <p class="hint">按功能清单的条目统计；绿色为已实现，黄色为部分，灰色为未实现</p>
+    <div class="prog">
+      <div class="prog-row"><span>文件与列表</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">10/10</span></div>
+      <div class="prog-row"><span>标签读写</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">8/8</span></div>
+      <div class="prog-row"><span>在线匹配</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">8/8</span></div>
+      <div class="prog-row"><span>歌词</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">9/9</span></div>
+      <div class="prog-row"><span>封面</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">7/7</span></div>
+      <div class="prog-row"><span>重命名</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">8/8</span></div>
+      <div class="prog-row"><span>历史与撤销</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">4/4</span></div>
+      <div class="prog-row"><span>简繁转换</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">4/4</span></div>
+      <div class="prog-row"><span>设置</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="num">7/7</span></div>
+      <div class="prog-row"><span>国际化（英/繁）</span><div class="track"><div class="fill zero" style="width:0%"></div></div><span class="num">0/3</span></div>
+      <div class="prog-row"><span>桌面增强（托盘等）</span><div class="track"><div class="fill zero" style="width:0%"></div></div><span class="num">0/4</span></div>
+      <div class="prog-row"><span>Android head</span><div class="track"><div class="fill zero" style="width:0%"></div></div><span class="num">0/1</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-bottom:18px">
+  <div class="card">
+    <h2>在线源能力矩阵</h2>
+    <p class="hint">● = 支持；○ = 语义上不适用</p>
+    <table>
+      <thead><tr><th>源</th><th class="c">标签</th><th class="c">封面</th><th class="c">歌词</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td>网易云音乐</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td><span class="tag ok">已实测</span> 详情接口取封面</td></tr>
+        <tr><td>QQ 音乐</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot on"></span></td><td><span class="tag ok">已实测</span> 无专辑字段</td></tr>
+        <tr><td>酷狗音乐</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td><span class="tag ok">已实测</span> KRC 歌词链</td></tr>
+        <tr><td>酷我音乐</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot"></span></td><td><span class="tag ok">已实测</span> 歌词接口 301</td></tr>
+        <tr><td>MusicBrainz</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot"></span></td><td><span class="tag ok">已实测</span> 1 req/s</td></tr>
+        <tr><td>Cover Art Archive</td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot"></span></td><td>按 release id</td></tr>
+        <tr><td>iTunes</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot"></span></td><td><span class="tag ok">已实测</span> 1200px 封面</td></tr>
+        <tr><td>Last.fm</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot soft"></span></td><td class="c"><span class="dot"></span></td><td>需自备 API key</td></tr>
+        <tr><td>LRCLIB</td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot"></span></td><td class="c"><span class="dot on"></span></td><td><span class="tag ok">已实测</span> 同步歌词</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>容器与标签格式</h2>
+    <p class="hint">读取由 TagLib# 覆盖；写入能力随容器不同</p>
+    <table>
+      <thead><tr><th>容器</th><th>标签格式</th><th class="c">读</th><th class="c">写</th></tr></thead>
+      <tbody>
+        <tr><td>MP3</td><td>ID3v1 / ID3v2.3 / ID3v2.4</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>FLAC</td><td>Vorbis Comment + PICTURE</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>APE</td><td>APEv2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>WavPack</td><td>APEv2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>TTA</td><td>ID3v2 / APEv2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>MPC</td><td>APEv2 / ID3v2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>OGG Vorbis</td><td>Vorbis Comment</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>Ogg Opus</td><td>Vorbis Comment</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>M4A / MP4</td><td>iTunes ilst</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>WAV</td><td>RIFF INFO / ID3</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>AIFF</td><td>ID3v2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>WMA / ASF</td><td>ASF 属性对象</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot on"></span></td></tr>
+        <tr><td>DSF / DFF</td><td>ID3v2</td><td class="c"><span class="dot on"></span></td><td class="c"><span class="dot soft"></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>质量与验证</h2>
+  <p class="hint">自动化测试 + 在线源实测（2026-10-26）</p>
+  <div class="kpis">
+    <div class="kpi"><b style="color:var(--accent2)">52 / 52</b><span>单元测试通过</span></div>
+    <div class="kpi"><b>10</b><span>测试领域（模板/正则/合并/LRC/编码/存储/改名/封面/简繁/TagLib）</span></div>
+    <div class="kpi"><b style="color:var(--accent)">15</b><span>实测候选（晴天 / 周杰伦）</span></div>
+    <div class="kpi"><b style="color:var(--accent)">120 KB</b><span>封面下载实测</span></div>
+    <div class="kpi"><b style="color:var(--accent)">3</b><span>平台返回同步歌词</span></div>
+  </div>
+  <div class="bars" style="margin-top:16px">
+    <div class="bar-row"><span>标签候选</span><div class="track"><div class="fill green" style="width:100%"></div></div><span class="num">15</span></div>
+    <div class="bar-row"><span>歌词候选</span><div class="track"><div class="fill green" style="width:73%"></div></div><span class="num">11</span></div>
+    <div class="bar-row"><span>封面候选</span><div class="track"><div class="fill green" style="width:40%"></div></div><span class="num">6</span></div>
+  </div>
+</div>
+
+<footer>
+  <span>音签 Melotag 1.0.0 · 独立实现，不复用原软件二进制或素材</span>
+  <span>数据源：仓内代码统计 + tools/Melotag.Probe 实测输出</span>
+</footer>
+
+</div>
+</body>
+</html>

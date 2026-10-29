@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Melotag.UI.Dialogs.SettingsDialog"
+        Title="设置"
+        Width="720" Height="720"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
+    <ScrollViewer Grid.Row="0">
+      <StackPanel Spacing="16">
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="搜索" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="并发线程" VerticalAlignment="Center" />
+            <NumericUpDown x:Name="ThreadsBox" Width="110" Minimum="1" Maximum="8" />
+            <TextBlock Text="每源结果上限" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <NumericUpDown x:Name="ItemsBox" Width="110" Minimum="1" Maximum="50" />
+            <TextBlock Text="自动匹配线程" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <NumericUpDown x:Name="AutoThreadsBox" Width="110" Minimum="1" Maximum="8" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="在线源" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Last.fm API Key" VerticalAlignment="Center" Width="130" />
+            <TextBox x:Name="LastFmKeyBox" Width="360" PasswordChar="*" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="iTunes 国家码" VerticalAlignment="Center" Width="130" />
+            <TextBox x:Name="CountryBox" Width="110" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="User-Agent" VerticalAlignment="Center" Width="130" />
+            <TextBox x:Name="UserAgentBox" Width="480" />
+          </StackPanel>
+          <TextBlock Text="MusicBrainz 需要可识别的 User-Agent，并限制 1 次/秒；留空 Last.fm Key 则跳过该源。"
+                     FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="歌词" FontWeight="SemiBold" />
+          <WrapPanel>
+            <CheckBox x:Name="ReformatBox" Content="下载后重排时间标签" Margin="0,0,16,0" />
+            <CheckBox x:Name="RemoveTagsBox" Content="移除时间标签" Margin="0,0,16,0" />
+            <CheckBox x:Name="BlankBox" Content="删除空行" Margin="0,0,16,0" />
+            <CheckBox x:Name="HeadBox" Content="删除头部标签" Margin="0,0,16,0" />
+            <CheckBox x:Name="InstrumentBox" Content="跳过伴奏/纯音乐" />
+          </WrapPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="默认编码" VerticalAlignment="Center" Width="130" />
+            <ComboBox x:Name="EncodingBox" Width="140" />
+            <TextBlock Text="保存目录" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <TextBox x:Name="SaveDirBox" Width="280" Watermark="留空=音频同目录" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="文件名格式" VerticalAlignment="Center" Width="130" />
+            <TextBox x:Name="LrcNameBox" Width="220" Watermark="{}{title}" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="封面" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="体积上限(KB)" VerticalAlignment="Center" />
+            <NumericUpDown x:Name="PicSizeBox" Width="110" Minimum="64" Maximum="10240" Increment="64" />
+            <TextBlock Text="最大宽" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <NumericUpDown x:Name="PicWidthBox" Width="100" Minimum="200" Maximum="6000" Increment="100" />
+            <TextBlock Text="最大高" VerticalAlignment="Center" Margin="8,0,0,0" />
+            <NumericUpDown x:Name="PicHeightBox" Width="100" Minimum="200" Maximum="6000" Increment="100" />
+          </StackPanel>
+          <TextBlock Text="允许格式：jpg, png（BMP/GIF 会被转码）" FontSize="11" Opacity="0.6" />
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="写入" FontWeight="SemiBold" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="ID3v2 版本" VerticalAlignment="Center" />
+            <ComboBox x:Name="Id3Box" Width="110" />
+            <CheckBox x:Name="KeepMtimeBox" Content="保留文件修改时间" Margin="16,0,0,0" />
+            <CheckBox x:Name="WriteLyricsBox" Content="歌词写入标签" Margin="16,0,0,0" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="界面" FontWeight="SemiBold" />
+          <CheckBox x:Name="CompactBox" Content="紧凑行高" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto">
+      <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" />
+      <Button Grid.Column="1" Content="保存" Click="OnSave" Margin="8,0" Classes="accent" />
+      <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+    </Grid>
+  </Grid>
+</Window>

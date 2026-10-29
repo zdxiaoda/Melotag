@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Melotag.UI.Dialogs.TagSearchDialog"
+        Title="在线标签匹配"
+        Width="940" Height="640"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,*,Auto,*" ColumnSpacing="8">
+      <TextBlock Grid.Column="0" Text="标题" VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" x:Name="TitleBox" />
+      <TextBlock Grid.Column="2" Text="艺术家" VerticalAlignment="Center" />
+      <TextBox Grid.Column="3" x:Name="ArtistBox" />
+      <TextBlock Grid.Column="4" Text="专辑" VerticalAlignment="Center" />
+      <TextBox Grid.Column="5" x:Name="AlbumBox" />
+    </Grid>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+      <Button Content="搜索" Click="OnSearch" Classes="accent" />
+      <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="120" IsVisible="False" />
+      <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="2"
+              x:Name="ResultsGrid"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single"
+              GridLinesVisibility="Horizontal"
+              RowHeight="28">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="来源" Binding="{Binding SourceId}" Width="120" />
+        <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="2*" />
+        <DataGridTextColumn Header="艺术家" Binding="{Binding Artist}" Width="1.5*" />
+        <DataGridTextColumn Header="专辑" Binding="{Binding Album}" Width="1.5*" />
+        <DataGridTextColumn Header="年份" Binding="{Binding Year}" Width="70" />
+        <DataGridTextColumn Header="详情" Binding="{Binding Detail}" Width="*" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto,Auto">
+      <TextBlock Text="合并方式" VerticalAlignment="Center" />
+      <ComboBox Grid.Column="1" x:Name="RuleCombo" Width="190" HorizontalAlignment="Left" />
+      <Button Grid.Column="2" Content="应用" Click="OnApply" Margin="8,0" Classes="accent" />
+      <Button Grid.Column="3" Content="取消" Click="OnCancel" />
+    </Grid>
+  </Grid>
+</Window>

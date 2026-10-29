@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Melotag.UI.Dialogs.LyricsDialog"
+        Title="歌词"
+        Width="860" Height="680"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
+    <StackPanel Grid.Row="0" Spacing="8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="从网络搜索" Click="OnSearch" Classes="accent" />
+        <ComboBox x:Name="ResultCombo" Width="420" SelectionChanged="OnResultChanged" />
+        <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" />
+        <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" />
+      </StackPanel>
+
+      <WrapPanel>
+        <CheckBox x:Name="Reformat" Content="重排时间标签" Margin="0,0,16,0" />
+        <CheckBox x:Name="RemoveTags" Content="移除时间标签" Margin="0,0,16,0" />
+        <CheckBox x:Name="DeleteBlank" Content="删除空行" Margin="0,0,16,0" />
+        <CheckBox x:Name="DeleteHead" Content="删除头部标签" Margin="0,0,16,0" />
+        <TextBlock Text="整体偏移(秒)" VerticalAlignment="Center" Margin="8,0,4,0" />
+        <NumericUpDown x:Name="ShiftBox" Width="90" Minimum="-600" Maximum="600" Increment="0.1" Value="0" />
+      </WrapPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="应用处理" Click="OnApplyOps" />
+        <Button Content="导入 .lrc" Click="OnImport" />
+        <Button Content="保存为 .lrc" Click="OnSaveLrc" />
+        <TextBlock Text="保存编码" VerticalAlignment="Center" Margin="12,0,0,0" />
+        <ComboBox x:Name="EncodingCombo" Width="120" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBox Grid.Row="1"
+             x:Name="Editor"
+             AcceptsReturn="True"
+             TextWrapping="NoWrap"
+             VerticalContentAlignment="Top"
+             FontFamily="Consolas, Menlo, monospace" />
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
+      <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.75" />
+      <Button Grid.Column="1" Content="确定" Click="OnOk" Margin="8,0" Classes="accent" />
+      <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+    </Grid>
+  </Grid>
+</Window>

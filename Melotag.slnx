@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Melotag.Core/Melotag.Core.csproj" />
+    <Project Path="src/Melotag.Desktop/Melotag.Desktop.csproj" />
+    <Project Path="src/Melotag.Storage/Melotag.Storage.csproj" />
+    <Project Path="src/Melotag.Tags/Melotag.Tags.csproj" />
+    <Project Path="src/Melotag.UI/Melotag.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Melotag.Core.Tests/Melotag.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Melotag.Probe/Melotag.Probe.csproj" />
+  </Folder>
+</Solution>
