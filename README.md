@@ -25,6 +25,18 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 
 数据目录：`%APPDATA%\Melotag`（设置 `settings.json`、历史 `history.db`），可用 `MELOTAG_DATA_DIR` 覆盖。
 
+## 构建与发布
+
+- **CI**（`.github/workflows/ci.yml`）：push 到 `main` 或提交 PR 时，在 Ubuntu 与 Windows 上做 Release 构建并跑全部单元测试。
+- **发布**（`.github/workflows/release.yml`）：推 `v*` 标签（如 `v1.0.0`）即自动 测试 → 打包 → 创建 GitHub Release；手动触发只打包、不出 Release。
+  - `Melotag-<版本>-win-x64.zip`：自包含单文件 `Melotag.exe`，无需安装 .NET
+  - `Melotag-<版本>-linux-x64.tar.gz`：自包含 `Melotag` + 图标 + `.desktop` + `install.sh`
+  - `SHA256SUMS.txt`
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1   # 触发自动发布
+```
+
 ## 已实现功能
 
 ### 文件与列表
@@ -45,6 +57,7 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 - 单文件候选对话框：查询条件预填、多源结果列表、合并方式（只填空字段/全部覆盖/保留现有）
 - 批量自动匹配：逐文件取首条候选按"只填空字段"合并，带进度状态
 - 网络层：共享连接池、每源并发上限、429/503 自动重试；源顺序与启用由设置里的三份源列表控制
+- 源配置界面：设置 →「在线源 → 启用与顺序」中有标签 / 封面 / 歌词三个页签，逐项勾选启用、用 ↑↓ 调整优先级（越靠上越先查询），可一键恢复默认
 
 ### 歌词
 - LRCLIB 搜索（同步歌词优先）
@@ -104,7 +117,8 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 
 ## 技术备注
 
-- .NET 10 / Avalonia 12.1.4 / FluentAvaloniaUI 3.1.0 / TagLibSharp 2.3.0 / ImageSharp 4.1.3 / Microsoft.Data.Sqlite 10 / OpenCC 0.1.2
+- .NET 10 / Avalonia 12.1.4 / FluentAvaloniaUI 3.1.0 / TagLibSharp 2.3.0 / SkiaSharp 3.119.4 / Microsoft.Data.Sqlite 10 / OpenCC 0.1.2
+- 图像处理用 SkiaSharp（MIT）：ImageSharp 4.x 的许可门禁会在 Release 构建失败，不适合随包分发
 - 国内平台适配器只做只读搜索/歌词/封面查询，不内置任何版权内容；歌词与封面在用户请求时按需下载
 - Avalonia 12：Fluent 主题拆分为独立包；`TextBox` 无 `Header`；`DataGrid` 列模板与默认编译绑定冲突（已关闭编译绑定）；拖放使用 `DragEventArgs.DataTransfer` + `DataFormat.File`
 - MusicBrainz 要求可识别 User-Agent，请把设置里的 UA 改成含真实联系方式的字符串

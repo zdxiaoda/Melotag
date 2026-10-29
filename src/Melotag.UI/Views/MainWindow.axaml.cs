@@ -227,7 +227,7 @@ public partial class MainWindow : Window
     {
         if (Vm is null) return;
 
-        var dialog = new SettingsDialog(Vm.Settings);
+        var dialog = new SettingsDialog(Vm.Settings, Vm.Search.Sources);
         if (await dialog.ShowDialog<bool>(this))
             Vm.SaveSettings();
     }
@@ -261,7 +261,7 @@ public partial class MainWindow : Window
         {
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-            Text = "音签 Melotag 1.0.0\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n封面处理：ImageSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n独立实现，不复用原软件的任何二进制或素材。",
+            Text = "音签 Melotag 1.0.0\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n图像处理：SkiaSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n独立实现，不复用原软件的任何二进制或素材。",
         };
 
         var content = new Grid

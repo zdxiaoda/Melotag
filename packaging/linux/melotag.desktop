@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=音签 Melotag
+GenericName=Music Tag Editor
+Comment=跨平台音乐标签编辑器
+Exec=Melotag %F
+Icon=melotag
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-wav;audio/mp4;audio/x-ms-wma;
+StartupWMClass=Melotag

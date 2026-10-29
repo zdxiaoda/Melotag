@@ -1,8 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Melotag.UI.Controls"
         x:Class="Melotag.UI.Dialogs.SettingsDialog"
         Title="设置"
-        Width="720" Height="720"
+        Width="760" Height="840"
         WindowStartupLocation="CenterOwner">
 
   <Grid Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
@@ -37,6 +38,20 @@
           </StackPanel>
           <TextBlock Text="MusicBrainz 需要可识别的 User-Agent，并限制 1 次/秒；留空 Last.fm Key 则跳过该源。"
                      FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+
+          <TextBlock Text="启用与顺序（每类单独配置，越靠上越先查询）"
+                     FontWeight="SemiBold" Margin="0,12,0,2" />
+          <TabControl x:Name="SourceTabs" Height="380">
+            <TabItem Header="标签">
+              <c:SourceOrderPanel x:Name="TagSources" Capability="Tags" Margin="2,8,2,2" />
+            </TabItem>
+            <TabItem Header="封面">
+              <c:SourceOrderPanel x:Name="CoverSources" Capability="Cover" Margin="2,8,2,2" />
+            </TabItem>
+            <TabItem Header="歌词">
+              <c:SourceOrderPanel x:Name="LyricSources" Capability="Lyrics" Margin="2,8,2,2" />
+            </TabItem>
+          </TabControl>
         </StackPanel>
 
         <StackPanel Spacing="6">

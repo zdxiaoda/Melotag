@@ -1,17 +1,12 @@
 namespace Melotag.Core.Services;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 public sealed record CoverResult(byte[] Data, string MimeType, int Width, int Height);
 
-/// <summary>封面校验、缩放与重编码。所有处理都在内存完成，不依赖 Windows 图形栈。</summary>
+/// <summary>封面校验、缩放与重编码。全部在内存完成，不依赖 Windows 图形栈。</summary>
 public sealed class CoverService
 {
-    private static readonly HashSet<string> JpegNames = new(StringComparer.OrdinalIgnoreCase) { "jpg", "jpeg" };
-
     public CoverResult? Normalize(byte[] data, int maxWidth, int maxHeight, int maxSizeKb, IReadOnlyCollection<string> allowedFormats)
     {
         if (data.Length == 0) return null;
@@ -21,58 +16,76 @@ public sealed class CoverService
 
         try
         {
-            using var image = Image.Load(data);
-            var formatName = image.Metadata.DecodedImageFormat?.Name?.ToLowerInvariant() ?? "jpeg";
-            var family = formatName switch
+            using var encoded = SKData.CreateCopy(data);
+            using var codec = SKCodec.Create(encoded);
+            if (codec is null) return null;
+
+            var family = codec.EncodedFormat switch
             {
-                "jpeg" => "jpg",
-                "png" => "png",
-                "bmp" => "bmp",
-                "gif" => "gif",
-                _ => formatName,
+                SKEncodedImageFormat.Jpeg => "jpg",
+                SKEncodedImageFormat.Png => "png",
+                SKEncodedImageFormat.Bmp => "bmp",
+                SKEncodedImageFormat.Gif => "gif",
+                SKEncodedImageFormat.Webp => "webp",
+                _ => codec.EncodedFormat.ToString().ToLowerInvariant(),
             };
             if (!allowed.Contains(family)) return null;
 
-            var maxW = Math.Max(64, maxWidth);
-            var maxH = Math.Max(64, maxHeight);
-            var scale = Math.Min(1.0, Math.Min((double)maxW / image.Width, (double)maxH / image.Height));
-            if (scale < 1.0)
+            var current = SKBitmap.Decode(codec);
+            if (current is null || current.Width <= 0 || current.Height <= 0) return null;
+
+            try
             {
-                var w = Math.Max(1, (int)(image.Width * scale));
-                var h = Math.Max(1, (int)(image.Height * scale));
-                image.Mutate(x => x.Resize(w, h));
+                var maxW = Math.Max(64, maxWidth);
+                var maxH = Math.Max(64, maxHeight);
+                var scale = Math.Min(1.0, Math.Min((double)maxW / current.Width, (double)maxH / current.Height));
+                if (scale < 1.0)
+                {
+                    var scaled = Resize(current, (int)(current.Width * scale), (int)(current.Height * scale));
+                    current.Dispose();
+                    current = scaled;
+                }
+
+                var usePng = family == "png" && allowed.Contains("png");
+                var budget = Math.Max(16, maxSizeKb) * 1024;
+
+                for (var attempt = 0; attempt < 4; attempt++)
+                {
+                    var bytes = Encode(current, usePng, 85 - attempt * 15);
+                    if (bytes.Length <= budget || attempt == 3)
+                        return new CoverResult(bytes, usePng ? "image/png" : "image/jpeg", current.Width, current.Height);
+
+                    if (current.Width > 64 && current.Height > 64)
+                    {
+                        var smaller = Resize(current, current.Width * 4 / 5, current.Height * 4 / 5);
+                        current.Dispose();
+                        current = smaller;
+                    }
+                }
+
+                return null;
             }
-
-            var usePng = family == "png" && allowed.Contains("png");
-            var budget = Math.Max(16, maxSizeKb) * 1024;
-
-            for (var attempt = 0; attempt < 4; attempt++)
+            finally
             {
-                var bytes = Encode(image, usePng, 85 - attempt * 15);
-                if (bytes.Length <= budget || attempt == 3)
-                    return new CoverResult(bytes, usePng ? "image/png" : "image/jpeg", image.Width, image.Height);
-
-                if (image.Width > 64 && image.Height > 64)
-                    image.Mutate(x => x.Resize(image.Width * 4 / 5, image.Height * 4 / 5));
+                current.Dispose();
             }
-
-            return null;
         }
-        catch (UnknownImageFormatException)
-        {
-            return null;
-        }
-        catch (InvalidImageContentException)
+        catch (Exception)
         {
             return null;
         }
     }
 
-    private static byte[] Encode(Image image, bool png, int quality)
+    private static SKBitmap Resize(SKBitmap source, int width, int height)
     {
-        using var ms = new MemoryStream();
-        if (png) image.SaveAsPng(ms, new PngEncoder());
-        else image.SaveAsJpeg(ms, new JpegEncoder { Quality = Math.Clamp(quality, 20, 95) });
-        return ms.ToArray();
+        var info = new SKImageInfo(Math.Max(1, width), Math.Max(1, height), source.ColorType, source.AlphaType);
+        return source.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear)) ?? source.Copy();
+    }
+
+    private static byte[] Encode(SKBitmap bitmap, bool png, int quality)
+    {
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(png ? SKEncodedImageFormat.Png : SKEncodedImageFormat.Jpeg, Math.Clamp(quality, 20, 95));
+        return data?.ToArray() ?? [];
     }
 }

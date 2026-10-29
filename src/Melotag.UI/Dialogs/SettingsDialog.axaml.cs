@@ -3,6 +3,7 @@ namespace Melotag.UI.Dialogs;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Melotag.Core.Lyrics;
+using Melotag.Core.Sources;
 using Melotag.Storage;
 
 public partial class SettingsDialog : Window
@@ -16,7 +17,7 @@ public partial class SettingsDialog : Window
         _settings = new AppSettings();
     }
 
-    public SettingsDialog(AppSettings settings, Action? onSaved = null)
+    public SettingsDialog(AppSettings settings, IReadOnlyList<ITagSource>? sources = null, Action? onSaved = null)
     {
         _settings = settings;
         _onSaved = onSaved;
@@ -30,6 +31,11 @@ public partial class SettingsDialog : Window
         LastFmKeyBox.Text = settings.Sources.LastFmApiKey;
         CountryBox.Text = settings.Sources.ITunesCountry;
         UserAgentBox.Text = settings.Sources.UserAgent;
+
+        sources ??= [];
+        TagSources.Load(sources, settings.Sources.Tags, SourceDefaults.Tags);
+        CoverSources.Load(sources, settings.Sources.Pictures, SourceDefaults.Pictures);
+        LyricSources.Load(sources, settings.Sources.Lyrics, SourceDefaults.Lyrics);
 
         ReformatBox.IsChecked = settings.Lyrics.ReformatTimeTags;
         RemoveTagsBox.IsChecked = settings.Lyrics.RemoveTimeTags;
@@ -64,6 +70,10 @@ public partial class SettingsDialog : Window
         _settings.Sources.UserAgent = UserAgentBox.Text?.Trim() ?? "";
         if (!string.IsNullOrWhiteSpace(_settings.Sources.UserAgent))
             Melotag.Core.Sources.Http.UserAgent = _settings.Sources.UserAgent;
+
+        _settings.Sources.Tags = TagSources.GetOrderedIds();
+        _settings.Sources.Pictures = CoverSources.GetOrderedIds();
+        _settings.Sources.Lyrics = LyricSources.GetOrderedIds();
 
         _settings.Lyrics.ReformatTimeTags = ReformatBox.IsChecked == true;
         _settings.Lyrics.RemoveTimeTags = RemoveTagsBox.IsChecked == true;

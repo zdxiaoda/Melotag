@@ -1,8 +1,7 @@
 namespace Melotag.Branding;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
+using System.Runtime.InteropServices;
+using SkiaSharp;
 
 /// <summary>
 /// 生成 Melotag 品牌资源。图形按归一化坐标（0..1）用有向距离场描边，
@@ -47,8 +46,6 @@ internal static class Program
 
     private static Shape RenderPixel(double x, double y, int size, Variant variant)
     {
-        var px = 1.0 / size;
-
         // 圆角方块底板
         var tile = Coverage(RoundRect(x, y, 0.5, 0.5, 0.478, 0.478, 0.215), size);
 
@@ -65,25 +62,15 @@ internal static class Program
             (Gz0 + (Gz1 - Gz0) * t) / 255,
             tile);
 
-        double mark;
-        if (variant == Variant.WaveWithHole)
-        {
-            mark = Waveform(x, y);
-        }
-        else
-        {
-            mark = Math.Max(
+        var mark = variant == Variant.WaveWithHole
+            ? Waveform(x, y)
+            : Math.Max(
                 Math.Max(
                     Coverage(RoundRect(x, y, 0.354, 0.575, 0.054, 0.165, 0.054), size),
                     Coverage(RoundRect(x, y, 0.525, 0.575, 0.054, 0.275, 0.054), size)),
                 Coverage(RoundRect(x, y, 0.696, 0.575, 0.054, 0.208, 0.054), size));
-        }
 
-        if (mark > 0)
-            result = Over(new Shape(1, 1, 1, mark), result);
-
-        _ = px;
-        return result;
+        return mark > 0 ? Over(new Shape(1, 1, 1, mark), result) : result;
     }
 
     private static double Waveform(double x, double y)
@@ -107,7 +94,7 @@ internal static class Program
         return Math.Sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy)) - 0.036;
     }
 
-    /// <summary>有向距离场 → 覆盖度，aa 为每像素的柔化宽度（单位：像素）。</summary>
+    /// <summary>有向距离场 → 覆盖度；sdf 以归一化单位表示，乘尺寸换算成像素。</summary>
     private static double Coverage(double sdf, int size) =>
         Math.Clamp(0.5 - sdf * size, 0, 1);
 
@@ -140,9 +127,11 @@ internal static class Program
 
     // ---------- 渲染 ----------
 
-    private static Image<Rgba32> Render(int size, Variant variant)
+    private static SKBitmap Render(int size, Variant variant)
     {
-        var image = new Image<Rgba32>(size, size);
+        var info = new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        var bitmap = new SKBitmap(info);
+        var pixels = new byte[size * size * 4];
         const int samples = 3;
         var offsets = new double[samples];
 
@@ -168,14 +157,29 @@ internal static class Program
 
                 var n = samples * samples;
                 var alpha = a / n;
-                var color = alpha <= 0
-                    ? new Rgba32(0, 0, 0, 0)
-                    : new Rgba32((byte)(r / a * 255), (byte)(g / a * 255), (byte)(b / a * 255), (byte)(alpha * 255));
-                image[px, py] = color;
+                var index = (py * size + px) * 4;
+                if (alpha <= 0)
+                {
+                    pixels[index] = pixels[index + 1] = pixels[index + 2] = pixels[index + 3] = 0;
+                    continue;
+                }
+
+                pixels[index] = (byte)Math.Clamp(r / a * 255, 0, 255);
+                pixels[index + 1] = (byte)Math.Clamp(g / a * 255, 0, 255);
+                pixels[index + 2] = (byte)Math.Clamp(b / a * 255, 0, 255);
+                pixels[index + 3] = (byte)(alpha * 255);
             }
         }
 
-        return image;
+        Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
+        return bitmap;
+    }
+
+    private static byte[] EncodePng(SKBitmap bitmap)
+    {
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
     }
 
     private static void RenderSheet(string directory)
@@ -194,41 +198,34 @@ internal static class Program
         var width = gap + variants.Length * (cell + gap);
         var height = gap + cell + 24 + small + 24 + 16 + gap;
 
-        using var sheet = new Image<Rgba32>(width, height, new Rgba32(246, 246, 248));
+        using var surface = SKSurface.Create(new SKImageInfo(width, height));
+        var canvas = surface.Canvas;
+        canvas.Clear(new SKColor(246, 246, 248));
 
         for (var i = 0; i < variants.Length; i++)
         {
             var x = gap + i * (cell + gap);
             using (var big = Render(cell, variants[i].Item1))
-                Blit(sheet, big, x, gap);
+            using (var image = SKImage.FromBitmap(big))
+                canvas.DrawImage(image, x, gap);
+
             using (var smallImage = Render(small, variants[i].Item1))
-                Blit(sheet, smallImage, x, gap + cell + 24);
+            using (var image = SKImage.FromBitmap(smallImage))
+                canvas.DrawImage(image, x, gap + cell + 24);
+
             using (var tiny = Render(16, variants[i].Item1))
-                Blit(sheet, tiny, x + small + 12, gap + cell + 24 + 8);
+            using (var image = SKImage.FromBitmap(tiny))
+                canvas.DrawImage(image, x + small + 12, gap + cell + 24 + 8);
         }
 
+        canvas.Flush();
+        using var snapshot = surface.Snapshot();
         var path = Path.Combine(directory, "variants.png");
-        sheet.SaveAsPng(path);
-        Console.WriteLine(path);
-    }
+        using (var data = snapshot.Encode(SKEncodedImageFormat.Png, 100))
+        using (var stream = File.Create(path))
+            data.SaveTo(stream);
 
-    private static void Blit(Image<Rgba32> canvas, Image<Rgba32> sprite, int ox, int oy)
-    {
-        for (var y = 0; y < sprite.Height; y++)
-        {
-            for (var x = 0; x < sprite.Width; x++)
-            {
-                var s = sprite[x, y];
-                if (s.A == 0) continue;
-                var d = canvas[ox + x, oy + y];
-                var a = s.A / 255.0 + d.A / 255.0 * (1 - s.A / 255.0);
-                if (a <= 0) continue;
-                var r = (s.R * s.A / 255.0 + d.R * d.A / 255.0 * (1 - s.A / 255.0)) / a;
-                var g = (s.G * s.A / 255.0 + d.G * d.A / 255.0 * (1 - s.A / 255.0)) / a;
-                var b = (s.B * s.A / 255.0 + d.B * d.A / 255.0 * (1 - s.A / 255.0)) / a;
-                canvas[ox + x, oy + y] = new Rgba32((byte)r, (byte)g, (byte)b, (byte)(a * 255));
-            }
-        }
+        Console.WriteLine(path);
     }
 
     // ---------- 输出 ----------
@@ -242,19 +239,17 @@ internal static class Program
         Directory.CreateDirectory(docs);
 
         using (var logo = Render(512, variant))
-            logo.SaveAsPng(Path.Combine(docs, "melotag-logo.png"));
+            File.WriteAllBytes(Path.Combine(docs, "melotag-logo.png"), EncodePng(logo));
 
         using (var logo = Render(256, variant))
-            logo.SaveAsPng(Path.Combine(uiAssets, "melotag-logo.png"));
+            File.WriteAllBytes(Path.Combine(uiAssets, "melotag-logo.png"), EncodePng(logo));
 
         int[] icoSizes = [16, 24, 32, 48, 64, 128, 256];
         var frames = new List<(int Size, byte[] Png)>();
         foreach (var size in icoSizes)
         {
             using var image = Render(size, variant);
-            using var stream = new MemoryStream();
-            image.Save(stream, new PngEncoder());
-            frames.Add((size, stream.ToArray()));
+            frames.Add((size, EncodePng(image)));
         }
 
         File.WriteAllBytes(Path.Combine(uiAssets, "Melotag.ico"), BuildIco(frames));

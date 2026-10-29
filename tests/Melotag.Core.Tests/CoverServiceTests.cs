@@ -1,18 +1,23 @@
 namespace Melotag.Core.Tests;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
 using Melotag.Core.Services;
+using SkiaSharp;
 
 public class CoverServiceTests
 {
     private static byte[] CreateJpeg(int width, int height)
     {
-        using var image = new Image<Rgb24>(width, height);
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms, new JpegEncoder { Quality = 90 });
-        return ms.ToArray();
+        using var bitmap = new SKBitmap(width, height);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.CornflowerBlue);
+            using var paint = new SKPaint { Color = SKColors.OrangeRed };
+            canvas.DrawRect(0, 0, width / 2f, height / 2f, paint);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+        return data.ToArray();
     }
 
     [Fact]

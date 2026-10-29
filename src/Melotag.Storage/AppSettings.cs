@@ -10,11 +10,28 @@ public sealed class SearchSettings
     public int AutoMatchThreads { get; set; } = 2;
 }
 
+/// <summary>各类别默认的在线源顺序；设置界面「恢复默认」与旧配置迁移共用这一份。</summary>
+public static class SourceDefaults
+{
+    public static readonly string[] Tags = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "itunes", "lastfm"];
+    public static readonly string[] Pictures = ["netease", "kugou", "kuwo", "itunes", "coverart"];
+    public static readonly string[] Lyrics = ["netease", "qq", "kugou", "lrclib"];
+
+    public static readonly string[] All = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "coverart", "itunes", "lastfm", "lrclib"];
+
+    public static string[] For(string category) => category switch
+    {
+        "pictures" => Pictures,
+        "lyrics" => Lyrics,
+        _ => Tags,
+    };
+}
+
 public sealed class SourceSettings
 {
-    public List<string> Tags { get; set; } = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "itunes", "lastfm"];
-    public List<string> Pictures { get; set; } = ["netease", "kugou", "kuwo", "itunes", "coverart"];
-    public List<string> Lyrics { get; set; } = ["netease", "qq", "kugou", "lrclib"];
+    public List<string> Tags { get; set; } = [.. SourceDefaults.Tags];
+    public List<string> Pictures { get; set; } = [.. SourceDefaults.Pictures];
+    public List<string> Lyrics { get; set; } = [.. SourceDefaults.Lyrics];
     public string ConnectorsArtists { get; set; } = " / ";
     public string ConnectorsLyricAndTranslation { get; set; } = "\n";
     public string LastFmApiKey { get; set; } = "";
@@ -97,8 +114,7 @@ public sealed class AppSettings
 
         static void Sanitize(List<string> list)
         {
-            string[] known = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "coverart", "itunes", "lastfm", "lrclib"];
-            list.RemoveAll(id => !known.Contains(id, StringComparer.OrdinalIgnoreCase));
+            list.RemoveAll(id => !SourceDefaults.All.Contains(id, StringComparer.OrdinalIgnoreCase));
         }
     }
 }
