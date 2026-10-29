@@ -29,6 +29,9 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  android:
+    uses: ./.github/workflows/android.yml
+
   publish:
     name: publish (${{ matrix.rid }})
     needs: ci
@@ -84,7 +87,7 @@ jobs:
 
   release:
     name: release
-    needs: publish
+    needs: [ publish, android ]
     # 推送版本标签自动发布；手动运行时需显式勾选 publish
     if: startsWith(github.ref, 'refs/tags/v') || inputs.publish == true
     runs-on: ubuntu-latest
@@ -229,12 +232,27 @@ jobs:
           dpkg-deb --contents "out/${pkg}_${APP_VERSION}_amd64.deb" | head -20
           ls -lh out
 
+      - name: Collect Android APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for abi in arm64 x64; do
+            dir="artifacts/melotag-android-${abi}-apk"
+            apk=$(find "$dir" -name '*-Signed.apk' -print -quit)
+            if [ -z "$apk" ]; then
+              echo "未找到 ${abi} 的已签名 APK（$dir）" >&2
+              exit 1
+            fi
+            cp "$apk" "out/Melotag-${APP_VERSION}-android-${abi}.apk"
+          done
+          ls -lh out
+
       - name: Checksums
         shell: bash
         run: |
           set -euo pipefail
           cd out
-          sha256sum ./*.zip ./*.tar.gz ./*.deb > SHA256SUMS.txt
+          sha256sum ./*.zip ./*.tar.gz ./*.deb ./*.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create or update GitHub release

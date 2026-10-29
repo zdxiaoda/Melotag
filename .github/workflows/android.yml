@@ -13,6 +13,7 @@ on:
       - 'Directory.Build.props'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: android-${{ github.workflow }}-${{ github.ref }}

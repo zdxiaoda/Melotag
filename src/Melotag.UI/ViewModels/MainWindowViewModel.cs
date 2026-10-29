@@ -53,6 +53,9 @@ public partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<TrackRowViewModel> Tracks { get; } = [];
     public IReadOnlyList<TrackRowViewModel> AllTracks => _all;
 
+    /// <summary>状态栏版本号，避免在 XAML 里硬编码。</summary>
+    public string AppVersionText => UI.AppInfo.VersionLine("TagLib#");
+
     [ObservableProperty] private TrackRowViewModel? selectedTrack;
     [ObservableProperty] private string statusText = "就绪";
     [ObservableProperty] private string countText = "0 个文件";

@@ -1,4 +1,4 @@
-# 音签 Melotag 1.0.0
+# 音签 Melotag 1.1.0
 
 <p>
   <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">
@@ -59,17 +59,19 @@ Android 与桌面的差异：
 ## 构建与发布
 
 - **CI**（`.github/workflows/ci.yml`）：push 到 `main` 或提交 PR 时，在 Ubuntu 与 Windows 上做 Release 构建并跑全部单元测试。
-- **发布**（`.github/workflows/release.yml`）：推 `v*` 标签（如 `v1.0.0`）即自动 测试 → 打包 → 创建 GitHub Release；手动触发只打包、不出 Release。
+- **发布**（`.github/workflows/release.yml`）：推 `v*` 标签（如 `v1.1.0`）即自动 测试 → 打包 → 创建 GitHub Release；手动触发只打包、不出 Release。
   - `Melotag-<版本>-win-x64.zip`：单文件 `Melotag.exe`（框架依赖）
   - `Melotag-<版本>-linux-x64.tar.gz`：单文件 `Melotag` + 图标 + `.desktop` + `install.sh`
-  - `melotag_<版本>_amd64.deb`：Debian / Ubuntu 安装包，`sudo apt install ./melotag_1.0.0_amd64.deb`
+  - `melotag_<版本>_amd64.deb`：Debian / Ubuntu 安装包，`sudo apt install ./melotag_1.1.0_amd64.deb`
+  - `Melotag-<版本>-android-arm64.apk` / `Melotag-<版本>-android-x64.apk`：Android 安装包
+    （arm64 用于真机，x64 用于模拟器；由 `android.yml` 复用构建，调试签名可直接侧载）
   - `SHA256SUMS.txt`
 
   三个包都是**框架依赖**发布，不含 .NET 运行时，体积约 30–40 MB。需要
   [.NET 10 运行时](https://dotnet.microsoft.com/download/dotnet/10.0)；未安装时启动会提示并给出下载地址。
 
 ```bash
-git tag v1.0.1 && git push origin v1.0.1   # 触发自动发布
+git tag v1.1.0 && git push origin v1.1.0   # 触发自动发布
 ```
 
 ## 已实现功能

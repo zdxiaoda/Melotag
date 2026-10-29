@@ -36,7 +36,7 @@ public sealed class SourceSettings
     public string ConnectorsLyricAndTranslation { get; set; } = "\n";
     public string LastFmApiKey { get; set; } = "";
     public string ITunesCountry { get; set; } = "CN";
-    public string UserAgent { get; set; } = "Melotag/1.0.0 (https://github.com/example/melotag)";
+    public string UserAgent { get; set; } = "Melotag/1.1.0 (https://github.com/example/melotag)";
 }
 
 public sealed class LyricsSettings

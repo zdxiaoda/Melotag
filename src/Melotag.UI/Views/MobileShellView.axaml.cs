@@ -253,7 +253,7 @@ public partial class MobileShellView : UserControl
         var text = new TextBlock
         {
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Text = "音签 Melotag 1.0.0（Android）\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n图像处理：SkiaSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n文件通过系统 SAF 授权，标签写回原文件。",
+            Text = $"{AppInfo.DisplayName} {AppInfo.Version}（Android）\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n图像处理：SkiaSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n文件通过系统 SAF 授权，标签写回原文件。",
         };
 
         var content = new StackPanel { Spacing = 12, Margin = new Thickness(4) };
