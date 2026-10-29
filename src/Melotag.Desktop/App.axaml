@@ -7,5 +7,9 @@
     <FluentTheme />
     <favl:FluentAvaloniaTheme />
     <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+    <!-- 所有窗口（含对话框）默认带品牌图标 -->
+    <Style Selector="Window">
+      <Setter Property="Icon" Value="avares://Melotag.UI/Assets/melotag-logo.png" />
+    </Style>
   </Application.Styles>
 </Application>
