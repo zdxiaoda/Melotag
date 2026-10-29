@@ -60,10 +60,15 @@ public sealed class JsonSettingsStore : ISettingsStore
 
 public static class AppPaths
 {
+    /// <summary>平台头（Android）在启动最早期设置，优先于环境变量。</summary>
+    public static string? OverrideDataDirectory { get; set; }
+
     public static string DataDirectory
     {
         get
         {
+            if (!string.IsNullOrWhiteSpace(OverrideDataDirectory)) return OverrideDataDirectory!;
+
             var explicitDir = Environment.GetEnvironmentVariable("MELOTAG_DATA_DIR");
             if (!string.IsNullOrWhiteSpace(explicitDir)) return explicitDir!;
 

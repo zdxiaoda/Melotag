@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 
-public partial class HistoryDialog : Window
+public partial class HistoryDialog : ModalView
 {
     private sealed record HistoryRow(HistoryEntry Entry)
     {
@@ -43,14 +43,14 @@ public partial class HistoryDialog : Window
 
         var entries = _store.GetHistory(_path);
         var rows = entries.Select(e => new HistoryRow(e)).ToList();
-        HistoryGrid.ItemsSource = rows;
-        if (rows.Count > 0) HistoryGrid.SelectedItem = rows[0];
+        HistoryList.ItemsSource = rows;
+        if (rows.Count > 0) HistoryList.SelectedItem = rows[0];
         Status.Text = rows.Count == 0 ? "该文件还没有历史记录" : $"共 {rows.Count} 条记录";
     }
 
     private void OnRestore(object? sender, RoutedEventArgs e)
     {
-        if (HistoryGrid.SelectedItem is not HistoryRow row)
+        if (HistoryList.SelectedItem is not HistoryRow row)
         {
             Status.Text = "请先选择一条记录";
             return;

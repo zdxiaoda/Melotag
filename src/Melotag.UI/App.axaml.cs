@@ -1,7 +1,8 @@
-namespace Melotag.Desktop;
+namespace Melotag.UI;
 
 using System.Text;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Melotag.Storage;
@@ -9,8 +10,17 @@ using Melotag.Tags;
 using Melotag.UI.ViewModels;
 using Melotag.UI.Views;
 
+/// <summary>
+/// 组合根：桌面（Classic）与 Android（单视图）共用同一份服务装配。
+/// 平台差异只通过 Melotag.UI.Platform.PlatformServices 注入。
+/// </summary>
 public partial class App : Application
 {
+    /// <summary>桌面"打开方式"传入的路径，由 Program 在启动前设置。</summary>
+    public static IReadOnlyList<string> StartupPaths { get; set; } = [];
+
+    public MainWindowViewModel? ViewModel { get; private set; }
+
     public override void OnFrameworkInitializationCompleted()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -49,17 +59,24 @@ public partial class App : Application
         var coverService = new Core.Services.CoverService();
 
         var viewModel = new MainWindowViewModel(
-            tagStore, searchService, coverService, historyStore, settingsStore, settings);
+            tagStore, searchService, coverService, historyStore, settingsStore, settings,
+            Platform.PlatformServices.Host);
+        ViewModel = viewModel;
 
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        switch (ApplicationLifetime)
         {
-            desktop.MainWindow = new MainWindow { DataContext = viewModel };
-            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+            case IClassicDesktopStyleApplicationLifetime desktop:
+                desktop.MainWindow = new MainWindow { DataContext = viewModel };
+                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                break;
+
+            case ISingleViewApplicationLifetime single:
+                single.MainView = new MobileShellView { DataContext = viewModel };
+                break;
         }
 
-        var startupPaths = Program.StartupPaths.Where(p => File.Exists(p) || Directory.Exists(p)).ToArray();
-        if (startupPaths.Length > 0)
-            _ = viewModel.AddPathsAsync(startupPaths);
+        if (StartupPaths.Count > 0)
+            _ = viewModel.AddPathsAsync(StartupPaths);
 
         base.OnFrameworkInitializationCompleted();
     }

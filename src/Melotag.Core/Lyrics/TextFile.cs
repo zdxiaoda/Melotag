@@ -83,4 +83,11 @@ public static class TextFile
 
     public static void WriteAllText(string path, string text, string encodingName) =>
         File.WriteAllText(path, text, GetEncoding(encodingName));
+
+    public static void WriteAllText(Stream stream, string text, string encodingName)
+    {
+        var bytes = GetEncoding(encodingName).GetBytes(text);
+        stream.Write(bytes, 0, bytes.Length);
+        stream.Flush();
+    }
 }

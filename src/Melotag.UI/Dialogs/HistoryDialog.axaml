@@ -1,34 +1,48 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Melotag.UI.Dialogs.HistoryDialog"
-        Title="标签历史"
-        Width="820" Height="560"
-        WindowStartupLocation="CenterOwner">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Melotag.UI.Dialogs.HistoryDialog">
 
-  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
-    <TextBlock Grid.Row="0" x:Name="Header" FontWeight="SemiBold" TextWrapping="Wrap" />
+  <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,*">
 
-    <DataGrid Grid.Row="1"
-              x:Name="HistoryGrid"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              GridLinesVisibility="Horizontal"
-              RowHeight="28">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="时间" Binding="{Binding CreatedText}" Width="170" />
-        <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="2*" />
-        <DataGridTextColumn Header="艺术家" Binding="{Binding Artist}" Width="1.5*" />
-        <DataGridTextColumn Header="专辑" Binding="{Binding Album}" Width="1.5*" />
-        <DataGridTextColumn Header="序列号" Binding="{Binding Serial}" Width="230" />
-      </DataGrid.Columns>
-    </DataGrid>
+      <Border x:Name="HeaderBar" Grid.Row="0" Padding="16,10"
+              BorderThickness="0,0,0,1"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="标签历史" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="✕" Click="OnClose" Width="36" Height="30" Padding="0"
+                  Background="Transparent" BorderThickness="0" />
+        </Grid>
+      </Border>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto">
-      <TextBlock x:Name="Status" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" />
-      <Button Grid.Column="1" Content="恢复选中" Click="OnRestore" Margin="8,0" Classes="accent" />
-      <Button Grid.Column="2" Content="清空全部历史" Click="OnClear" Margin="8,0" />
-      <Button Grid.Column="3" Content="关闭" Click="OnClose" />
+      <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <TextBlock Grid.Row="0" x:Name="Header" FontWeight="SemiBold" TextWrapping="Wrap" FontSize="12" Opacity="0.75" />
+
+        <ListBox Grid.Row="1" x:Name="HistoryList" SelectionMode="Single">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Spacing="2" Margin="0,2">
+                <TextBlock Text="{Binding CreatedText}" FontSize="12" Opacity="0.7" />
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis">
+                  <Run Text="{Binding Artist}" />
+                  <Run Text=" · " />
+                  <Run Text="{Binding Album}" />
+                </TextBlock>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+          <TextBlock x:Name="Status" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Content="恢复选中" Click="OnRestore" Classes="accent" />
+          <Button Grid.Column="2" Content="清空全部" Click="OnClear" />
+          <Button Grid.Column="3" Content="关闭" Click="OnClose" />
+        </Grid>
+      </Grid>
     </Grid>
-  </Grid>
-</Window>
+  </Border>
+</UserControl>

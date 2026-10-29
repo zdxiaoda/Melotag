@@ -23,6 +23,8 @@ public sealed class PhysicalFileHandle : IFileHandle
     public string Extension { get; }
     public long Length { get; }
     public DateTime LastWriteTimeUtc { get; }
+    public string Key => DisplayPath;
+    public bool IsWritable => true;
 
     public Stream OpenRead() =>
         new FileStream(DisplayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -36,6 +38,12 @@ public sealed class PhysicalFileHandle : IFileHandle
         if (dir is null) return null;
         var candidate = Path.Combine(dir, fileName);
         return File.Exists(candidate) ? new PhysicalFileHandle(candidate) : null;
+    }
+
+    public void SetLastWriteTimeUtc(DateTime utc)
+    {
+        if (!File.Exists(DisplayPath)) return;
+        File.SetLastWriteTimeUtc(DisplayPath, utc);
     }
 
     public override string ToString() => DisplayPath;

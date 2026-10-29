@@ -62,6 +62,7 @@ public sealed class TagLibTagStore : ITagStore
                 Channels: properties?.AudioChannels is > 0 ? properties.AudioChannels : null,
                 SizeBytes: file.Length),
             Status = TrackStatus.Loaded,
+            Source = file,
         };
     }
 
@@ -110,7 +111,7 @@ public sealed class TagLibTagStore : ITagStore
         }
 
         if (options.KeepModifiedTime)
-            File.SetLastWriteTimeUtc(file.DisplayPath, originalWriteTime);
+            file.SetLastWriteTimeUtc(originalWriteTime);
     }
 
     private static string GuessMime(byte[] data)

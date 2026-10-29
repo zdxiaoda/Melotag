@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly CoverService _covers;
     private readonly IHistoryStore _historyStore;
     private readonly ISettingsStore _settingsStore;
+    private readonly IPlatformHost _host;
     private readonly List<TrackRowViewModel> _all = [];
 
     public MainWindowViewModel(
@@ -27,13 +28,15 @@ public partial class MainWindowViewModel : ObservableObject
         CoverService covers,
         IHistoryStore historyStore,
         ISettingsStore settingsStore,
-        AppSettings settings)
+        AppSettings settings,
+        IPlatformHost? host = null)
     {
         _tagStore = tagStore;
         _search = search;
         _covers = covers;
         _historyStore = historyStore;
         _settingsStore = settingsStore;
+        _host = host ?? new FileSystemPlatformHost();
         Settings = settings;
 
         Http.UserAgent = string.IsNullOrWhiteSpace(settings.Sources.UserAgent)
@@ -46,6 +49,7 @@ public partial class MainWindowViewModel : ObservableObject
     public AppSettings Settings { get; }
     public TagSearchService Search => _search;
     public IHistoryStore HistoryStore => _historyStore;
+    public IPlatformHost Platform => _host;
     public ObservableCollection<TrackRowViewModel> Tracks { get; } = [];
     public IReadOnlyList<TrackRowViewModel> AllTracks => _all;
 
@@ -56,21 +60,39 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnFilterTextChanged(string? value) => ApplyFilter();
 
-    public async Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
+    /// <summary>桌面入口：把路径展开成文件句柄（目录递归枚举），再走 <see cref="AddFilesAsync"/>。</summary>
+    public Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
     {
-        var candidates = new List<string>();
+        var candidates = new List<IFileHandle>();
         foreach (var path in paths)
         {
-            if (Directory.Exists(path)) candidates.AddRange(EnumerateAudioFiles(path, recursive));
-            else if (File.Exists(path)) candidates.Add(path);
+            if (Directory.Exists(path))
+            {
+                foreach (var file in EnumerateAudioFiles(path, recursive))
+                    candidates.Add(new PhysicalFileHandle(file));
+            }
+            else if (File.Exists(path))
+            {
+                candidates.Add(new PhysicalFileHandle(path));
+            }
         }
 
-        var known = _all.Select(t => t.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var todo = candidates
-            .Select(Path.GetFullPath)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Where(p => !known.Contains(p))
-            .ToList();
+        return AddFilesAsync(candidates);
+    }
+
+    /// <summary>平台无关入口：接收已经展开好的文件句柄（Android SAF 用这个）。</summary>
+    public async Task AddFilesAsync(IEnumerable<IFileHandle> files)
+    {
+        var known = _all.Select(t => t.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var todo = new List<IFileHandle>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in files)
+        {
+            if (!_tagStore.CanHandle(file.Extension)) continue;
+            if (known.Contains(file.Key) || !seen.Add(file.Key)) continue;
+            todo.Add(file);
+        }
 
         if (todo.Count == 0)
         {
@@ -94,8 +116,8 @@ public partial class MainWindowViewModel : ObservableObject
         if (_all.Count == 0) return;
 
         StatusText = "正在重新读取…";
-        var paths = _all.Select(t => t.Path).ToList();
-        var results = await Task.Run(() => paths.Select(SafeRead).ToList());
+        var handles = _all.Select(t => t.Source ?? (IFileHandle)new PhysicalFileHandle(t.Path)).ToList();
+        var results = await Task.Run(() => handles.Select(SafeRead).ToList());
 
         for (var i = 0; i < results.Count && i < _all.Count; i++)
             _all[i].ApplyFrom(results[i]);
@@ -144,8 +166,12 @@ public partial class MainWindowViewModel : ObservableObject
 
             try
             {
-                await Task.Run(() => _tagStore.Write(new PhysicalFileHandle(row.Path), tags, options));
-                await Task.Run(() => _historyStore.AddSnapshot(row.Path, tags));
+                var handle = row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path);
+                if (!handle.IsWritable)
+                    throw new InvalidOperationException("该文件只有只读权限，请重新选择并授权写入");
+
+                await Task.Run(() => _tagStore.Write(handle, tags, options));
+                await Task.Run(() => _historyStore.AddSnapshot(row.Key, tags));
 
                 row.ApplyFrom(new TrackItem
                 {
@@ -154,6 +180,7 @@ public partial class MainWindowViewModel : ObservableObject
                     Tags = tags,
                     Info = row.Info,
                     Status = TrackStatus.Saved,
+                    Source = handle,
                 });
                 ok++;
             }
@@ -285,19 +312,28 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         var count = 0;
+        var failed = 0;
         foreach (var row in rows)
         {
             var picture = row.Pictures[0];
             var extension = picture.MimeType.Contains("png", StringComparison.OrdinalIgnoreCase) ? ".png" : ".jpg";
-            var target = Path.Combine(
-                Path.GetDirectoryName(row.Path)!,
-                Path.GetFileNameWithoutExtension(row.Path) + "-cover" + extension);
+            var handle = row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path);
 
-            await File.WriteAllBytesAsync(target, picture.Data);
-            count++;
+            try
+            {
+                var target = await _host.ExportCoverAsync(handle, picture.Data, extension);
+                if (target is null) failed++;
+                else count++;
+            }
+            catch
+            {
+                failed++;
+            }
         }
 
-        StatusText = $"已提取 {count} 个封面到音频所在目录";
+        StatusText = failed == 0
+            ? $"已提取 {count} 个封面"
+            : $"已提取 {count} 个封面，失败 {failed} 个";
     }
 
     private readonly ChineseConversionService _chinese = new();
@@ -332,6 +368,12 @@ public partial class MainWindowViewModel : ObservableObject
     /// <summary>把列表中的文件名做简繁转换（直接改磁盘文件）。</summary>
     public Task ConvertFileNamesAsync(bool toTraditional, ISafeNamePolicy policy)
     {
+        if (!_host.SupportsRename)
+        {
+            StatusText = "当前平台不支持重命名文件，可在电脑端完成";
+            return Task.CompletedTask;
+        }
+
         var renamed = 0;
         var failed = 0;
         var service = new RenameService();
@@ -344,7 +386,9 @@ public partial class MainWindowViewModel : ObservableObject
 
             try
             {
-                var result = service.ApplyExact(row.Path, converted, policy, alsoRenameLyrics: true, alsoRenamePictures: true);
+                var result = service.ApplyExact(row.Path, converted, policy,
+                    alsoRenameLyrics: _host.SupportsSiblingFiles,
+                    alsoRenamePictures: _host.SupportsSiblingFiles);
                 if (result.NewPath != result.OldPath)
                 {
                     row.RenameTo(result.NewPath);
@@ -365,12 +409,13 @@ public partial class MainWindowViewModel : ObservableObject
     {
         try
         {
+            var handle = row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path);
             await Task.Run(() => _tagStore.Write(
-                new PhysicalFileHandle(row.Path),
+                handle,
                 entry.Tags,
                 new TagWriteOptions(Settings.Writing.Id3v2Version, Settings.Writing.KeepModifiedTime, Settings.Writing.WriteLyricsToTag)));
 
-            var item = await Task.Run(() => _tagStore.Read(new PhysicalFileHandle(row.Path)));
+            var item = await Task.Run(() => _tagStore.Read(handle));
             row.ApplyFrom(item);
             row.StatusText = "已恢复";
             StatusText = $"已恢复到 {entry.CreatedAt:HH:mm:ss} 的记录";
@@ -385,7 +430,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void ApplyFilter()
     {
-        var selectedPath = SelectedTrack?.Path;
+        var selectedKey = SelectedTrack?.Key;
         var filter = FilterText?.Trim();
 
         Tracks.Clear();
@@ -395,7 +440,7 @@ public partial class MainWindowViewModel : ObservableObject
                 Tracks.Add(track);
         }
 
-        SelectedTrack = Tracks.FirstOrDefault(t => t.Path == selectedPath)
+        SelectedTrack = Tracks.FirstOrDefault(t => t.Key == selectedKey)
                         ?? Tracks.FirstOrDefault();
         UpdateCounts();
     }
@@ -417,11 +462,10 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private TrackItem SafeRead(string path)
+    private TrackItem SafeRead(IFileHandle handle)
     {
         try
         {
-            var handle = new PhysicalFileHandle(path);
             if (!_tagStore.CanHandle(handle.Extension))
             {
                 return new TrackItem
@@ -430,6 +474,7 @@ public partial class MainWindowViewModel : ObservableObject
                     DisplayName = handle.FileName,
                     Status = TrackStatus.Skipped,
                     Error = "不支持的格式",
+                    Source = handle,
                 };
             }
 
@@ -439,10 +484,11 @@ public partial class MainWindowViewModel : ObservableObject
         {
             return new TrackItem
             {
-                Path = path,
-                DisplayName = Path.GetFileName(path),
+                Path = handle.DisplayPath,
+                DisplayName = handle.FileName,
                 Status = TrackStatus.Failed,
                 Error = ex.Message,
+                Source = handle,
             };
         }
     }

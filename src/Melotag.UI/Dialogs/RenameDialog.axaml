@@ -1,54 +1,68 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Melotag.UI.Dialogs.RenameDialog"
-        Title="重命名 / 文件名相关"
-        Width="780" Height="640"
-        WindowStartupLocation="CenterOwner">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Melotag.UI.Dialogs.RenameDialog">
 
-  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
-    <StackPanel Grid.Row="0" Spacing="8">
-      <StackPanel Orientation="Horizontal" Spacing="18">
-        <RadioButton x:Name="ModeRename" Content="按标签重命名文件" IsChecked="True" IsCheckedChanged="OnModeChanged" />
-        <RadioButton x:Name="ModeParse" Content="按文件名写回标签" IsCheckedChanged="OnModeChanged" />
-      </StackPanel>
+  <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,*">
 
-      <StackPanel x:Name="PanelRename" Spacing="8">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="预制模板" VerticalAlignment="Center" />
-          <ComboBox x:Name="PresetCombo" Width="240" SelectionChanged="OnPresetChanged" />
+      <Border x:Name="HeaderBar" Grid.Row="0" Padding="16,10"
+              BorderThickness="0,0,0,1"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="重命名 / 文件名相关" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="✕" Click="OnCancel" Width="36" Height="30" Padding="0"
+                  Background="Transparent" BorderThickness="0" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
+        <StackPanel Grid.Row="0" Spacing="8">
+          <WrapPanel>
+            <RadioButton x:Name="ModeRename" Content="按标签重命名文件" IsChecked="True"
+                         IsCheckedChanged="OnModeChanged" Margin="0,0,18,0" />
+            <RadioButton x:Name="ModeParse" Content="按文件名写回标签" IsCheckedChanged="OnModeChanged" />
+          </WrapPanel>
+
+          <StackPanel x:Name="PanelRename" Spacing="8">
+            <WrapPanel>
+              <TextBlock Text="预制模板" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <ComboBox x:Name="PresetCombo" Width="240" SelectionChanged="OnPresetChanged" />
+            </WrapPanel>
+            <TextBox x:Name="PatternBox" Watermark="例如 @5. @1 - @2（@0 不使用，@1 标题 … @8 专辑艺术家）"
+                     TextChanged="OnPatternChanged" />
+            <WrapPanel>
+              <CheckBox x:Name="AlsoLrc" Content="同时重命名 .lrc" IsChecked="True" Margin="0,0,18,0" />
+              <CheckBox x:Name="AlsoPic" Content="同时重命名封面文件" IsChecked="True" />
+            </WrapPanel>
+          </StackPanel>
+
+          <StackPanel x:Name="PanelParse" Spacing="8" IsVisible="False">
+            <TextBox x:Name="RegexBox" Watermark="正则，例如 ^(\d+)\. (.+) - (.+)$" TextChanged="OnPatternChanged" />
+            <TextBlock Text="捕获组映射" FontSize="12" Opacity="0.7" />
+            <WrapPanel x:Name="GroupRows" />
+          </StackPanel>
         </StackPanel>
-        <TextBox x:Name="PatternBox" Watermark="例如 @5. @1 - @2（@0 不使用，@1 标题 … @8 专辑艺术家）"
-                 TextChanged="OnPatternChanged" />
-        <StackPanel Orientation="Horizontal" Spacing="18">
-          <CheckBox x:Name="AlsoLrc" Content="同时重命名 .lrc" IsChecked="True" />
-          <CheckBox x:Name="AlsoPic" Content="同时重命名封面文件" IsChecked="True" />
-        </StackPanel>
-      </StackPanel>
 
-      <StackPanel x:Name="PanelParse" Spacing="8" IsVisible="False">
-        <TextBox x:Name="RegexBox" Watermark="正则，例如 ^(\d+)\. (.+) - (.+)$" TextChanged="OnPatternChanged" />
-        <TextBlock Text="捕获组映射" FontSize="12" Opacity="0.7" />
-        <WrapPanel x:Name="GroupRows" />
-      </StackPanel>
-    </StackPanel>
+        <ListBox Grid.Row="1" x:Name="PreviewList">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Spacing="2" Margin="0,2">
+                <TextBlock Text="{Binding Target}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" Text="{Binding Source}" />
+                <TextBlock FontSize="12" Opacity="0.8" TextWrapping="Wrap" Text="{Binding Note}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
 
-    <DataGrid Grid.Row="1"
-              x:Name="PreviewGrid"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              GridLinesVisibility="Horizontal"
-              RowHeight="28">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="原文件" Binding="{Binding Source}" Width="2*" />
-        <DataGridTextColumn Header="结果" Binding="{Binding Target}" Width="2*" />
-        <DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*" />
-      </DataGrid.Columns>
-    </DataGrid>
-
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
-      <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.75" TextWrapping="Wrap" />
-      <Button Grid.Column="1" Content="应用" Click="OnApply" Margin="8,0" Classes="accent" />
-      <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.75" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Content="应用" Click="OnApply" Classes="accent" />
+          <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+        </Grid>
+      </Grid>
     </Grid>
-  </Grid>
-</Window>
+  </Border>
+</UserControl>

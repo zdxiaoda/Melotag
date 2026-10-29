@@ -7,7 +7,7 @@ using Melotag.Core.Sources;
 using Melotag.Storage;
 using Melotag.UI.ViewModels;
 
-public partial class TagSearchDialog : Window
+public partial class TagSearchDialog : ModalView
 {
     private readonly TagSearchService? _search;
     private readonly AppSettings? _settings;
@@ -53,7 +53,7 @@ public partial class TagSearchDialog : Window
 
         Progress.IsVisible = true;
         Status.Text = "正在搜索…";
-        ResultsGrid.ItemsSource = null;
+        ResultsList.ItemsSource = null;
 
         var query = new TagQuery
         {
@@ -73,8 +73,8 @@ public partial class TagSearchDialog : Window
                 _settings.Search.Threads,
                 _cts.Token);
 
-            ResultsGrid.ItemsSource = results;
-            if (results.Count > 0) ResultsGrid.SelectedItem = results[0];
+            ResultsList.ItemsSource = results;
+            if (results.Count > 0) ResultsList.SelectedItem = results[0];
             Status.Text = results.Count == 0 ? "没有结果（检查网络或 Last.fm API key）" : $"共 {results.Count} 条候选";
         }
         catch (OperationCanceledException)
@@ -93,7 +93,7 @@ public partial class TagSearchDialog : Window
 
     private void OnApply(object? sender, RoutedEventArgs e)
     {
-        if (ResultsGrid.SelectedItem is not TagCandidate candidate)
+        if (ResultsList.SelectedItem is not TagCandidate candidate)
         {
             Status.Text = "请先选择一条候选";
             return;

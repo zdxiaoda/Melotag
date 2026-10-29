@@ -13,16 +13,6 @@ using Melotag.UI.ViewModels;
 
 public partial class MainWindow : Window
 {
-    private static readonly FilePickerFileType AudioFileType = new("音频文件")
-    {
-        Patterns =
-        [
-            "*.mp3", "*.flac", "*.ape", "*.wv", "*.tta", "*.mpc",
-            "*.ogg", "*.opus", "*.m4a", "*.mp4", "*.wav", "*.aif", "*.aiff",
-            "*.wma", "*.dsf", "*.dff",
-        ],
-    };
-
     public MainWindow()
     {
         InitializeComponent();
@@ -59,39 +49,16 @@ public partial class MainWindow : Window
     {
         if (Vm is null) return;
 
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "选择音频文件",
-            AllowMultiple = true,
-            FileTypeFilter = [AudioFileType, FilePickerFileTypes.All],
-        });
-
-        var paths = files
-            .Select(f => f.TryGetLocalPath())
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p!)
-            .ToList();
-
-        if (paths.Count > 0) await Vm.AddPathsAsync(paths);
+        var files = await Platform.PlatformServices.FilePicker.PickFilesAsync(this);
+        if (files.Count > 0) await Vm.AddFilesAsync(files);
     }
 
     private async void OnAddFolder(object? sender, RoutedEventArgs e)
     {
         if (Vm is null) return;
 
-        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "选择音乐目录",
-            AllowMultiple = false,
-        });
-
-        var paths = folders
-            .Select(f => f.TryGetLocalPath())
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p!)
-            .ToList();
-
-        if (paths.Count > 0) await Vm.AddPathsAsync(paths);
+        var files = await Platform.PlatformServices.FilePicker.PickFolderAsync(this);
+        if (files.Count > 0) await Vm.AddFilesAsync(files);
     }
 
     private void OnFilterChanged(object? sender, TextChangedEventArgs e)
@@ -121,7 +88,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
-        await dialog.ShowDialog<bool>(this);
+        await ModalHost.ShowAsync(this, dialog, "重命名 / 文件名相关", 780, 640);
     }
 
     private async void OnAutoMatch(object? sender, RoutedEventArgs e)
@@ -164,7 +131,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row);
-        if (await dialog.ShowDialog<bool>(this) && dialog.Selected is { } candidate)
+        if (await ModalHost.ShowAsync(this, dialog, "在线标签匹配", 940, 640) is true && dialog.Selected is { } candidate)
             await Vm.ApplyCandidateAsync(row, candidate, dialog.Rule);
     }
 
@@ -178,7 +145,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new LyricsDialog(Vm.Search, Vm.Settings, row);
-        if (await dialog.ShowDialog<bool>(this))
+        if (await ModalHost.ShowAsync(this, dialog, "歌词", 860, 680) is true)
         {
             row.Lyrics = dialog.ResultLyrics;
             Vm.StatusText = "歌词已更新（保存标签后写入文件）";
@@ -195,7 +162,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new CoverDialog(Vm.Search, Vm.Settings, row);
-        if (!await dialog.ShowDialog<bool>(this)) return;
+        if (await ModalHost.ShowAsync(this, dialog, "封面", 820, 600) is not true) return;
 
         if (dialog.Removed)
         {
@@ -218,9 +185,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new HistoryDialog(Vm.HistoryStore, row.Path,
+        var dialog = new HistoryDialog(Vm.HistoryStore, row.Key,
             entry => _ = Vm.RestoreHistoryAsync(row, entry));
-        await dialog.ShowDialog<bool>(this);
+        await ModalHost.ShowAsync(this, dialog, "标签历史", 820, 560);
     }
 
     private async void OnSettings(object? sender, RoutedEventArgs e)
@@ -228,7 +195,7 @@ public partial class MainWindow : Window
         if (Vm is null) return;
 
         var dialog = new SettingsDialog(Vm.Settings, Vm.Search.Sources);
-        if (await dialog.ShowDialog<bool>(this))
+        if (await ModalHost.ShowAsync(this, dialog, "设置", 760, 840) is true)
             Vm.SaveSettings();
     }
 

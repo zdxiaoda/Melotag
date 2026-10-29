@@ -1,39 +1,56 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Melotag.UI.Dialogs.CoverDialog"
-        Title="封面"
-        Width="820" Height="600"
-        WindowStartupLocation="CenterOwner">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Melotag.UI.Dialogs.CoverDialog">
 
-  <Grid Margin="16" RowDefinitions="*,Auto,Auto" RowSpacing="10">
-    <Border Grid.Row="0" Background="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}" CornerRadius="6" Padding="8">
-      <Grid>
-        <Image x:Name="Preview" Stretch="Uniform" />
-        <TextBlock x:Name="Placeholder" Text="无封面" Opacity="0.5"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+  <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
+          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+          BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,*">
+
+      <Border x:Name="HeaderBar" Grid.Row="0" Padding="16,10"
+              BorderThickness="0,0,0,1"
+              BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="封面" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="✕" Click="OnCancel" Width="36" Height="30" Padding="0"
+                  Background="Transparent" BorderThickness="0" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
+        <Border Grid.Row="0" Background="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}"
+                CornerRadius="6" Padding="8" MinHeight="180">
+          <Grid>
+            <Image x:Name="Preview" Stretch="Uniform" />
+            <TextBlock x:Name="Placeholder" Text="无封面" Opacity="0.5"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+          <WrapPanel>
+            <Button Content="在线搜索" Click="OnSearch" Classes="accent" Margin="0,0,8,6" />
+            <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" Margin="0,0,8,6" />
+            <ComboBox x:Name="ResultCombo" Width="260" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
+          </WrapPanel>
+          <WrapPanel>
+            <Button Content="从本地选择" Click="OnPickLocal" Margin="0,0,8,6" />
+            <Button Content="导出到文件" Click="OnExport" Margin="0,0,8,6" />
+            <Button Content="移除封面" Click="OnRemove" Margin="0,0,8,6" />
+            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,6">
+              <TextBlock Text="体积上限(KB)" VerticalAlignment="Center" />
+              <NumericUpDown x:Name="MaxSizeBox" Width="110" Minimum="64" Maximum="10240" Increment="64" />
+            </StackPanel>
+          </WrapPanel>
+          <TextBlock x:Name="Status" Opacity="0.7" TextWrapping="Wrap" />
+
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" />
+            <Button Grid.Column="1" Content="确定" Click="OnOk" Classes="accent" />
+            <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+          </Grid>
+        </StackPanel>
       </Grid>
-    </Border>
-
-    <StackPanel Grid.Row="1" Spacing="8">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Content="在线搜索" Click="OnSearch" Classes="accent" />
-        <ComboBox x:Name="ResultCombo" Width="420" SelectionChanged="OnResultChanged" />
-        <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" />
-      </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button Content="从本地选择" Click="OnPickLocal" />
-        <Button Content="导出到文件" Click="OnExport" />
-        <Button Content="移除封面" Click="OnRemove" />
-        <TextBlock Text="体积上限(KB)" VerticalAlignment="Center" Margin="12,0,0,0" />
-        <NumericUpDown x:Name="MaxSizeBox" Width="110" Minimum="64" Maximum="10240" Increment="64" />
-      </StackPanel>
-      <TextBlock x:Name="Status" Opacity="0.7" TextWrapping="Wrap" />
-    </StackPanel>
-
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
-      <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" />
-      <Button Grid.Column="1" Content="确定" Click="OnOk" Margin="8,0" Classes="accent" />
-      <Button Grid.Column="2" Content="取消" Click="OnCancel" />
     </Grid>
-  </Grid>
-</Window>
+  </Border>
+</UserControl>

@@ -2,6 +2,7 @@ namespace Melotag.UI.ViewModels;
 
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 
 /// <summary>列表行 + 编辑面板的可绑定模型。数字字段用文本承载，避免输入过程中的绑定异常。</summary>
@@ -14,8 +15,16 @@ public partial class TrackRowViewModel : ObservableObject
     {
         path = item.Path;
         fileName = item.DisplayName;
+        Source = item.Source;
+        Key = item.Key;
         ApplyFrom(item);
     }
+
+    /// <summary>读取该行时的文件句柄；SAF 下无法从路径重建，保存必须用它。</summary>
+    public IFileHandle? Source { get; private set; }
+
+    /// <summary>历史记录 / 去重键。</summary>
+    public string Key { get; private set; }
 
     [ObservableProperty] private string path;
     [ObservableProperty] private string fileName;
@@ -47,6 +56,12 @@ public partial class TrackRowViewModel : ObservableObject
 
     public void ApplyFrom(TrackItem item)
     {
+        if (item.Source is not null)
+        {
+            Source = item.Source;
+            Key = item.Key;
+        }
+
         Title = item.Tags.Title;
         Artist = item.Tags.Artist;
         Album = item.Tags.Album;
@@ -112,6 +127,8 @@ public partial class TrackRowViewModel : ObservableObject
     {
         Path = newPath;
         FileName = System.IO.Path.GetFileName(newPath);
+        Key = newPath;
+        Source = null;
     }
 
     public TrackTags ToTags() => new()

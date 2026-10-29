@@ -9,7 +9,7 @@ using Melotag.Core.Sources;
 using Melotag.Storage;
 using Melotag.UI.ViewModels;
 
-public partial class LyricsDialog : Window
+public partial class LyricsDialog : ModalView
 {
     private readonly TagSearchService? _search;
     private readonly AppSettings? _settings;
@@ -119,17 +119,19 @@ public partial class LyricsDialog : Window
 
     private async void OnImport(object? sender, RoutedEventArgs e)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "导入 LRC",
             AllowMultiple = false,
             FileTypeFilter = [new FilePickerFileType("歌词") { Patterns = ["*.lrc", "*.txt"] }],
         });
 
-        var path = files.Select(f => f.TryGetLocalPath()).FirstOrDefault(p => p is not null);
-        if (path is null) return;
+        if (files.Count == 0) return;
 
-        var text = TextFile.ReadAllText(path, out var encoding);
+        await using var stream = await files[0].OpenReadAsync();
+        var text = TextFile.ReadAllText(stream, out var encoding);
         Editor.Text = text;
         Message.Text = $"已导入（编码 {encoding}）";
     }
@@ -137,9 +139,10 @@ public partial class LyricsDialog : Window
     private async void OnSaveLrc(object? sender, RoutedEventArgs e)
     {
         if (_settings is null) return;
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
 
         var suggested = (_row?.FileName ?? "lyrics") + ".lrc";
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "保存 LRC",
             SuggestedFileName = suggested,
@@ -147,12 +150,12 @@ public partial class LyricsDialog : Window
             FileTypeChoices = [new FilePickerFileType("歌词") { Patterns = ["*.lrc"] }],
         });
 
-        var path = file?.TryGetLocalPath();
-        if (path is null) return;
+        if (file is null) return;
 
         var encoding = EncodingCombo.SelectedItem as string ?? _settings.Lyrics.Encoding;
-        TextFile.WriteAllText(path, Editor.Text ?? "", encoding);
-        Message.Text = $"已保存：{Path.GetFileName(path)}（{encoding}）";
+        await using var stream = await file.OpenWriteAsync();
+        TextFile.WriteAllText(stream, Editor.Text ?? "", encoding);
+        Message.Text = $"已保存：{file.Name}（{encoding}）";
     }
 
     private void OnOk(object? sender, RoutedEventArgs e)

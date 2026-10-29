@@ -4,7 +4,9 @@
   <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">
 </p>
 
-跨平台音乐标签编辑器的独立实现（Windows / Linux 桌面，Android 暂缓）。功能规格参考 MusicTag v1.0.9.0 的公开行为，代码与素材全部独立实现。
+跨平台音乐标签编辑器的独立实现（Windows / Linux 桌面 + Android）。功能规格参考 MusicTag v1.0.9.0 的公开行为，代码与素材全部独立实现。
+
+桌面与 Android 共用同一套 Core / Tags / Storage / UI：文件访问走 `IFileHandle` 抽象，桌面是真实路径，Android 是 SAF 文档；对话框是 `ModalView`，桌面包成窗口、Android 显示为浮层。
 
 - 项目图表：[docs/charts.html](docs/charts.html)（架构、代码规模、功能完成度、在线源能力矩阵、容器支持）
 - 功能规格：[docs/功能清单与复刻方案.md](docs/功能清单与复刻方案.md)
@@ -24,6 +26,33 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 ```
 
 数据目录：`%APPDATA%\Melotag`（设置 `settings.json`、历史 `history.db`），可用 `MELOTAG_DATA_DIR` 覆盖。
+Android 上的数据目录是应用私有空间 `files/data`。
+
+## Android
+
+`src/Melotag.Android` 是 Android 头项目（`net10.0-android`，Avalonia.Android）。它**不在** `Melotag.slnx` 里，
+桌面 CI 因此不需要 Android 工作负载；单独构建：
+
+```bash
+dotnet workload install android                      # 需要一次管理员权限的安装
+dotnet publish src/Melotag.Android/Melotag.Android.csproj -c Release -p:AndroidPackageFormat=apk
+# 产物：src/Melotag.Android/bin/Release/net10.0-android/publish/*.apk
+```
+
+也可以直接用 CI 编译：`.github/workflows/android.yml` 在 Ubuntu 上装 Android 工作负载 + SDK 36，
+发布 APK 并上传 artifact（`melotag-android-apk`），同时跑共享核心的单元测试。
+
+Android 与桌面的差异：
+
+| 能力 | 桌面 | Android |
+| --- | --- | --- |
+| 添加文件 | 文件/文件夹选择、拖放、命令行 | SAF 多选，复制到应用缓存后编辑，保存时整体写回原文档 |
+| 添加文件夹 | 递归枚举 | 暂不支持（SAF 目录树受限），用多选代替 |
+| 重命名文件 / 文件名简繁转换 | 支持 | 暂不支持（SAF 单文档授权无法改文件名） |
+| .lrc / 封面同目录读写 | 支持 | 不支持，封面"提取"改为写入相册 `Pictures/Melotag` |
+| 修改时间保持 | 支持 | SAF 不暴露该接口，忽略 |
+| 对话框 | 独立窗口 | 覆盖层浮层（`ModalHost`） |
+| 列表 | DataGrid | 列表页 + 详情页（`MobileShellView`） |
 
 ## 构建与发布
 
@@ -102,13 +131,14 @@ git tag v1.0.1 && git push origin v1.0.1   # 触发自动发布
 ### 工程
 - 52 个单元测试：模板/正则/合并/LRC/编码/SQLite/改名/封面/简繁/TagLib 往返
 - `tools/Melotag.Probe`：不依赖 UI 的在线源诊断
-- 分层：Core（无 UI 依赖）/ Tags / Storage / UI / Desktop
+- 分层：Core（无 UI 依赖）/ Tags / Storage / UI / Desktop / Android
+- 平台差异集中：`IFileHandle`（文件）、`IPlatformHost`（数据目录/重命名/封面导出）、`IFilePickerPlatform`（选择文件）、`ModalHost`（对话框）
 
 ## 尚未实现（可选或有意不做的）
 
 | 项 | 原因 |
 |---|---|
-| Android head | 按你的要求本次不做；需 `dotnet workload install android` + SAF 版 `IFileHandle` |
+| Android 重命名 / 文件夹选择 | SAF 单文档授权无法改文件名，目录树在 Android 11+ 受限；桌面端仍完整支持 |
 | 界面多语言（英/繁） | 需要完整翻译与 resx 重构，属纯文案工程 |
 | 托盘最小化 | 需要应用图标资源与 `TrayIcon` 集成 |
 | 版本检查 | 没有更新服务端可指向；接入后约半天 |

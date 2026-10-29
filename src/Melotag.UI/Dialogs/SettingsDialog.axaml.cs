@@ -6,7 +6,7 @@ using Melotag.Core.Lyrics;
 using Melotag.Core.Sources;
 using Melotag.Storage;
 
-public partial class SettingsDialog : Window
+public partial class SettingsDialog : ModalView
 {
     private readonly AppSettings _settings;
     private readonly Action? _onSaved;

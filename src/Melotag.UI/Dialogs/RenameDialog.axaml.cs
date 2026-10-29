@@ -7,7 +7,7 @@ using Melotag.Core.Models;
 using Melotag.Core.Rename;
 using Melotag.UI.ViewModels;
 
-public partial class RenameDialog : Window
+public partial class RenameDialog : ModalView
 {
     private sealed record PreviewRow(string Source, string Target, string Note);
     private sealed record FieldOption(string Name, FieldKey? Field);
@@ -87,7 +87,7 @@ public partial class RenameDialog : Window
 
     private void RefreshPreview()
     {
-        if (PreviewGrid is null || Message is null) return;
+        if (PreviewList is null || Message is null) return;
 
         var rows = new List<PreviewRow>();
 
@@ -98,7 +98,7 @@ public partial class RenameDialog : Window
             if (errors.Count > 0)
             {
                 Message.Text = RenameService.Describe(errors[0]);
-                PreviewGrid.ItemsSource = rows;
+                PreviewList.ItemsSource = rows;
                 return;
             }
 
@@ -120,7 +120,7 @@ public partial class RenameDialog : Window
             if (plan is null)
             {
                 Message.Text = error ?? "正则无效";
-                PreviewGrid.ItemsSource = rows;
+                PreviewList.ItemsSource = rows;
                 return;
             }
 
@@ -141,7 +141,7 @@ public partial class RenameDialog : Window
             Message.Text = $"{rows.Count} 个文件，{matched} 个匹配";
         }
 
-        PreviewGrid.ItemsSource = rows;
+        PreviewList.ItemsSource = rows;
     }
 
     private static string DescribeTags(TrackTags tags) => string.Join(" | ",

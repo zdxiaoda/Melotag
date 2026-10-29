@@ -9,7 +9,7 @@ using Melotag.Core.Sources;
 using Melotag.Storage;
 using Melotag.UI.ViewModels;
 
-public partial class CoverDialog : Window
+public partial class CoverDialog : ModalView
 {
     private readonly TagSearchService? _search;
     private readonly CoverService _coverService = new();
@@ -42,6 +42,8 @@ public partial class CoverDialog : Window
     public byte[]? Result { get; private set; }
     public string ResultMime { get; private set; } = "image/jpeg";
     public bool Removed { get; private set; }
+
+    private IStorageProvider? Storage => TopLevel.GetTopLevel(this)?.StorageProvider;
 
     private void ShowPreview(byte[] data, string mime)
     {
@@ -163,7 +165,9 @@ public partial class CoverDialog : Window
 
     private async void OnPickLocal(object? sender, RoutedEventArgs e)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        if (Storage is not { } storage) return;
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "选择封面图片",
             AllowMultiple = false,
@@ -173,10 +177,12 @@ public partial class CoverDialog : Window
             ],
         });
 
-        var path = files.Select(f => f.TryGetLocalPath()).FirstOrDefault(p => p is not null);
-        if (path is null) return;
+        if (files.Count == 0) return;
 
-        ApplyWithLimits(await File.ReadAllBytesAsync(path));
+        await using var stream = await files[0].OpenReadAsync();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        ApplyWithLimits(buffer.ToArray());
     }
 
     private async void OnExport(object? sender, RoutedEventArgs e)
@@ -187,8 +193,10 @@ public partial class CoverDialog : Window
             return;
         }
 
+        if (Storage is not { } storage) return;
+
         var ext = _mime.Contains("png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "导出封面",
             SuggestedFileName = (_row?.FileName ?? "cover") + "." + ext,
@@ -196,11 +204,11 @@ public partial class CoverDialog : Window
             FileTypeChoices = [new FilePickerFileType("图片") { Patterns = [$"*.{ext}"] }],
         });
 
-        var path = file?.TryGetLocalPath();
-        if (path is null) return;
+        if (file is null) return;
 
-        await File.WriteAllBytesAsync(path, _current);
-        Status.Text = "已导出：" + Path.GetFileName(path);
+        await using var stream = await file.OpenWriteAsync();
+        await stream.WriteAsync(_current);
+        Status.Text = "已导出：" + file.Name;
     }
 
     private void OnRemove(object? sender, RoutedEventArgs e)
