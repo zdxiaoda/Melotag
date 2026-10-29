@@ -2,16 +2,20 @@ name: release
 
 # 触发条件：
 #   1) 推送 v* 标签（如 v1.0.0）→ 测试 + 打包 + 自动创建 GitHub Release
-#   2) 手动运行 → 只打包并上传 workflow artifact，不发布
+#   2) 手动运行 → 默认只打包并上传 workflow artifact；勾选 publish 时同时发布/更新 Release
 on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       tag:
-        description: '版本号（例如 v1.0.1）；手动运行只打包，不发布'
+        description: '版本号（例如 v1.0.1）'
         required: true
         type: string
+      publish:
+        description: '同时创建/更新 GitHub Release（附件会被覆盖上传）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -79,9 +83,11 @@ jobs:
   release:
     name: release
     needs: publish
-    # 只有推送版本标签时才自动发布
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 推送版本标签自动发布；手动运行时需显式勾选 publish
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish == true
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
       - uses: actions/checkout@v4
@@ -91,11 +97,16 @@ jobs:
         with:
           path: artifacts
 
+      - name: Resolve version
+        shell: bash
+        run: |
+          echo "APP_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+
       - name: Package
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="$APP_VERSION"
           mkdir -p out stage
 
           if ! command -v zip >/dev/null 2>&1; then
@@ -145,14 +156,88 @@ jobs:
 
           tar -czf "out/$lin.tar.gz" -C stage "$lin"
 
-          (cd out && sha256sum ./*.zip ./*.tar.gz > SHA256SUMS.txt)
           ls -lh out
 
-      - name: Create GitHub release
+      - name: Build .deb
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg=melotag
+          root="stage/deb"
+          rm -rf "$root"
+          mkdir -p out "$root/DEBIAN" \
+                   "$root/usr/bin" \
+                   "$root/usr/share/applications" \
+                   "$root/usr/share/icons/hicolor/512x512/apps" \
+                   "$root/usr/share/doc/$pkg"
+
+          install -m755 artifacts/publish-linux-x64/Melotag "$root/usr/bin/melotag"
+          install -m644 docs/branding/melotag-logo.png "$root/usr/share/icons/hicolor/512x512/apps/melotag.png"
+          sed 's/^Exec=Melotag/Exec=melotag/' packaging/linux/melotag.desktop \
+            > "$root/usr/share/applications/$pkg.desktop"
+          chmod 644 "$root/usr/share/applications/$pkg.desktop"
+
+          cat > "$root/usr/share/doc/$pkg/copyright" <<EOF
+          Melotag ${APP_VERSION}
+          跨平台音乐标签编辑器。
+
+          上游项目：https://github.com/${GITHUB_REPOSITORY}
+          许可证：以上游仓库中的声明为准；本包同时包含下列第三方组件：
+           Avalonia (MIT)、FluentAvalonia (MIT)、TagLib# (LGPL-2.1)、
+           SkiaSharp (MIT)、OpenCC (Apache-2.0)、Microsoft.Data.Sqlite (MIT)。
+          EOF
+          chmod 644 "$root/usr/share/doc/$pkg/copyright"
+
+          {
+            echo "$pkg (${APP_VERSION}) unstable; urgency=medium"
+            echo
+            echo "  * Release ${APP_VERSION}."
+            echo
+            echo " -- zdxiaoda <xiaoda@duck.com>  $(date -R)"
+          } | gzip -9n > "$root/usr/share/doc/$pkg/changelog.Debian.gz"
+
+          size=$(du -sk "$root" | cut -f1)
+          cat > "$root/DEBIAN/control" <<EOF
+          Package: $pkg
+          Version: ${APP_VERSION}
+          Architecture: amd64
+          Maintainer: zdxiaoda <xiaoda@duck.com>
+          Installed-Size: ${size}
+          Section: sound
+          Priority: optional
+          Homepage: https://github.com/${GITHUB_REPOSITORY}
+          Depends: libc6, libfontconfig1, libfreetype6, libice6, libsm6, libx11-6, libxcb1, libxkbcommon0, libxrandr2, libxi6, libxcursor1, libxinerama1, libegl1, libgl1, libglib2.0-0 | libglib2.0-0t64
+          Description: 音签 Melotag - 跨平台音乐标签编辑器
+           支持 MP3 / FLAC / APE / OGG / MP4 等容器的标签、封面与歌词读写，
+           可从多个在线源匹配元数据，并带有重命名、历史撤销与简繁转换。
+           .
+           本包为自包含单文件程序，无需另行安装 .NET 运行时。
+          EOF
+
+          dpkg-deb --root-owner-group -Zxz --build "$root" "out/${pkg}_${APP_VERSION}_amd64.deb"
+          dpkg-deb --info "out/${pkg}_${APP_VERSION}_amd64.deb"
+          dpkg-deb --contents "out/${pkg}_${APP_VERSION}_amd64.deb" | head -20
+          ls -lh out
+
+      - name: Checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd out
+          sha256sum ./*.zip ./*.tar.gz ./*.deb > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" out/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "音签 Melotag ${GITHUB_REF_NAME#v}" \
-            --generate-notes
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG 已存在，覆盖上传附件"
+            gh release upload "$RELEASE_TAG" out/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" out/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "音签 Melotag ${RELEASE_TAG#v}" \
+              --generate-notes
+          fi

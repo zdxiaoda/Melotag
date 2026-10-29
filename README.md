@@ -31,6 +31,7 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 - **发布**（`.github/workflows/release.yml`）：推 `v*` 标签（如 `v1.0.0`）即自动 测试 → 打包 → 创建 GitHub Release；手动触发只打包、不出 Release。
   - `Melotag-<版本>-win-x64.zip`：自包含单文件 `Melotag.exe`，无需安装 .NET
   - `Melotag-<版本>-linux-x64.tar.gz`：自包含 `Melotag` + 图标 + `.desktop` + `install.sh`
+  - `melotag_<版本>_amd64.deb`：Debian / Ubuntu 安装包，`sudo apt install ./melotag_1.0.0_amd64.deb`
   - `SHA256SUMS.txt`
 
 ```bash
