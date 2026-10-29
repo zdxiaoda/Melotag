@@ -61,10 +61,12 @@ jobs:
       - name: Publish
         shell: bash
         run: |
+          # 框架依赖（不打包 .NET 运行时）：体积从 ~110MB 降到 ~35MB，
+          # 缺少运行时由 apphost 在启动时提示并给出下载地址。
           dotnet publish src/Melotag.Desktop \
             -c Release \
             -r ${{ matrix.rid }} \
-            --self-contained true \
+            --self-contained false \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -p:DebugType=None \
@@ -118,6 +120,9 @@ jobs:
           音签 Melotag ${version}
           跨平台音乐标签编辑器（Windows / Linux）
 
+          需要 .NET 10 运行时（本包不包含）。未安装时启动会提示并给出下载地址：
+            https://dotnet.microsoft.com/download/dotnet/10.0
+
           运行：$1
 
           数据目录：$2，可用环境变量 MELOTAG_DATA_DIR 覆盖。
@@ -128,7 +133,7 @@ jobs:
           win="Melotag-${version}-win-x64"
           mkdir -p "stage/$win"
           cp -r artifacts/publish-win-x64/. "stage/$win/"
-          readme "双击 Melotag.exe（自包含，无需安装 .NET）" "%APPDATA%\\Melotag" > "stage/$win/README.txt"
+          readme "双击 Melotag.exe" "%APPDATA%\\Melotag" > "stage/$win/README.txt"
           (cd stage && zip -qr "../out/$win.zip" "$win")
 
           lin="Melotag-${version}-linux-x64"
@@ -211,11 +216,12 @@ jobs:
           Priority: optional
           Homepage: https://github.com/${GITHUB_REPOSITORY}
           Depends: libc6, libfontconfig1, libfreetype6, libice6, libsm6, libx11-6, libxcb1, libxkbcommon0, libxrandr2, libxi6, libxcursor1, libxinerama1, libegl1, libgl1, libglib2.0-0 | libglib2.0-0t64
+          Recommends: dotnet-runtime-10.0
           Description: 音签 Melotag - 跨平台音乐标签编辑器
            支持 MP3 / FLAC / APE / OGG / MP4 等容器的标签、封面与歌词读写，
            可从多个在线源匹配元数据，并带有重命名、历史撤销与简繁转换。
            .
-           本包为自包含单文件程序，无需另行安装 .NET 运行时。
+           需要 .NET 10 运行时（本包不包含）；未安装时启动会提示并给出下载地址。
           EOF
 
           dpkg-deb --root-owner-group -Zxz --build "$root" "out/${pkg}_${APP_VERSION}_amd64.deb"

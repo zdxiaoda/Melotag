@@ -29,10 +29,13 @@ dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO
 
 - **CI**（`.github/workflows/ci.yml`）：push 到 `main` 或提交 PR 时，在 Ubuntu 与 Windows 上做 Release 构建并跑全部单元测试。
 - **发布**（`.github/workflows/release.yml`）：推 `v*` 标签（如 `v1.0.0`）即自动 测试 → 打包 → 创建 GitHub Release；手动触发只打包、不出 Release。
-  - `Melotag-<版本>-win-x64.zip`：自包含单文件 `Melotag.exe`，无需安装 .NET
-  - `Melotag-<版本>-linux-x64.tar.gz`：自包含 `Melotag` + 图标 + `.desktop` + `install.sh`
+  - `Melotag-<版本>-win-x64.zip`：单文件 `Melotag.exe`（框架依赖）
+  - `Melotag-<版本>-linux-x64.tar.gz`：单文件 `Melotag` + 图标 + `.desktop` + `install.sh`
   - `melotag_<版本>_amd64.deb`：Debian / Ubuntu 安装包，`sudo apt install ./melotag_1.0.0_amd64.deb`
   - `SHA256SUMS.txt`
+
+  三个包都是**框架依赖**发布，不含 .NET 运行时，体积约 30–40 MB。需要
+  [.NET 10 运行时](https://dotnet.microsoft.com/download/dotnet/10.0)；未安装时启动会提示并给出下载地址。
 
 ```bash
 git tag v1.0.1 && git push origin v1.0.1   # 触发自动发布
