@@ -12,6 +12,9 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Melotag.Core\Melotag.Core.csproj" />
     <ProjectReference Include="..\Melotag.Tags\Melotag.Tags.csproj" />
     <ProjectReference Include="..\Melotag.Storage\Melotag.Storage.csproj" />

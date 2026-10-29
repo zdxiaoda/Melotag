@@ -248,18 +248,41 @@ public partial class MainWindow : Window
 
     private async void OnAbout(object? sender, RoutedEventArgs e)
     {
+        var logo = new Image
+        {
+            Source = new Avalonia.Media.Imaging.Bitmap(
+                Avalonia.Platform.AssetLoader.Open(new Uri("avares://Melotag.UI/Assets/melotag-logo.png"))),
+            Width = 72,
+            Height = 72,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+
+        var text = new TextBlock
+        {
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Text = "音签 Melotag 1.0.0\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n封面处理：ImageSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n独立实现，不复用原软件的任何二进制或素材。",
+        };
+
+        var content = new Grid
+        {
+            Margin = new Thickness(20),
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+        };
+        logo.Margin = new Thickness(0, 0, 16, 0);
+        Grid.SetColumn(text, 1);
+        content.Children.Add(logo);
+        content.Children.Add(text);
+
         var dialog = new Window
         {
-            Title = "关于",
-            Width = 440,
-            Height = 220,
+            Title = "关于 音签 Melotag",
+            Icon = Icon,
+            Width = 480,
+            Height = 260,
+            CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new TextBlock
-            {
-                Margin = new Thickness(20),
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Text = "音签 Melotag 1.0.0\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n封面处理：ImageSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n独立实现，不复用原软件的任何二进制或素材。",
-            },
+            Content = content,
         };
 
         await dialog.ShowDialog(this);

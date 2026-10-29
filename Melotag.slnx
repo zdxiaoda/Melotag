@@ -11,5 +11,6 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Melotag.Probe/Melotag.Probe.csproj" />
+    <Project Path="tools/Melotag.Branding/Melotag.Branding.csproj" />
   </Folder>
 </Solution>

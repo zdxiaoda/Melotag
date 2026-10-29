@@ -14,6 +14,7 @@
     <InformationalVersion>1.0.0</InformationalVersion>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Melotag.UI\Assets\Melotag.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />

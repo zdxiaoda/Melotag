@@ -1,10 +1,15 @@
 # 音签 Melotag 1.0.0
 
+<p>
+  <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">
+</p>
+
 跨平台音乐标签编辑器的独立实现（Windows / Linux 桌面，Android 暂缓）。功能规格参考 MusicTag v1.0.9.0 的公开行为，代码与素材全部独立实现。
 
 - 项目图表：[docs/charts.html](docs/charts.html)（架构、代码规模、功能完成度、在线源能力矩阵、容器支持）
 - 功能规格：[docs/功能清单与复刻方案.md](docs/功能清单与复刻方案.md)
 - 跨平台设计：[docs/跨平台重写方案.md](docs/跨平台重写方案.md)
+- 品牌资源：[docs/branding/](docs/branding/)（可编辑的 draw.io / SVG 源文件）
 
 > 分析阶段使用的原程序二进制、反编译产物与截图均未随仓库分发。
 
@@ -15,6 +20,7 @@ dotnet build Melotag.slnx
 dotnet test  Melotag.slnx
 dotnet run --project src/Melotag.Desktop -- "D:\music"      # 参数可为文件/目录，也支持"打开方式"
 dotnet run --project tools/Melotag.Probe -- "晴天" "周杰伦"   # 在线源诊断
+dotnet run --project tools/Melotag.Branding -- emit .        # 重新生成 LOGO 与 .ico
 ```
 
 数据目录：`%APPDATA%\Melotag`（设置 `settings.json`、历史 `history.db`），可用 `MELOTAG_DATA_DIR` 覆盖。

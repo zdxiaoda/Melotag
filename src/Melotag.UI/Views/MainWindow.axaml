@@ -2,10 +2,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Melotag.UI.Views.MainWindow"
         Title="音签 Melotag · 标签编辑器"
+        Icon="avares://Melotag.UI/Assets/melotag-logo.png"
         Width="1360" Height="760"
         MinWidth="1000" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource ApplicationPageBackgroundThemeBrush}">
+
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Melotag.UI/Assets/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveSelectedCommand}" />
@@ -19,6 +28,43 @@
     <Style Selector="TextBlock.fieldLabel">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Opacity" Value="0.72" />
+    </Style>
+
+    <!-- 工具栏图标按钮：24×24 描边几何，颜色跟随主题正文色 -->
+    <Style Selector="Button.icon">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.icon:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.icon:pressed">
+      <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+    <Style Selector="Button.icon:disabled Path">
+      <Setter Property="Opacity" Value="0.4" />
+    </Style>
+    <Style Selector="Path.icon">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="StrokeThickness" Value="1.7" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Border.toolbarSeparator">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Margin" Value="7,0" />
+      <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
   </Window.Styles>
 
@@ -61,37 +107,105 @@
       </MenuItem>
     </Menu>
 
-    <Border Grid.Row="1" Padding="12,8"
+    <Border Grid.Row="1" Padding="10,7"
             BorderThickness="0,0,0,1"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-      <StackPanel Spacing="6">
-        <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="添加文件" Click="OnAddFiles" />
-            <Button Content="添加文件夹" Click="OnAddFolder" />
-            <Button Content="重新读取" Command="{Binding ReloadCommand}" />
-            <Button Content="保存标签" Command="{Binding SaveSelectedCommand}" />
-            <Button Content="保存全部" Click="OnSaveAll" />
-            <Button Content="移除" Command="{Binding RemoveSelectedCommand}" />
-          </StackPanel>
-          <TextBox Grid.Column="1" x:Name="FilterBox" Width="260"
-                   Watermark="过滤：文件名 / 标题 / 艺术家 / 专辑"
-                   TextChanged="OnFilterChanged" />
-        </Grid>
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+          <Image Source="avares://Melotag.UI/Assets/melotag-logo.png" Width="26" Height="26"
+                 Margin="2,0,10,0" VerticalAlignment="Center" />
 
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Button Content="重命名" Click="OnRename" Classes="accent" />
-          <Button Content="在线匹配" Click="OnTagSearch" />
-          <Button Content="自动匹配" Click="OnAutoMatch" />
-          <Button Content="歌词" Click="OnLyrics" />
-          <Button Content="封面" Click="OnCover" />
-          <Button Content="提取封面" Click="OnExtractCovers" />
-          <Button Content="历史" Click="OnHistory" />
-          <Button Content="清空标签" Click="OnClearTags" />
-          <Button Content="设置" Click="OnSettings" />
-          <Button Content="切换主题" Click="OnToggleTheme" />
+          <Button Classes="icon" Click="OnAddFiles"
+                  ToolTip.Tip="添加文件" AutomationProperties.Name="添加文件">
+            <Path Classes="icon" Data="{StaticResource IconAddFile}" />
+          </Button>
+          <Button Classes="icon" Click="OnAddFolder"
+                  ToolTip.Tip="添加文件夹（含子目录）" AutomationProperties.Name="添加文件夹">
+            <Path Classes="icon" Data="{StaticResource IconAddFolder}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Command="{Binding ReloadCommand}"
+                  ToolTip.Tip="重新读取（F5）" AutomationProperties.Name="重新读取">
+            <Path Classes="icon" Data="{StaticResource IconReload}" />
+          </Button>
+          <Button Classes="icon" Command="{Binding SaveSelectedCommand}"
+                  ToolTip.Tip="保存当前标签（Ctrl+S）" AutomationProperties.Name="保存当前标签">
+            <Path Classes="icon" Data="{StaticResource IconSave}" />
+          </Button>
+          <Button Classes="icon" Click="OnSaveAll"
+                  ToolTip.Tip="保存全部" AutomationProperties.Name="保存全部">
+            <Path Classes="icon" Data="{StaticResource IconSaveAll}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Command="{Binding RemoveSelectedCommand}"
+                  ToolTip.Tip="从列表移除" AutomationProperties.Name="从列表移除">
+            <Path Classes="icon" Data="{StaticResource IconRemove}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Click="OnRename"
+                  ToolTip.Tip="重命名 / 文件名相关…" AutomationProperties.Name="重命名">
+            <Path Classes="icon" Data="{StaticResource IconRename}" />
+          </Button>
+          <Button Classes="icon" Click="OnTagSearch"
+                  ToolTip.Tip="在线标签匹配…" AutomationProperties.Name="在线标签匹配">
+            <Path Classes="icon" Data="{StaticResource IconOnline}" />
+          </Button>
+          <Button Classes="icon" Click="OnAutoMatch"
+                  ToolTip.Tip="批量自动匹配" AutomationProperties.Name="批量自动匹配">
+            <Path Classes="icon" Data="{StaticResource IconAutoMatch}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Click="OnLyrics"
+                  ToolTip.Tip="歌词…" AutomationProperties.Name="歌词">
+            <Path Classes="icon" Data="{StaticResource IconLyrics}" />
+          </Button>
+          <Button Classes="icon" Click="OnCover"
+                  ToolTip.Tip="封面…" AutomationProperties.Name="封面">
+            <Path Classes="icon" Data="{StaticResource IconCover}" />
+          </Button>
+          <Button Classes="icon" Click="OnExtractCovers"
+                  ToolTip.Tip="批量提取封面" AutomationProperties.Name="批量提取封面">
+            <Path Classes="icon" Data="{StaticResource IconExtractCover}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Click="OnHistory"
+                  ToolTip.Tip="标签历史…" AutomationProperties.Name="标签历史">
+            <Path Classes="icon" Data="{StaticResource IconHistory}" />
+          </Button>
+          <Button Classes="icon" Click="OnClearTags"
+                  ToolTip.Tip="清空标签（仅在内存中）" AutomationProperties.Name="清空标签">
+            <Path Classes="icon" Data="{StaticResource IconClear}" />
+          </Button>
+
+          <Border Classes="toolbarSeparator" />
+
+          <Button Classes="icon" Click="OnSettings"
+                  ToolTip.Tip="设置…" AutomationProperties.Name="设置">
+            <Path Classes="icon" Data="{StaticResource IconSettings}" />
+          </Button>
+          <Button Classes="icon" Click="OnToggleTheme"
+                  ToolTip.Tip="切换深色 / 浅色主题" AutomationProperties.Name="切换主题">
+            <Path Classes="icon" Data="{StaticResource IconTheme}" />
+          </Button>
         </StackPanel>
-      </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Path Classes="icon" Data="{StaticResource IconSearch}" Width="18" Height="18" Opacity="0.5" />
+          <TextBox x:Name="FilterBox" Width="250"
+                   PlaceholderText="过滤：文件名 / 标题 / 艺术家 / 专辑"
+                   TextChanged="OnFilterChanged" />
+        </StackPanel>
+      </Grid>
     </Border>
 
     <Grid Grid.Row="2" ColumnDefinitions="*,360">
@@ -204,7 +318,11 @@
       <Grid ColumnDefinitions="Auto,*,Auto">
         <TextBlock Grid.Column="0" Text="{Binding CountText}" Opacity="0.8" />
         <TextBlock Grid.Column="1" Text="{Binding StatusText}" Margin="16,0" TextTrimming="CharacterEllipsis" />
-        <TextBlock Grid.Column="2" Text="音签 1.0.0 · TagLib#" Opacity="0.5" FontSize="11" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Image Source="avares://Melotag.UI/Assets/melotag-logo.png" Width="14" Height="14"
+                 VerticalAlignment="Center" />
+          <TextBlock Text="音签 1.0.0 · TagLib#" Opacity="0.5" FontSize="11" VerticalAlignment="Center" />
+        </StackPanel>
       </Grid>
     </Border>
   </Grid>

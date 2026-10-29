@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="melotag-logo" name="LOGO">
+    <mxGraphModel dx="600" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="0" arrows="0" fold="1" page="1" pageScale="1" pageWidth="512" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tile" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=22;fillColor=#6E5BF5;gradientColor=#18BED6;gradientDirection=east;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="11.3" y="11.3" width="489.4" height="489.4" as="geometry" />
+        </mxCell>
+        <mxCell id="punch" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="86" y="89.1" width="59.4" height="59.4" as="geometry" />
+        </mxCell>
+        <mxCell id="bar1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="153.6" y="210" width="55.3" height="169" as="geometry" />
+        </mxCell>
+        <mxCell id="bar2" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="240.9" y="153.6" width="55.3" height="281.6" as="geometry" />
+        </mxCell>
+        <mxCell id="bar3" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="328.3" y="187.9" width="55.3" height="213" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="左上圆为「标签孔」：导出资源时打穿为透明（SVG 用 mask，工具 Melotag.Branding 用距离场遮罩），draw.io 里用白色圆近似。渐变在 SVG/工具里是左上→右下对角，draw.io 只支持单向渐变。" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="11.3" y="520" width="489.4" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
