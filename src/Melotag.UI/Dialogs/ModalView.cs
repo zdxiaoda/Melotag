@@ -56,37 +56,65 @@ public static class ModalHost
         view.CloseRequested += OnClose;
 
         if (IsSingleView || owner is not Window window)
-            ShowOverlay(owner, view, completion);
+            ShowOverlay(owner, view, width, height, completion);
         else
             ShowWindow(window, view, title, width, height, completion);
 
         return completion.Task;
     }
 
-    private static void ShowOverlay(TopLevel? owner, ModalView view, TaskCompletionSource<object?> completion)
+    /// <summary>
+    /// Android 等单视图平台：居中显示为卡片，尺寸取"请求尺寸"与"屏幕减去边距"的较小值。
+    /// </summary>
+    private static void ShowOverlay(TopLevel? owner, ModalView view, double requestedWidth,
+        double requestedHeight, TaskCompletionSource<object?> completion)
     {
         if (owner is null || OverlayLayer.GetOverlayLayer(owner) is not { } layer) return;
 
         view.ShowHeader = true;
-        view.HorizontalAlignment = HorizontalAlignment.Stretch;
-        view.VerticalAlignment = VerticalAlignment.Stretch;
-        view.Margin = new Thickness(10);
+        view.HorizontalAlignment = HorizontalAlignment.Center;
+        view.VerticalAlignment = VerticalAlignment.Center;
+        view.Margin = new Thickness(0);
 
         var backdrop = new Border
         {
             Background = new SolidColorBrush(Color.FromArgb(0xB0, 0, 0, 0)),
         };
 
-        var host = new Grid { Background = Brushes.Transparent };
+        var host = new Grid
+        {
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+
         host.Children.Add(backdrop);
         host.Children.Add(view);
         layer.Children.Add(host);
 
+        void ApplySize()
+        {
+            var area = owner.Bounds.Size;
+            var width = Math.Min(requestedWidth, Math.Max(280, area.Width - 24));
+            var height = Math.Min(requestedHeight, Math.Max(200, area.Height - 24));
+
+            host.Width = area.Width;
+            host.Height = area.Height;
+            view.Width = width;
+            view.Height = height;
+        }
+
+        ApplySize();
+        owner.SizeChanged += OnOwnerSizeChanged;
+
         _ = completion.Task.ContinueWith(_ => Dispatcher.UIThread.Post(() =>
         {
+            owner.SizeChanged -= OnOwnerSizeChanged;
             layer.Children.Remove(host);
             host.Children.Clear();
         }), TaskScheduler.Default);
+
+        void OnOwnerSizeChanged(object? sender, SizeChangedEventArgs e) => ApplySize();
     }
 
     private static void ShowWindow(Window owner, ModalView view, string title, double width, double height,

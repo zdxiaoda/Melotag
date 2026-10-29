@@ -90,10 +90,11 @@
                ItemsSource="{Binding Tracks}"
                SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
                SelectionChanged="OnSelectionChanged"
+               Tapped="OnRowTapped"
                Margin="4,0">
         <ListBox.ItemTemplate>
           <DataTemplate>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,3">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,3">
               <Border Width="46" Height="46" CornerRadius="6" ClipToBounds="True"
                       Background="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}">
                 <Image Source="{Binding CoverPreview}" Stretch="UniformToFill" />
@@ -113,6 +114,10 @@
                   <Run Text="{Binding FormatText}" />
                 </TextBlock>
               </StackPanel>
+              <Button Grid.Column="2" Content="✕" Command="{Binding RemoveCommand}"
+                      Width="40" Height="40" Padding="0" VerticalAlignment="Center"
+                      Background="Transparent" BorderThickness="0" CornerRadius="8"
+                      ToolTip.Tip="从列表移除" AutomationProperties.Name="从列表移除" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>
@@ -152,7 +157,7 @@
             <Button Content="封面" Click="OnCover" Margin="0,0,8,8" />
             <Button Content="历史" Click="OnHistory" Margin="0,0,8,8" />
             <Button Content="清空标签" Click="OnClearTags" Margin="0,0,8,8" />
-            <Button Content="移除" Click="OnRemoveSelected" Margin="0,0,8,8" />
+            <Button Content="移出列表" Click="OnRemoveSelected" Margin="0,0,8,8" />
           </WrapPanel>
 
           <StackPanel Spacing="4">

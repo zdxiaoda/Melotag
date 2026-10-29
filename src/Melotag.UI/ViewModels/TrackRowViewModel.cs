@@ -2,6 +2,7 @@ namespace Melotag.UI.ViewModels;
 
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 
@@ -11,14 +12,21 @@ public partial class TrackRowViewModel : ObservableObject
     private readonly List<TagPicture> _pictures = [];
     private AudioInfo? _info;
 
-    public TrackRowViewModel(TrackItem item)
+    public TrackRowViewModel(TrackItem item, Action<TrackRowViewModel>? remove = null)
     {
         path = item.Path;
         fileName = item.DisplayName;
         Source = item.Source;
         Key = item.Key;
+
+        if (remove is not null)
+            RemoveCommand = new RelayCommand(() => remove(this));
+
         ApplyFrom(item);
     }
+
+    /// <summary>行内的"移出列表"命令（移动端列表每行右侧的 ✕）。</summary>
+    public IRelayCommand? RemoveCommand { get; }
 
     /// <summary>读取该行时的文件句柄；SAF 下无法从路径重建，保存必须用它。</summary>
     public IFileHandle? Source { get; private set; }

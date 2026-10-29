@@ -104,7 +104,7 @@ public partial class MainWindowViewModel : ObservableObject
         var results = await Task.Run(() => todo.Select(SafeRead).ToList());
 
         foreach (var item in results)
-            _all.Add(new TrackRowViewModel(item));
+            _all.Add(new TrackRowViewModel(item, Remove));
 
         ApplyFilter();
         StatusText = $"已读取 {results.Count(r => r.Status == TrackStatus.Loaded)} 个，失败/跳过 {results.Count(r => r.Status is TrackStatus.Failed or TrackStatus.Skipped)} 个";
@@ -208,16 +208,26 @@ public partial class MainWindowViewModel : ObservableObject
         StatusText = $"已清空 {rows.Count} 个文件的标签（尚未写入）";
     }
 
+    /// <summary>从列表移除一行（只影响列表，不改文件）。</summary>
+    public void Remove(TrackRowViewModel row)
+    {
+        var wasSelected = ReferenceEquals(SelectedTrack, row);
+
+        _all.Remove(row);
+        Tracks.Remove(row);
+
+        if (wasSelected) SelectedTrack = null;
+
+        UpdateCounts();
+        StatusText = "已从列表移除";
+    }
+
     [RelayCommand]
     private Task RemoveSelectedAsync()
     {
         if (SelectedTrack is null) return Task.CompletedTask;
 
-        _all.Remove(SelectedTrack);
-        Tracks.Remove(SelectedTrack);
-        SelectedTrack = Tracks.FirstOrDefault();
-        UpdateCounts();
-        StatusText = "已从列表移除";
+        Remove(SelectedTrack);
         return Task.CompletedTask;
     }
 

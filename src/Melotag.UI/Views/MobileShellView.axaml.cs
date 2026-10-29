@@ -2,6 +2,7 @@ namespace Melotag.UI.Views;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Melotag.Core.Rename;
@@ -42,6 +43,13 @@ public partial class MobileShellView : UserControl
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        // 选中项被移除（或过滤掉）时退回列表；打开详情只由用户点击触发。
+        if (TrackList.SelectedItem is null && DetailPage.IsVisible)
+            ShowDetail(false);
+    }
+
+    private void OnRowTapped(object? sender, TappedEventArgs e)
     {
         if (TrackList.SelectedItem is TrackRowViewModel)
             ShowDetail(true);
