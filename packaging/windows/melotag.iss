@@ -38,9 +38,9 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 ShowLanguageDialog=auto
 
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+; 只使用 Inno Setup 自带的英文向导，避免 runner 缺少额外语言文件；
+; 应用界面本身仍支持中文 / 日文 / 英文。
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
