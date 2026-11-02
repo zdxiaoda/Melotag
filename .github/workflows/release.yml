@@ -47,10 +47,10 @@ jobs:
             os: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -123,7 +123,7 @@ jobs:
 
       - name: Upload Windows installer
         if: matrix.rid == 'win-x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: installer-win-x64
           path: dist/installer-win-x64/*.exe
@@ -145,14 +145,14 @@ jobs:
 
       - name: Upload MSIX
         if: matrix.rid == 'win-x64' && vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '' && vars.MSIX_PUBLISHER_DISPLAY_NAME != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: msix-win-x64
           path: dist/installer-win-x64/*.msix
           if-no-files-found: error
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: publish-${{ matrix.rid }}
           path: dist/${{ matrix.rid }}
@@ -166,15 +166,15 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -447,7 +447,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages-${{ env.RELEASE_TAG }}
           path: out/*
