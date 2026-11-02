@@ -7,6 +7,10 @@ License:        MIT
 URL:            https://github.com/zdxiaoda/Melotag
 BuildArch:      x86_64
 
+# Melotag 是 .NET 单文件包；默认的 brp-strip 会把内嵌运行时/程序集剥掉。
+%global debug_package %{nil}
+%define __strip /bin/true
+
 Requires:       glibc fontconfig freetype libICE libSM libX11 libxcb libxkbcommon
 Requires:       libXrandr libXi libXcursor libXinerama mesa-libEGL mesa-libGL glib2
 Recommends:     dotnet-runtime-10.0
