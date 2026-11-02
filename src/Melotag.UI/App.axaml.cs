@@ -7,6 +7,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Melotag.Storage;
 using Melotag.Tags;
+using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 using Melotag.UI.Views;
 
@@ -27,6 +28,8 @@ public partial class App : Application
 
         var settingsStore = new JsonSettingsStore();
         var settings = settingsStore.Load();
+
+        Localizer.Instance.SetLanguage(Localizer.ResolveLanguage(settings.Ui.Language));
 
         RequestedThemeVariant = settings.Ui.Theme switch
         {
@@ -74,6 +77,9 @@ public partial class App : Application
                 single.MainView = new MobileShellView { DataContext = viewModel };
                 break;
         }
+
+        if (settings.Ui.CheckForUpdatesOnStartup)
+            _ = new UpdateUi().CheckOnStartupAsync(viewModel);
 
         if (StartupPaths.Count > 0)
             _ = viewModel.AddPathsAsync(StartupPaths);

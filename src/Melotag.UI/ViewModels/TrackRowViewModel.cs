@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
+using Melotag.UI.Localization;
 
 /// <summary>列表行 + 编辑面板的可绑定模型。数字字段用文本承载，避免输入过程中的绑定异常。</summary>
 public partial class TrackRowViewModel : ObservableObject
@@ -50,7 +51,7 @@ public partial class TrackRowViewModel : ObservableObject
     [ObservableProperty] private string? lyricist;
     [ObservableProperty] private string? lyrics;
 
-    [ObservableProperty] private string statusText = "待读取";
+    [ObservableProperty] private TrackStatus status = TrackStatus.Pending;
     [ObservableProperty] private string durationText = "";
     [ObservableProperty] private string formatText = "";
     [ObservableProperty] private string sizeText = "";
@@ -61,6 +62,19 @@ public partial class TrackRowViewModel : ObservableObject
     public IReadOnlyList<TagPicture> Pictures => _pictures;
     public bool PicturesDirty { get; private set; }
     public bool HasCover => _pictures.Count > 0;
+
+    /// <summary>本地化后的状态文本；逻辑判断一律使用 <see cref="Status"/>。</summary>
+    public string StatusText => Localizer.T($"TrackStatus.{Status}");
+
+    /// <summary>供 DataGrid 按数值排序（显示仍用 *Text）。</summary>
+    public uint? TrackNumber => ParseUInt(TrackText);
+    public uint? DiscNumber => ParseUInt(DiscText);
+    public uint? YearNumber => ParseUInt(YearText);
+    public double DurationSeconds => _info is null ? 0 : _info.Duration.TotalSeconds;
+
+    partial void OnStatusChanged(TrackStatus value) => OnPropertyChanged(nameof(StatusText));
+
+    public void RefreshLocalizedText() => OnPropertyChanged(nameof(StatusText));
 
     public void ApplyFrom(TrackItem item)
     {
@@ -84,10 +98,11 @@ public partial class TrackRowViewModel : ObservableObject
         Lyrics = item.Tags.Lyrics;
 
         _info = item.Info;
+        OnPropertyChanged(nameof(DurationSeconds));
         DurationText = item.Info?.DurationText ?? "";
         FormatText = item.Info?.Format ?? "";
         SizeText = item.Info?.SizeText ?? "";
-        StatusText = Describe(item.Status);
+        Status = item.Status;
         ErrorText = item.Error;
 
         _pictures.Clear();
@@ -111,7 +126,7 @@ public partial class TrackRowViewModel : ObservableObject
         Composer = tags.Composer;
         Lyricist = tags.Lyricist;
         if (tags.Lyrics is not null) Lyrics = tags.Lyrics;
-        StatusText = "已修改";
+        Status = TrackStatus.Modified;
     }
 
     public void SetCover(byte[] data, string mimeType)
@@ -120,7 +135,7 @@ public partial class TrackRowViewModel : ObservableObject
         _pictures.Add(new TagPicture(data, mimeType));
         PicturesDirty = true;
         UpdateCoverPreview();
-        StatusText = "已修改";
+        Status = TrackStatus.Modified;
     }
 
     public void ClearCover()
@@ -128,7 +143,7 @@ public partial class TrackRowViewModel : ObservableObject
         _pictures.Clear();
         PicturesDirty = true;
         CoverPreview = null;
-        StatusText = "已修改";
+        Status = TrackStatus.Modified;
     }
 
     public void RenameTo(string newPath)
@@ -154,16 +169,6 @@ public partial class TrackRowViewModel : ObservableObject
         Lyricist = TrackTags.Normalize(Lyricist),
         Lyrics = string.IsNullOrWhiteSpace(Lyrics) ? null : Lyrics,
         Pictures = [.. _pictures],
-    };
-
-    private static string Describe(TrackStatus status) => status switch
-    {
-        TrackStatus.Loaded => "已读取",
-        TrackStatus.Saved => "已保存",
-        TrackStatus.Modified => "已修改",
-        TrackStatus.Failed => "失败",
-        TrackStatus.Skipped => "跳过",
-        _ => "待读取",
     };
 
     private static uint? ParseUInt(string? text) =>
@@ -192,9 +197,23 @@ public partial class TrackRowViewModel : ObservableObject
     partial void OnArtistChanged(string? value) => MarkModified();
     partial void OnAlbumChanged(string? value) => MarkModified();
     partial void OnAlbumArtistChanged(string? value) => MarkModified();
-    partial void OnYearTextChanged(string? value) => MarkModified();
-    partial void OnTrackTextChanged(string? value) => MarkModified();
-    partial void OnDiscTextChanged(string? value) => MarkModified();
+    partial void OnYearTextChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(YearNumber));
+    }
+
+    partial void OnTrackTextChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(TrackNumber));
+    }
+
+    partial void OnDiscTextChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(DiscNumber));
+    }
     partial void OnGenreChanged(string? value) => MarkModified();
     partial void OnCommentChanged(string? value) => MarkModified();
     partial void OnComposerChanged(string? value) => MarkModified();
@@ -203,7 +222,7 @@ public partial class TrackRowViewModel : ObservableObject
 
     private void MarkModified()
     {
-        if (StatusText is "已读取" or "已保存" or "待读取")
-            StatusText = "已修改";
+        if (Status is TrackStatus.Pending or TrackStatus.Loaded or TrackStatus.Saved)
+            Status = TrackStatus.Modified;
     }
 }

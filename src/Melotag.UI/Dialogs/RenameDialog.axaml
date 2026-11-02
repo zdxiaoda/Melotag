@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Dialogs.RenameDialog">
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -11,7 +12,7 @@
               BorderThickness="0,0,0,1"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="重命名 / 文件名相关" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Tr Key=Dialog.Rename}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Button Grid.Column="1" Content="✕" Click="OnCancel" Width="36" Height="30" Padding="0"
                   Background="Transparent" BorderThickness="0" />
         </Grid>
@@ -20,27 +21,27 @@
       <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
         <StackPanel Grid.Row="0" Spacing="8">
           <WrapPanel>
-            <RadioButton x:Name="ModeRename" Content="按标签重命名文件" IsChecked="True"
+            <RadioButton x:Name="ModeRename" Content="{loc:Tr Key=Rename.ModeRename}" IsChecked="True"
                          IsCheckedChanged="OnModeChanged" Margin="0,0,18,0" />
-            <RadioButton x:Name="ModeParse" Content="按文件名写回标签" IsCheckedChanged="OnModeChanged" />
+            <RadioButton x:Name="ModeParse" Content="{loc:Tr Key=Rename.ModeParse}" IsCheckedChanged="OnModeChanged" />
           </WrapPanel>
 
           <StackPanel x:Name="PanelRename" Spacing="8">
             <WrapPanel>
-              <TextBlock Text="预制模板" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <TextBlock Text="{loc:Tr Key=Rename.Presets}" VerticalAlignment="Center" Margin="0,0,8,0" />
               <ComboBox x:Name="PresetCombo" Width="240" SelectionChanged="OnPresetChanged" />
             </WrapPanel>
-            <TextBox x:Name="PatternBox" Watermark="例如 @5. @1 - @2（@0 不使用，@1 标题 … @8 专辑艺术家）"
+            <TextBox x:Name="PatternBox" PlaceholderText="{loc:Tr Key=Rename.PatternWatermark}"
                      TextChanged="OnPatternChanged" />
             <WrapPanel>
-              <CheckBox x:Name="AlsoLrc" Content="同时重命名 .lrc" IsChecked="True" Margin="0,0,18,0" />
-              <CheckBox x:Name="AlsoPic" Content="同时重命名封面文件" IsChecked="True" />
+              <CheckBox x:Name="AlsoLrc" Content="{loc:Tr Key=Rename.AlsoLrc}" IsChecked="True" Margin="0,0,18,0" />
+              <CheckBox x:Name="AlsoPic" Content="{loc:Tr Key=Rename.AlsoPic}" IsChecked="True" />
             </WrapPanel>
           </StackPanel>
 
           <StackPanel x:Name="PanelParse" Spacing="8" IsVisible="False">
-            <TextBox x:Name="RegexBox" Watermark="正则，例如 ^(\d+)\. (.+) - (.+)$" TextChanged="OnPatternChanged" />
-            <TextBlock Text="捕获组映射" FontSize="12" Opacity="0.7" />
+            <TextBox x:Name="RegexBox" PlaceholderText="{loc:Tr Key=Rename.RegexWatermark}" TextChanged="OnPatternChanged" />
+            <TextBlock Text="{loc:Tr Key=Rename.GroupMapping}" FontSize="12" Opacity="0.7" />
             <WrapPanel x:Name="GroupRows" />
           </StackPanel>
         </StackPanel>
@@ -59,8 +60,8 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
           <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.75" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Content="应用" Click="OnApply" Classes="accent" />
-          <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+          <Button Grid.Column="1" Content="{loc:Tr Key=Button.Apply}" Click="OnApply" Classes="accent" />
+          <Button Grid.Column="2" Content="{loc:Tr Key=Button.Cancel}" Click="OnCancel" />
         </Grid>
       </Grid>
     </Grid>

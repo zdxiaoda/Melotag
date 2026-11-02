@@ -11,6 +11,7 @@ using Melotag.Core.Rename;
 using Melotag.Core.Services;
 using Melotag.Core.Sources;
 using Melotag.Storage;
+using Melotag.UI.Localization;
 
 public partial class MainWindowViewModel : ObservableObject
 {
@@ -43,7 +44,19 @@ public partial class MainWindowViewModel : ObservableObject
             ? Http.UserAgent
             : settings.Sources.UserAgent;
 
+        Localizer.Instance.LanguageChanged += OnLanguageChanged;
+        StatusText = Localizer.T("Status.Ready");
         UpdateCounts();
+    }
+
+    private void OnLanguageChanged()
+    {
+        foreach (var row in _all)
+            row.RefreshLocalizedText();
+
+        UpdateCounts();
+        OnPropertyChanged(nameof(AppVersionText));
+        StatusText = Localizer.T("Status.Ready");
     }
 
     public AppSettings Settings { get; }
@@ -54,14 +67,14 @@ public partial class MainWindowViewModel : ObservableObject
     public IReadOnlyList<TrackRowViewModel> AllTracks => _all;
 
     /// <summary>状态栏版本号，避免在 XAML 里硬编码。</summary>
-    public string AppVersionText => UI.AppInfo.VersionLine("TagLib#");
+    public string AppVersionText => UI.AppInfo.VersionLine();
 
     [ObservableProperty] private TrackRowViewModel? selectedTrack;
-    [ObservableProperty] private string statusText = "就绪";
-    [ObservableProperty] private string countText = "0 个文件";
+    [ObservableProperty] private string statusText = "";
+    [ObservableProperty] private string countText = "";
     [ObservableProperty] private string filterText = "";
 
-    partial void OnFilterTextChanged(string? value) => ApplyFilter();
+    partial void OnFilterTextChanged(string value) => ApplyFilter();
 
     /// <summary>桌面入口：把路径展开成文件句柄（目录递归枚举），再走 <see cref="AddFilesAsync"/>。</summary>
     public Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
@@ -99,18 +112,21 @@ public partial class MainWindowViewModel : ObservableObject
 
         if (todo.Count == 0)
         {
-            StatusText = "没有新增文件";
+            StatusText = Localizer.T("Status.NoNewFiles");
             return;
         }
 
-        StatusText = $"正在读取 {todo.Count} 个文件…";
+        StatusText = Localizer.F("Status.LoadingFiles", todo.Count);
         var results = await Task.Run(() => todo.Select(SafeRead).ToList());
 
         foreach (var item in results)
             _all.Add(new TrackRowViewModel(item, Remove));
 
         ApplyFilter();
-        StatusText = $"已读取 {results.Count(r => r.Status == TrackStatus.Loaded)} 个，失败/跳过 {results.Count(r => r.Status is TrackStatus.Failed or TrackStatus.Skipped)} 个";
+        StatusText = Localizer.F(
+            "Status.LoadedFiles",
+            results.Count(r => r.Status == TrackStatus.Loaded),
+            results.Count(r => r.Status is TrackStatus.Failed or TrackStatus.Skipped));
     }
 
     [RelayCommand]
@@ -118,14 +134,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (_all.Count == 0) return;
 
-        StatusText = "正在重新读取…";
+        StatusText = Localizer.T("Status.Reloading");
         var handles = _all.Select(t => t.Source ?? (IFileHandle)new PhysicalFileHandle(t.Path)).ToList();
         var results = await Task.Run(() => handles.Select(SafeRead).ToList());
 
         for (var i = 0; i < results.Count && i < _all.Count; i++)
             _all[i].ApplyFrom(results[i]);
 
-        StatusText = "重新读取完成";
+        StatusText = Localizer.T("Status.Reloaded");
     }
 
     [RelayCommand]
@@ -133,7 +149,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (SelectedTrack is null)
         {
-            StatusText = "请先选择一个文件";
+            StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
@@ -142,10 +158,10 @@ public partial class MainWindowViewModel : ObservableObject
 
     public async Task SaveAllAsync()
     {
-        var rows = _all.Where(r => r.StatusText is not ("失败" or "跳过")).ToList();
+        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
         if (rows.Count == 0)
         {
-            StatusText = "没有可保存的文件";
+            StatusText = Localizer.T("Status.NoSavableFiles");
             return;
         }
 
@@ -159,7 +175,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         foreach (var row in rows)
         {
-            StatusText = $"正在保存 {row.FileName}…";
+            StatusText = Localizer.F("Status.Saving", row.FileName);
             var tags = row.ToTags();
             var options = new TagWriteOptions(
                 Settings.Writing.Id3v2Version,
@@ -171,7 +187,7 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 var handle = row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path);
                 if (!handle.IsWritable)
-                    throw new InvalidOperationException("该文件只有只读权限，请重新选择并授权写入");
+                    throw new InvalidOperationException(Localizer.T("Status.ReadOnlyFile"));
 
                 await Task.Run(() => _tagStore.Write(handle, tags, options));
                 await Task.Run(() => _historyStore.AddSnapshot(row.Key, tags));
@@ -189,18 +205,20 @@ public partial class MainWindowViewModel : ObservableObject
             }
             catch (Exception ex)
             {
-                row.StatusText = "保存失败";
+                row.Status = TrackStatus.Failed;
                 row.ErrorText = ex.Message;
                 failed++;
             }
         }
 
-        StatusText = failed == 0 ? $"已保存 {ok} 个文件" : $"已保存 {ok} 个，失败 {failed} 个";
+        StatusText = failed == 0
+            ? Localizer.F("Status.Saved", ok)
+            : Localizer.F("Status.SavedPartial", ok, failed);
     }
 
     public async Task ClearTagsAsync()
     {
-        var rows = _all.Where(r => r.StatusText is not ("失败" or "跳过")).ToList();
+        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
         foreach (var row in rows)
         {
             row.ApplyTags(new TrackTags());
@@ -208,7 +226,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         await Task.CompletedTask;
-        StatusText = $"已清空 {rows.Count} 个文件的标签（尚未写入）";
+        StatusText = Localizer.F("Status.ClearedTags", rows.Count);
     }
 
     /// <summary>从列表移除一行（只影响列表，不改文件）。</summary>
@@ -222,7 +240,28 @@ public partial class MainWindowViewModel : ObservableObject
         if (wasSelected) SelectedTrack = null;
 
         UpdateCounts();
-        StatusText = "已从列表移除";
+        StatusText = Localizer.T("Status.RemovedFromList");
+    }
+
+    /// <summary>批量从列表移除（Delete 键）。</summary>
+    public void RemoveRange(IEnumerable<TrackRowViewModel> rows)
+    {
+        var list = rows.ToList();
+        if (list.Count == 0) return;
+
+        foreach (var row in list)
+        {
+            _all.Remove(row);
+            Tracks.Remove(row);
+        }
+
+        if (SelectedTrack is not null && list.Contains(SelectedTrack))
+            SelectedTrack = Tracks.FirstOrDefault();
+
+        UpdateCounts();
+        StatusText = list.Count == 1
+            ? Localizer.T("Status.RemovedFromList")
+            : Localizer.F("Status.RemovedMany", list.Count);
     }
 
     [RelayCommand]
@@ -234,12 +273,15 @@ public partial class MainWindowViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
-    public async Task ApplyCandidateAsync(TrackRowViewModel row, TagCandidate candidate, OverwriteRule rule, bool includeCover = true)
+    public Task ApplyCandidateAsync(TrackRowViewModel row, TagCandidate candidate, OverwriteRule rule, bool includeCover = true) =>
+        ApplyCandidateAsync(row, candidate, new OverwriteOptions { Default = rule }, includeCover);
+
+    public async Task ApplyCandidateAsync(TrackRowViewModel row, TagCandidate candidate, OverwriteOptions overwrite, bool includeCover = true)
     {
-        var merged = TagMerger.Merge(row.ToTags(), candidate.ToTags(), new OverwriteOptions { Default = rule });
+        var merged = TagMerger.Merge(row.ToTags(), candidate.ToTags(), overwrite);
         row.ApplyTags(merged);
 
-        if (includeCover && !string.IsNullOrWhiteSpace(candidate.CoverUrl) && rule != OverwriteRule.KeepExisting)
+        if (includeCover && !string.IsNullOrWhiteSpace(candidate.CoverUrl) && overwrite.Default != OverwriteRule.KeepExisting)
         {
             var source = _search.Find(candidate.SourceId);
             if (source is not null)
@@ -260,25 +302,40 @@ public partial class MainWindowViewModel : ObservableObject
             }
         }
 
-        StatusText = $"已应用 {candidate.SourceId} 的候选，保存后写入文件";
+        StatusText = Localizer.F("Status.AppliedCandidate", candidate.SourceId);
     }
 
-    /// <summary>批量自动匹配：每首歌取第一个候选，按"只填空字段"合并（封面留到单独操作）。</summary>
-    public async Task AutoMatchAllAsync()
+    /// <summary>批量自动匹配：每首歌取第一个候选，按用户选择的字段、源和覆盖方式合并。</summary>
+    public async Task AutoMatchAllAsync(AutoMatchOptions? options = null)
     {
-        var rows = _all.Where(r => r.StatusText is not ("失败" or "跳过")).ToList();
+        options ??= new AutoMatchOptions(
+            OverwriteRule.Replace,
+            Enum.GetValues<FieldKey>().ToHashSet(),
+            IncludeCover: false,
+            Settings.Sources.Tags);
+
+        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
         if (rows.Count == 0)
         {
-            StatusText = "没有可匹配的文件";
+            StatusText = Localizer.T("Status.NoMatchFiles");
             return;
         }
+
+        var overwrite = new OverwriteOptions { Default = options.Rule };
+        foreach (var key in Enum.GetValues<FieldKey>())
+            if (!options.Fields.Contains(key))
+                overwrite.PerField[key] = OverwriteRule.Ignore;
+
+        var capability = SourceCapability.Tags
+            | (options.IncludeCover ? SourceCapability.Cover : SourceCapability.None)
+            | (options.Fields.Contains(FieldKey.Lyrics) ? SourceCapability.Lyrics : SourceCapability.None);
 
         var hit = 0;
         var miss = 0;
         for (var index = 0; index < rows.Count; index++)
         {
             var row = rows[index];
-            StatusText = $"自动匹配 {index + 1}/{rows.Count}：{row.FileName}";
+            StatusText = Localizer.F("Status.AutoMatching", index + 1, rows.Count, row.FileName);
 
             var query = new TagQuery
             {
@@ -292,7 +349,7 @@ public partial class MainWindowViewModel : ObservableObject
             try
             {
                 var results = await _search.SearchAsync(
-                    query, SourceCapability.Tags, Settings.Sources.Tags,
+                    query, capability, options.SourceOrder,
                     Settings.Search.ItemsPerSource, Settings.Search.Threads, CancellationToken.None);
 
                 var best = results.FirstOrDefault();
@@ -302,7 +359,7 @@ public partial class MainWindowViewModel : ObservableObject
                     continue;
                 }
 
-                await ApplyCandidateAsync(row, best, OverwriteRule.FillEmptyOnly, includeCover: false);
+                await ApplyCandidateAsync(row, best, overwrite, options.IncludeCover);
                 hit++;
             }
             catch
@@ -311,7 +368,7 @@ public partial class MainWindowViewModel : ObservableObject
             }
         }
 
-        StatusText = $"自动匹配完成：命中 {hit}，无结果 {miss}（保存后写入文件）";
+        StatusText = Localizer.F("Status.AutoMatchDone", hit, miss);
     }
 
     /// <summary>把已有封面导出到音频同目录，命名为 "文件名-cover.jpg/png"。</summary>
@@ -320,7 +377,7 @@ public partial class MainWindowViewModel : ObservableObject
         var rows = _all.Where(r => r.Pictures.Count > 0).ToList();
         if (rows.Count == 0)
         {
-            StatusText = "没有可提取的封面";
+            StatusText = Localizer.T("Status.NoCovers");
             return;
         }
 
@@ -345,8 +402,8 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         StatusText = failed == 0
-            ? $"已提取 {count} 个封面"
-            : $"已提取 {count} 个封面，失败 {failed} 个";
+            ? Localizer.F("Status.ExtractedCovers", count)
+            : Localizer.F("Status.ExtractedCoversPartial", count, failed);
     }
 
     private readonly ChineseConversionService _chinese = new();
@@ -359,7 +416,7 @@ public partial class MainWindowViewModel : ObservableObject
             Convert(row);
         }
 
-        StatusText = toTraditional ? "标签已转为繁体（保存后写入）" : "标签已转为简体（保存后写入）";
+        StatusText = Localizer.T(toTraditional ? "Status.TagsToTraditional" : "Status.TagsToSimplified");
         return Task.CompletedTask;
 
         void Convert(TrackRowViewModel row)
@@ -383,7 +440,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (!_host.SupportsRename)
         {
-            StatusText = "当前平台不支持重命名文件，可在电脑端完成";
+            StatusText = Localizer.T("Status.RenameUnsupported");
             return Task.CompletedTask;
         }
 
@@ -414,7 +471,9 @@ public partial class MainWindowViewModel : ObservableObject
             }
         }
 
-        StatusText = $"文件名转换完成：重命名 {renamed} 个" + (failed > 0 ? $"，失败 {failed} 个" : "");
+        StatusText = failed > 0
+            ? Localizer.F("Status.FileNameConvertedPartial", renamed, failed)
+            : Localizer.F("Status.FileNameConverted", renamed);
         return Task.CompletedTask;
     }
 
@@ -430,12 +489,12 @@ public partial class MainWindowViewModel : ObservableObject
 
             var item = await Task.Run(() => _tagStore.Read(handle));
             row.ApplyFrom(item);
-            row.StatusText = "已恢复";
-            StatusText = $"已恢复到 {entry.CreatedAt:HH:mm:ss} 的记录";
+            row.Status = TrackStatus.Saved;
+            StatusText = Localizer.F("Status.Restored", entry.CreatedAt.ToString("HH:mm:ss"));
         }
         catch (Exception ex)
         {
-            StatusText = "恢复失败：" + ex.Message;
+            StatusText = Localizer.F("Status.RestoreFailed", ex.Message);
         }
     }
 
@@ -486,7 +545,7 @@ public partial class MainWindowViewModel : ObservableObject
                     Path = handle.DisplayPath,
                     DisplayName = handle.FileName,
                     Status = TrackStatus.Skipped,
-                    Error = "不支持的格式",
+                    Error = Localizer.T("Status.UnsupportedFormat"),
                     Source = handle,
                 };
             }
@@ -508,6 +567,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void UpdateCounts() =>
         CountText = _all.Count == Tracks.Count
-            ? $"{_all.Count} 个文件"
-            : $"{Tracks.Count} / {_all.Count} 个文件";
+            ? Localizer.F("Count.Files", _all.Count)
+            : Localizer.F("Count.Filtered", Tracks.Count, _all.Count);
 }

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Dialogs.TagSearchDialog">
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -11,7 +12,7 @@
               BorderThickness="0,0,0,1"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="在线标签匹配" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Tr Key=Dialog.TagSearch}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Button Grid.Column="1" Content="✕" Click="OnCancel" Width="36" Height="30" Padding="0"
                   Background="Transparent" BorderThickness="0" />
         </Grid>
@@ -20,21 +21,21 @@
       <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
         <WrapPanel Grid.Row="0">
           <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
-            <TextBlock Text="标题" FontSize="12" Opacity="0.7" />
+            <TextBlock Text="{loc:Tr Key=Field.Title}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="TitleBox" />
           </StackPanel>
           <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
-            <TextBlock Text="艺术家" FontSize="12" Opacity="0.7" />
+            <TextBlock Text="{loc:Tr Key=Field.Artist}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="ArtistBox" />
           </StackPanel>
           <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
-            <TextBlock Text="专辑" FontSize="12" Opacity="0.7" />
+            <TextBlock Text="{loc:Tr Key=Field.Album}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="AlbumBox" />
           </StackPanel>
         </WrapPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-          <Button Content="搜索" Click="OnSearch" Classes="accent" />
+          <Button Content="{loc:Tr Key=Button.Search}" Click="OnSearch" Classes="accent" />
           <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="120" IsVisible="False" />
           <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" />
         </StackPanel>
@@ -52,6 +53,8 @@
                   <Run Text="{Binding Year}" />
                   <Run Text=" · " />
                   <Run Text="{Binding SourceId}" />
+                  <Run Text=" · " />
+                  <Run Text="{Binding Detail}" />
                 </TextBlock>
               </StackPanel>
             </DataTemplate>
@@ -59,10 +62,10 @@
         </ListBox>
 
         <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-          <TextBlock Text="合并方式" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Tr Key=AutoMatch.Rule}" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" x:Name="RuleCombo" Width="190" HorizontalAlignment="Left" />
-          <Button Grid.Column="2" Content="应用" Click="OnApply" Classes="accent" />
-          <Button Grid.Column="3" Content="取消" Click="OnCancel" />
+          <Button Grid.Column="2" Content="{loc:Tr Key=Button.Apply}" Click="OnApply" Classes="accent" />
+          <Button Grid.Column="3" Content="{loc:Tr Key=Button.Cancel}" Click="OnCancel" />
         </Grid>
       </Grid>
     </Grid>

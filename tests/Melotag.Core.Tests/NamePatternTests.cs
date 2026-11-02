@@ -65,4 +65,14 @@ public class NamePatternTests
         foreach (var preset in RenamePresets.Defaults)
             Assert.Empty(NamePattern.Validate(preset));
     }
+
+    [Fact]
+    public void DefaultPattern_IsArtistTitle_AndInPresets()
+    {
+        Assert.Contains(RenamePresets.DefaultPattern, RenamePresets.Defaults);
+        Assert.Empty(NamePattern.Validate(RenamePresets.DefaultPattern));
+
+        var tags = new TrackTags { Artist = "Band", Title = "Song" };
+        Assert.Equal("Band - Song", NamePattern.Render(RenamePresets.DefaultPattern, tags));
+    }
 }

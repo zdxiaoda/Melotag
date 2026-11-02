@@ -34,3 +34,9 @@ BenchmarkDotNet.Artifacts/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Android signing material — never commit these
+*.keystore
+*.jks
+*.b64
+android-signing/

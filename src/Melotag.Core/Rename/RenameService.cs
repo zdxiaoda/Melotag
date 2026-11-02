@@ -14,6 +14,9 @@ public sealed record RenameResult(string OldPath, string NewPath, IReadOnlyList<
 /// <summary>文件改名：模板渲染、冲突规避、连带改名 .lrc/封面。</summary>
 public sealed class RenameService
 {
+    /// <summary>渲染结果为空时的稳定错误标记，供 UI 本地化。</summary>
+    public const string EmptyNameError = "empty-name";
+
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp",
@@ -28,7 +31,7 @@ public sealed class RenameService
         var rendered = NamePattern.Render(pattern, tags);
         var name = policy.Sanitize(rendered);
         if (string.IsNullOrWhiteSpace(name))
-            return new RenamePreview(path, path, "生成的文件名为空");
+            return new RenamePreview(path, path, EmptyNameError);
 
         var directory = Path.GetDirectoryName(path) ?? ".";
         var extension = Path.GetExtension(path);

@@ -4,6 +4,7 @@
     <RootNamespace>Melotag.UI</RootNamespace>
     <!-- DataGrid 列模板难以逐列声明 x:DataType，先使用反射绑定 -->
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <NeutralResourcesLanguage>zh-Hans</NeutralResourcesLanguage>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.4" />

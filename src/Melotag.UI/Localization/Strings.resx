@@ -1,0 +1,952 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="App.Name" xml:space="preserve">
+    <value>音签 Melotag</value>
+  </data>
+  <data name="App.ShortName" xml:space="preserve">
+    <value>音签</value>
+  </data>
+  <data name="App.WindowTitle" xml:space="preserve">
+    <value>音签 Melotag · 标签编辑器</value>
+  </data>
+  <data name="App.Description" xml:space="preserve">
+    <value>跨平台音乐标签编辑器</value>
+  </data>
+  <data name="App.AndroidNote" xml:space="preserve">
+    <value>从 Android 文件选择器添加的歌曲，保存后会写回原文件。</value>
+  </data>
+  <data name="App.SourcesLine" xml:space="preserve">
+    <value>在线源：{0}</value>
+  </data>
+  <data name="App.AboutTitle" xml:space="preserve">
+    <value>关于 音签 Melotag</value>
+  </data>
+  <data name="Menu.File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Menu.File.AddFiles" xml:space="preserve">
+    <value>添加文件…</value>
+  </data>
+  <data name="Menu.File.AddFolder" xml:space="preserve">
+    <value>添加文件夹…</value>
+  </data>
+  <data name="Menu.File.SaveCurrent" xml:space="preserve">
+    <value>保存当前标签</value>
+  </data>
+  <data name="Menu.File.SaveAll" xml:space="preserve">
+    <value>保存全部</value>
+  </data>
+  <data name="Menu.File.Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Menu.Edit.Reload" xml:space="preserve">
+    <value>重新读取</value>
+  </data>
+  <data name="Menu.Edit.Remove" xml:space="preserve">
+    <value>从列表移除</value>
+  </data>
+  <data name="Menu.Edit.ClearTags" xml:space="preserve">
+    <value>清空标签（内存）</value>
+  </data>
+  <data name="Menu.Tools" xml:space="preserve">
+    <value>工具</value>
+  </data>
+  <data name="Menu.Tools.Rename" xml:space="preserve">
+    <value>重命名 / 文件名相关…</value>
+  </data>
+  <data name="Menu.Tools.TagSearch" xml:space="preserve">
+    <value>在线标签匹配…</value>
+  </data>
+  <data name="Menu.Tools.Lyrics" xml:space="preserve">
+    <value>歌词…</value>
+  </data>
+  <data name="Menu.Tools.Cover" xml:space="preserve">
+    <value>封面…</value>
+  </data>
+  <data name="Menu.Tools.History" xml:space="preserve">
+    <value>标签历史…</value>
+  </data>
+  <data name="Menu.Tools.TagsToTraditional" xml:space="preserve">
+    <value>标签简→繁</value>
+  </data>
+  <data name="Menu.Tools.TagsToSimplified" xml:space="preserve">
+    <value>标签繁→简</value>
+  </data>
+  <data name="Menu.Tools.NamesToTraditional" xml:space="preserve">
+    <value>文件名简→繁</value>
+  </data>
+  <data name="Menu.Tools.NamesToSimplified" xml:space="preserve">
+    <value>文件名繁→简</value>
+  </data>
+  <data name="Menu.Tools.Settings" xml:space="preserve">
+    <value>设置…</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Menu.View.ToggleTheme" xml:space="preserve">
+    <value>切换深色 / 浅色</value>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>帮助</value>
+  </data>
+  <data name="Menu.Help.About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Menu.Help.CheckUpdates" xml:space="preserve">
+    <value>检查更新…</value>
+  </data>
+  <data name="Toolbar.AddFile" xml:space="preserve">
+    <value>添加文件</value>
+  </data>
+  <data name="Toolbar.AddFolder" xml:space="preserve">
+    <value>添加文件夹（含子目录）</value>
+  </data>
+  <data name="Toolbar.Reload" xml:space="preserve">
+    <value>重新读取（F5）</value>
+  </data>
+  <data name="Toolbar.SaveCurrent" xml:space="preserve">
+    <value>保存当前标签（Ctrl+S）</value>
+  </data>
+  <data name="Toolbar.SaveAll" xml:space="preserve">
+    <value>保存全部</value>
+  </data>
+  <data name="Toolbar.Remove" xml:space="preserve">
+    <value>从列表移除</value>
+  </data>
+  <data name="Toolbar.Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Toolbar.TagSearch" xml:space="preserve">
+    <value>在线标签匹配</value>
+  </data>
+  <data name="Toolbar.AutoMatch" xml:space="preserve">
+    <value>批量自动匹配</value>
+  </data>
+  <data name="Toolbar.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Toolbar.Cover" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Toolbar.ExtractCovers" xml:space="preserve">
+    <value>批量提取封面</value>
+  </data>
+  <data name="Toolbar.History" xml:space="preserve">
+    <value>标签历史</value>
+  </data>
+  <data name="Toolbar.ClearTags" xml:space="preserve">
+    <value>清空标签（仅在内存中）</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Toolbar.ToggleTheme" xml:space="preserve">
+    <value>切换深色 / 浅色主题</value>
+  </data>
+  <data name="Toolbar.ToggleThemeName" xml:space="preserve">
+    <value>切换主题</value>
+  </data>
+  <data name="Toolbar.More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="Column.FileName" xml:space="preserve">
+    <value>文件名</value>
+  </data>
+  <data name="Column.Title" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Column.Artist" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="Column.Album" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="Column.Year" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="Column.Track" xml:space="preserve">
+    <value>音轨</value>
+  </data>
+  <data name="Column.Duration" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="Column.Format" xml:space="preserve">
+    <value>格式</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="Field.Title" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Field.Artist" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="Field.Album" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="Field.AlbumArtist" xml:space="preserve">
+    <value>专辑艺术家</value>
+  </data>
+  <data name="Field.Year" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="Field.Track" xml:space="preserve">
+    <value>音轨</value>
+  </data>
+  <data name="Field.Disc" xml:space="preserve">
+    <value>碟号</value>
+  </data>
+  <data name="Field.Genre" xml:space="preserve">
+    <value>流派</value>
+  </data>
+  <data name="Field.Comment" xml:space="preserve">
+    <value>注释</value>
+  </data>
+  <data name="Field.Composer" xml:space="preserve">
+    <value>作曲</value>
+  </data>
+  <data name="Field.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Field.Cover" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Field.None" xml:space="preserve">
+    <value>不使用</value>
+  </data>
+  <data name="Filter.Placeholder" xml:space="preserve">
+    <value>过滤：文件名 / 标题 / 艺术家 / 专辑</value>
+  </data>
+  <data name="Editor.Title" xml:space="preserve">
+    <value>标签编辑</value>
+  </data>
+  <data name="Button.OK" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Button.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Button.Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Button.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Button.Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Button.Search" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="Button.ResetDefault" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Button.MoveUp" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="Button.MoveDown" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="Button.RestoreSelected" xml:space="preserve">
+    <value>恢复选中</value>
+  </data>
+  <data name="Button.ClearAll" xml:space="preserve">
+    <value>清空全部</value>
+  </data>
+  <data name="Button.Start" xml:space="preserve">
+    <value>开始匹配</value>
+  </data>
+  <data name="Dialog.Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Dialog.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Dialog.TagSearch" xml:space="preserve">
+    <value>在线标签匹配</value>
+  </data>
+  <data name="Dialog.Rename" xml:space="preserve">
+    <value>重命名 / 文件名相关</value>
+  </data>
+  <data name="Dialog.Cover" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Dialog.History" xml:space="preserve">
+    <value>标签历史</value>
+  </data>
+  <data name="Dialog.AutoMatch" xml:space="preserve">
+    <value>批量自动匹配</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Status.NoNewFiles" xml:space="preserve">
+    <value>没有新增文件</value>
+  </data>
+  <data name="Status.LoadingFiles" xml:space="preserve">
+    <value>正在读取 {0} 个文件…</value>
+  </data>
+  <data name="Status.LoadedFiles" xml:space="preserve">
+    <value>已读取 {0} 个，失败/跳过 {1} 个</value>
+  </data>
+  <data name="Status.Reloading" xml:space="preserve">
+    <value>正在重新读取…</value>
+  </data>
+  <data name="Status.Reloaded" xml:space="preserve">
+    <value>重新读取完成</value>
+  </data>
+  <data name="Status.SelectFile" xml:space="preserve">
+    <value>请先选择一个文件</value>
+  </data>
+  <data name="Status.NoSavableFiles" xml:space="preserve">
+    <value>没有可保存的文件</value>
+  </data>
+  <data name="Status.Saving" xml:space="preserve">
+    <value>正在保存 {0}…</value>
+  </data>
+  <data name="Status.Saved" xml:space="preserve">
+    <value>已保存 {0} 个文件</value>
+  </data>
+  <data name="Status.SavedPartial" xml:space="preserve">
+    <value>已保存 {0} 个，失败 {1} 个</value>
+  </data>
+  <data name="Status.ReadOnlyFile" xml:space="preserve">
+    <value>该文件只有只读权限，请重新选择并授权写入</value>
+  </data>
+  <data name="Status.SaveFailed" xml:space="preserve">
+    <value>保存失败</value>
+  </data>
+  <data name="Status.ClearedTags" xml:space="preserve">
+    <value>已清空 {0} 个文件的标签（尚未写入）</value>
+  </data>
+  <data name="Status.RemovedFromList" xml:space="preserve">
+    <value>已从列表移除</value>
+  </data>
+  <data name="Status.RemovedMany" xml:space="preserve">
+    <value>已从列表移除 {0} 个文件</value>
+  </data>
+  <data name="Status.Copied" xml:space="preserve">
+    <value>已复制 {0} 行歌曲数据</value>
+  </data>
+  <data name="Status.AppliedCandidate" xml:space="preserve">
+    <value>已应用 {0} 的候选，保存后写入文件</value>
+  </data>
+  <data name="Status.NoMatchFiles" xml:space="preserve">
+    <value>没有可匹配的文件</value>
+  </data>
+  <data name="Status.AutoMatching" xml:space="preserve">
+    <value>自动匹配 {0}/{1}：{2}</value>
+  </data>
+  <data name="Status.AutoMatchDone" xml:space="preserve">
+    <value>自动匹配完成：命中 {0}，无结果 {1}（保存后写入文件）</value>
+  </data>
+  <data name="Status.NoCovers" xml:space="preserve">
+    <value>没有可提取的封面</value>
+  </data>
+  <data name="Status.ExtractedCovers" xml:space="preserve">
+    <value>已提取 {0} 个封面</value>
+  </data>
+  <data name="Status.ExtractedCoversPartial" xml:space="preserve">
+    <value>已提取 {0} 个封面，失败 {1} 个</value>
+  </data>
+  <data name="Status.TagsToTraditional" xml:space="preserve">
+    <value>标签已转为繁体（保存后写入）</value>
+  </data>
+  <data name="Status.TagsToSimplified" xml:space="preserve">
+    <value>标签已转为简体（保存后写入）</value>
+  </data>
+  <data name="Status.RenameUnsupported" xml:space="preserve">
+    <value>当前平台不支持重命名文件，可在电脑端完成</value>
+  </data>
+  <data name="Status.FileNameConverted" xml:space="preserve">
+    <value>文件名转换完成：重命名 {0} 个</value>
+  </data>
+  <data name="Status.FileNameConvertedPartial" xml:space="preserve">
+    <value>文件名转换完成：重命名 {0} 个，失败 {1} 个</value>
+  </data>
+  <data name="Status.Restored" xml:space="preserve">
+    <value>已恢复到 {0} 的记录</value>
+  </data>
+  <data name="Status.RestoreFailed" xml:space="preserve">
+    <value>恢复失败：{0}</value>
+  </data>
+  <data name="Status.LyricsUpdated" xml:space="preserve">
+    <value>歌词已更新（保存标签后写入文件）</value>
+  </data>
+  <data name="Status.CoverRemoved" xml:space="preserve">
+    <value>封面已移除（保存后写入文件）</value>
+  </data>
+  <data name="Status.CoverUpdated" xml:space="preserve">
+    <value>封面已更新（保存后写入文件）</value>
+  </data>
+  <data name="Status.EmptyList" xml:space="preserve">
+    <value>列表为空</value>
+  </data>
+  <data name="Status.FolderPickUnsupported" xml:space="preserve">
+    <value>当前平台不支持选择文件夹，请用「添加文件」多选</value>
+  </data>
+  <data name="Status.AndroidRenameUnsupported" xml:space="preserve">
+    <value>手机版暂不支持重命名文件，请在电脑版操作。</value>
+  </data>
+  <data name="Status.UnsupportedFormat" xml:space="preserve">
+    <value>不支持的格式</value>
+  </data>
+  <data name="Count.Files" xml:space="preserve">
+    <value>{0} 个文件</value>
+  </data>
+  <data name="Count.Filtered" xml:space="preserve">
+    <value>{0} / {1} 个文件</value>
+  </data>
+  <data name="TrackStatus.Pending" xml:space="preserve">
+    <value>待读取</value>
+  </data>
+  <data name="TrackStatus.Loaded" xml:space="preserve">
+    <value>已读取</value>
+  </data>
+  <data name="TrackStatus.Modified" xml:space="preserve">
+    <value>已修改</value>
+  </data>
+  <data name="TrackStatus.Saved" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="TrackStatus.Failed" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="TrackStatus.Skipped" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="Merge.FillEmptyOnly" xml:space="preserve">
+    <value>只填空字段</value>
+  </data>
+  <data name="Merge.Replace" xml:space="preserve">
+    <value>全部覆盖</value>
+  </data>
+  <data name="Merge.KeepExisting" xml:space="preserve">
+    <value>保留现有</value>
+  </data>
+  <data name="Search.Searching" xml:space="preserve">
+    <value>正在搜索…</value>
+  </data>
+  <data name="Search.NoResults" xml:space="preserve">
+    <value>没有结果（检查网络或 Last.fm API key）</value>
+  </data>
+  <data name="Search.CandidateCount" xml:space="preserve">
+    <value>共 {0} 条候选</value>
+  </data>
+  <data name="Search.Cancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="Search.Failed" xml:space="preserve">
+    <value>搜索失败：{0}</value>
+  </data>
+  <data name="Search.SelectCandidate" xml:space="preserve">
+    <value>请先选择一条候选</value>
+  </data>
+  <data name="Search.LyricsSearching" xml:space="preserve">
+    <value>正在搜索歌词…</value>
+  </data>
+  <data name="Search.LyricsNotFound" xml:space="preserve">
+    <value>没有找到歌词</value>
+  </data>
+  <data name="Search.LyricsCount" xml:space="preserve">
+    <value>共 {0} 条</value>
+  </data>
+  <data name="Search.CoverSearching" xml:space="preserve">
+    <value>正在搜索封面…</value>
+  </data>
+  <data name="Search.NoCoverCandidates" xml:space="preserve">
+    <value>没有可用的封面候选</value>
+  </data>
+  <data name="Search.CoverDownloading" xml:space="preserve">
+    <value>正在下载封面…</value>
+  </data>
+  <data name="Search.CoverDownloadFailed" xml:space="preserve">
+    <value>下载失败</value>
+  </data>
+  <data name="Lyrics.SearchOnline" xml:space="preserve">
+    <value>从网络搜索</value>
+  </data>
+  <data name="Lyrics.ReformatTimeTags" xml:space="preserve">
+    <value>重排时间标签</value>
+  </data>
+  <data name="Lyrics.RemoveTimeTags" xml:space="preserve">
+    <value>移除时间标签</value>
+  </data>
+  <data name="Lyrics.DeleteBlankLines" xml:space="preserve">
+    <value>删除空行</value>
+  </data>
+  <data name="Lyrics.DeleteHeadTags" xml:space="preserve">
+    <value>删除头部标签</value>
+  </data>
+  <data name="Lyrics.ShiftSeconds" xml:space="preserve">
+    <value>整体偏移(秒)</value>
+  </data>
+  <data name="Lyrics.ApplyOps" xml:space="preserve">
+    <value>应用处理</value>
+  </data>
+  <data name="Lyrics.ImportLrc" xml:space="preserve">
+    <value>导入 .lrc</value>
+  </data>
+  <data name="Lyrics.SaveLrc" xml:space="preserve">
+    <value>保存为 .lrc</value>
+  </data>
+  <data name="Lyrics.Encoding" xml:space="preserve">
+    <value>保存编码</value>
+  </data>
+  <data name="Lyrics.Applied" xml:space="preserve">
+    <value>已应用处理</value>
+  </data>
+  <data name="Lyrics.ImportTitle" xml:space="preserve">
+    <value>导入 LRC</value>
+  </data>
+  <data name="Lyrics.FileType" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Lyrics.Imported" xml:space="preserve">
+    <value>已导入（编码 {0}）</value>
+  </data>
+  <data name="Lyrics.SaveTitle" xml:space="preserve">
+    <value>保存 LRC</value>
+  </data>
+  <data name="Lyrics.Saved" xml:space="preserve">
+    <value>已保存：{0}（{1}）</value>
+  </data>
+  <data name="Cover.NoCover" xml:space="preserve">
+    <value>无封面</value>
+  </data>
+  <data name="Cover.SearchOnline" xml:space="preserve">
+    <value>在线搜索</value>
+  </data>
+  <data name="Cover.PickLocal" xml:space="preserve">
+    <value>从本地选择</value>
+  </data>
+  <data name="Cover.Export" xml:space="preserve">
+    <value>导出到文件</value>
+  </data>
+  <data name="Cover.Remove" xml:space="preserve">
+    <value>移除封面</value>
+  </data>
+  <data name="Cover.MaxSize" xml:space="preserve">
+    <value>体积上限(KB)</value>
+  </data>
+  <data name="Cover.CannotShow" xml:space="preserve">
+    <value>无法显示该图片：{0}</value>
+  </data>
+  <data name="Cover.Invalid" xml:space="preserve">
+    <value>图片格式或体积不符合设置（可在设置里调整上限）</value>
+  </data>
+  <data name="Cover.PickTitle" xml:space="preserve">
+    <value>选择封面图片</value>
+  </data>
+  <data name="Cover.ImageType" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="Cover.NoExport" xml:space="preserve">
+    <value>当前没有封面可导出</value>
+  </data>
+  <data name="Cover.ExportTitle" xml:space="preserve">
+    <value>导出封面</value>
+  </data>
+  <data name="Cover.Exported" xml:space="preserve">
+    <value>已导出：{0}</value>
+  </data>
+  <data name="Cover.RemoveOnSave" xml:space="preserve">
+    <value>保存时将移除封面</value>
+  </data>
+  <data name="History.NoRecords" xml:space="preserve">
+    <value>该文件还没有历史记录</value>
+  </data>
+  <data name="History.Count" xml:space="preserve">
+    <value>共 {0} 条记录</value>
+  </data>
+  <data name="History.SelectRecord" xml:space="preserve">
+    <value>请先选择一条记录</value>
+  </data>
+  <data name="History.Restored" xml:space="preserve">
+    <value>已恢复到所选记录（标签将在下次保存时写入文件）</value>
+  </data>
+  <data name="History.Cleared" xml:space="preserve">
+    <value>历史已清空</value>
+  </data>
+  <data name="Rename.ModeRename" xml:space="preserve">
+    <value>按标签重命名文件</value>
+  </data>
+  <data name="Rename.ModeParse" xml:space="preserve">
+    <value>按文件名写回标签</value>
+  </data>
+  <data name="Rename.Presets" xml:space="preserve">
+    <value>预制模板</value>
+  </data>
+  <data name="Rename.PatternWatermark" xml:space="preserve">
+    <value>例如 @5. @1 - @2（@0 不使用，@1 标题 … @8 专辑艺术家）</value>
+  </data>
+  <data name="Rename.AlsoLrc" xml:space="preserve">
+    <value>同时重命名 .lrc</value>
+  </data>
+  <data name="Rename.AlsoPic" xml:space="preserve">
+    <value>同时重命名封面文件</value>
+  </data>
+  <data name="Rename.RegexWatermark" xml:space="preserve">
+    <value>正则，例如 ^(\d+)\. (.+) - (.+)$</value>
+  </data>
+  <data name="Rename.GroupMapping" xml:space="preserve">
+    <value>捕获组映射</value>
+  </data>
+  <data name="Rename.Group" xml:space="preserve">
+    <value>组 {0}</value>
+  </data>
+  <data name="Rename.Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Rename.NoChange" xml:space="preserve">
+    <value>无变化</value>
+  </data>
+  <data name="Rename.NoMatch" xml:space="preserve">
+    <value>文件名不匹配</value>
+  </data>
+  <data name="Rename.Parsed" xml:space="preserve">
+    <value>解析成功</value>
+  </data>
+  <data name="Rename.FileCount" xml:space="preserve">
+    <value>{0} 个文件，{1} 个可重命名</value>
+  </data>
+  <data name="Rename.MatchCount" xml:space="preserve">
+    <value>{0} 个文件，{1} 个匹配</value>
+  </data>
+  <data name="Rename.InvalidRegex" xml:space="preserve">
+    <value>正则无效</value>
+  </data>
+  <data name="Rename.DuplicateField" xml:space="preserve">
+    <value>同一字段不能映射多个捕获组</value>
+  </data>
+  <data name="Rename.AtLeastOneGroup" xml:space="preserve">
+    <value>至少映射一个捕获组</value>
+  </data>
+  <data name="Rename.Applied" xml:space="preserve">
+    <value>已完成 {0} 个，失败/跳过 {1} 个</value>
+  </data>
+  <data name="Rename.TagsUpdated" xml:space="preserve">
+    <value>已更新 {0} 个文件的标签</value>
+  </data>
+  <data name="PatternError.Empty" xml:space="preserve">
+    <value>模板不能为空</value>
+  </data>
+  <data name="PatternError.NoPlaceholder" xml:space="preserve">
+    <value>模板必须包含至少一个有效占位符（@1–@8）</value>
+  </data>
+  <data name="PatternError.OnlyUnused" xml:space="preserve">
+    <value>不能只使用 @0</value>
+  </data>
+  <data name="PatternError.DuplicatePlaceholder" xml:space="preserve">
+    <value>占位符不能重复</value>
+  </data>
+  <data name="PatternError.AdjacentPlaceholders" xml:space="preserve">
+    <value>相邻占位符会产生歧义</value>
+  </data>
+  <data name="PatternError.UnknownPlaceholder" xml:space="preserve">
+    <value>存在未知占位符（只能使用 @0–@8）</value>
+  </data>
+  <data name="PatternError.Unknown" xml:space="preserve">
+    <value>模板无效</value>
+  </data>
+  <data name="Settings.Search" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="Settings.Threads" xml:space="preserve">
+    <value>同时查询数</value>
+  </data>
+  <data name="Settings.ItemsPerSource" xml:space="preserve">
+    <value>每个来源的结果数</value>
+  </data>
+  <data name="Settings.AutoMatchThreads" xml:space="preserve">
+    <value>自动匹配同时数</value>
+  </data>
+  <data name="Settings.Sources" xml:space="preserve">
+    <value>在线源</value>
+  </data>
+  <data name="Settings.LastFmKey" xml:space="preserve">
+    <value>Last.fm API Key</value>
+  </data>
+  <data name="Settings.ITunesCountry" xml:space="preserve">
+    <value>iTunes 商店国家</value>
+  </data>
+  <data name="Settings.UserAgent" xml:space="preserve">
+    <value>访问标识 (User-Agent)</value>
+  </data>
+  <data name="Settings.MusicBrainzNote" xml:space="preserve">
+    <value>Last.fm 需要 API Key，留空则跳过该源。</value>
+  </data>
+  <data name="Settings.SourceOrder" xml:space="preserve">
+    <value>启用与顺序（每类单独配置，越靠上越先查询）</value>
+  </data>
+  <data name="Settings.TabTags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Settings.TabCovers" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Settings.TabLyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Settings.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="Settings.ReformatAfterDownload" xml:space="preserve">
+    <value>下载后重排时间标签</value>
+  </data>
+  <data name="Settings.RemoveTimeTags" xml:space="preserve">
+    <value>移除时间标签</value>
+  </data>
+  <data name="Settings.DeleteBlankLines" xml:space="preserve">
+    <value>删除空行</value>
+  </data>
+  <data name="Settings.DeleteHeadTags" xml:space="preserve">
+    <value>删除头部标签</value>
+  </data>
+  <data name="Settings.SkipInstrumental" xml:space="preserve">
+    <value>跳过伴奏/纯音乐</value>
+  </data>
+  <data name="Settings.DefaultEncoding" xml:space="preserve">
+    <value>默认编码</value>
+  </data>
+  <data name="Settings.SaveDirectory" xml:space="preserve">
+    <value>保存目录</value>
+  </data>
+  <data name="Settings.SaveDirectoryWatermark" xml:space="preserve">
+    <value>留空=音频同目录</value>
+  </data>
+  <data name="Settings.LrcFileNameFormat" xml:space="preserve">
+    <value>文件名格式</value>
+  </data>
+  <data name="Settings.Covers" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Settings.MaxSizeKb" xml:space="preserve">
+    <value>体积上限(KB)</value>
+  </data>
+  <data name="Settings.MaxWidth" xml:space="preserve">
+    <value>最大宽</value>
+  </data>
+  <data name="Settings.MaxHeight" xml:space="preserve">
+    <value>最大高</value>
+  </data>
+  <data name="Settings.CoverFormats" xml:space="preserve">
+    <value>支持 jpg、png；其他格式会自动转换。</value>
+  </data>
+  <data name="Settings.Writing" xml:space="preserve">
+    <value>写入</value>
+  </data>
+  <data name="Settings.Id3Version" xml:space="preserve">
+    <value>ID3v2 版本</value>
+  </data>
+  <data name="Settings.KeepMtime" xml:space="preserve">
+    <value>保留文件修改时间</value>
+  </data>
+  <data name="Settings.WriteLyrics" xml:space="preserve">
+    <value>歌词写入标签</value>
+  </data>
+  <data name="Settings.Ui" xml:space="preserve">
+    <value>界面</value>
+  </data>
+  <data name="Settings.CompactRows" xml:space="preserve">
+    <value>紧凑行高</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>界面语言</value>
+  </data>
+  <data name="Settings.CheckUpdates" xml:space="preserve">
+    <value>启动时检查更新</value>
+  </data>
+  <data name="Language.Auto" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Language.Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Language.Japanese" xml:space="preserve">
+    <value>日本語</value>
+  </data>
+  <data name="Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Source.netease" xml:space="preserve">
+    <value>网易云音乐</value>
+  </data>
+  <data name="Source.qq" xml:space="preserve">
+    <value>QQ 音乐</value>
+  </data>
+  <data name="Source.kugou" xml:space="preserve">
+    <value>酷狗音乐</value>
+  </data>
+  <data name="Source.kuwo" xml:space="preserve">
+    <value>酷我音乐</value>
+  </data>
+  <data name="Source.musicbrainz" xml:space="preserve">
+    <value>MusicBrainz</value>
+  </data>
+  <data name="Source.coverart" xml:space="preserve">
+    <value>Cover Art Archive</value>
+  </data>
+  <data name="Source.itunes" xml:space="preserve">
+    <value>iTunes</value>
+  </data>
+  <data name="Source.lastfm" xml:space="preserve">
+    <value>Last.fm</value>
+  </data>
+  <data name="Source.lrclib" xml:space="preserve">
+    <value>LRCLIB</value>
+  </data>
+  <data name="Capability.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Capability.Cover" xml:space="preserve">
+    <value>封面</value>
+  </data>
+  <data name="Capability.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="SourceOrder.Hint" xml:space="preserve">
+    <value>勾选启用；↑ ↓ 调整优先级，越靠上越先查询</value>
+  </data>
+  <data name="FileType.Audio" xml:space="preserve">
+    <value>音频文件</value>
+  </data>
+  <data name="FileType.PickAudio" xml:space="preserve">
+    <value>选择音频文件</value>
+  </data>
+  <data name="FileType.PickFolder" xml:space="preserve">
+    <value>选择音乐目录</value>
+  </data>
+  <data name="FileType.Lyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="FileType.Image" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="About.Description" xml:space="preserve">
+    <value>跨平台音乐标签编辑器</value>
+  </data>
+  <data name="About.Repository" xml:space="preserve">
+    <value>GitHub 仓库</value>
+  </data>
+  <data name="About.CheckUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="About.Version" xml:space="preserve">
+    <value>版本 {0}</value>
+  </data>
+  <data name="Update.AvailableStatus" xml:space="preserve">
+    <value>发现新版本 v{0}，可在「帮助 → 检查更新」查看</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>正在检查更新…</value>
+  </data>
+  <data name="Update.NewVersion" xml:space="preserve">
+    <value>发现新版本 v{0}（当前 v{1}）</value>
+  </data>
+  <data name="Update.Latest" xml:space="preserve">
+    <value>已是最新版本 v{0}</value>
+  </data>
+  <data name="Update.Failed" xml:space="preserve">
+    <value>检查更新失败，请稍后再试</value>
+  </data>
+  <data name="Update.OpenRelease" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="Update.NoNotes" xml:space="preserve">
+    <value>（该版本没有发布说明）</value>
+  </data>
+  <data name="Mobile.EmptyHint" xml:space="preserve">
+    <value>点右上角 + 添加音乐文件，保存后会写回原文件。</value>
+  </data>
+  <data name="Mobile.Back" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="Mobile.OnlineMatch" xml:space="preserve">
+    <value>在线匹配</value>
+  </data>
+  <data name="Mobile.History" xml:space="preserve">
+    <value>历史</value>
+  </data>
+  <data name="Mobile.ClearTags" xml:space="preserve">
+    <value>清空标签</value>
+  </data>
+  <data name="Mobile.RemoveFromList" xml:space="preserve">
+    <value>移出列表</value>
+  </data>
+  <data name="AutoMatch.FileCount" xml:space="preserve">
+    <value>共 {0} 个文件将参与匹配</value>
+  </data>
+  <data name="AutoMatch.Fields" xml:space="preserve">
+    <value>要导入的字段</value>
+  </data>
+  <data name="AutoMatch.Sources" xml:space="preserve">
+    <value>使用的在线源</value>
+  </data>
+  <data name="AutoMatch.Rule" xml:space="preserve">
+    <value>覆盖方式</value>
+  </data>
+  <data name="AutoMatch.NeedField" xml:space="preserve">
+    <value>请至少勾选一个字段</value>
+  </data>
+  <data name="AutoMatch.NeedSource" xml:space="preserve">
+    <value>请至少启用一个在线源</value>
+  </data>
+  <data name="Error.UnsupportedFormat" xml:space="preserve">
+    <value>不支持的格式</value>
+  </data>
+  <data name="Rename.EmptyName" xml:space="preserve">
+    <value>生成的文件名为空</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>复制失败</value>
+  </data>
+  <data name="Settings.SearchHint" xml:space="preserve">
+    <value>并发越高速度越快；请求过多可能被在线服务限流。</value>
+  </data>
+  <data name="Settings.Connection" xml:space="preserve">
+    <value>连接设置</value>
+  </data>
+  <data name="Settings.LyricsOptions" xml:space="preserve">
+    <value>处理选项</value>
+  </data>
+  <data name="Settings.LyricsSaving" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Settings.PictureLimits" xml:space="preserve">
+    <value>尺寸与体积</value>
+  </data>
+  <data name="Settings.UiAppearance" xml:space="preserve">
+    <value>语言与外观</value>
+  </data>
+  <data name="Settings.Updates" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="Settings.UserAgentHint" xml:space="preserve">
+    <value>一般保持默认即可；部分在线服务要求可识别的标识。</value>
+  </data>
+  <data name="About.Features" xml:space="preserve">
+    <value>支持标题、艺术家、专辑、年份、音轨、流派、歌词与封面的读取和写入。</value>
+  </data>
+  <data name="About.Formats" xml:space="preserve">
+    <value>支持 MP3、FLAC、M4A、OGG、WAV 等常见音频格式。</value>
+  </data>
+</root>

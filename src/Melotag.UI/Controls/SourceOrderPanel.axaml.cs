@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Melotag.Core.Sources;
+using Melotag.UI.Localization;
 
 /// <summary>单个类别（标签 / 封面 / 歌词）的在线源启用与排序。列表顺序即查询优先级。</summary>
 public partial class SourceOrderPanel : UserControl
@@ -44,7 +45,11 @@ public partial class SourceOrderPanel : UserControl
         foreach (var (source, _) in rows)
         {
             var enabled = order.Contains(source.Id, StringComparer.OrdinalIgnoreCase);
-            _items.Add(new SourceOrderItem(source.Id, source.DisplayName, Describe(source.Capabilities), enabled));
+            _items.Add(new SourceOrderItem(
+                source.Id,
+                Localizer.SourceName(source.Id, source.DisplayName),
+                Describe(source.Capabilities),
+                enabled));
         }
     }
 
@@ -63,9 +68,9 @@ public partial class SourceOrderPanel : UserControl
     private static string Describe(SourceCapability capability)
     {
         var parts = new List<string>();
-        if ((capability & SourceCapability.Tags) != 0) parts.Add("标签");
-        if ((capability & SourceCapability.Cover) != 0) parts.Add("封面");
-        if ((capability & SourceCapability.Lyrics) != 0) parts.Add("歌词");
+        if ((capability & SourceCapability.Tags) != 0) parts.Add(Localizer.T("Capability.Tags"));
+        if ((capability & SourceCapability.Cover) != 0) parts.Add(Localizer.T("Capability.Cover"));
+        if ((capability & SourceCapability.Lyrics) != 0) parts.Add(Localizer.T("Capability.Lyrics"));
         return string.Join(" · ", parts);
     }
 

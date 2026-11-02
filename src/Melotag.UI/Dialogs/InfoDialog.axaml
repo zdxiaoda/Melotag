@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Dialogs.InfoDialog">
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -19,7 +20,7 @@
 
       <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
         <ContentControl Grid.Row="0" x:Name="Body" />
-        <Button Grid.Row="1" Content="关闭" Click="OnClose" HorizontalAlignment="Right" Classes="accent" />
+        <Button Grid.Row="1" Content="{loc:Tr Key=Button.Close}" Click="OnClose" HorizontalAlignment="Right" Classes="accent" />
       </Grid>
     </Grid>
   </Border>

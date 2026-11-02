@@ -4,11 +4,12 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Files;
+using Melotag.UI.Localization;
 
 /// <summary>桌面 / 浏览器实现：Avalonia StorageProvider + 本地路径。</summary>
 public sealed class StorageProviderFilePicker : IFilePickerPlatform
 {
-    public static readonly FilePickerFileType AudioFileType = new("音频文件")
+    private static FilePickerFileType CreateAudioFileType() => new(Localizer.T("FileType.Audio"))
     {
         Patterns =
         [
@@ -24,9 +25,9 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
     {
         var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "选择音频文件",
+            Title = Localizer.T("FileType.PickAudio"),
             AllowMultiple = true,
-            FileTypeFilter = [AudioFileType, FilePickerFileTypes.All],
+            FileTypeFilter = [CreateAudioFileType(), FilePickerFileTypes.All],
         });
 
         return files
@@ -40,7 +41,7 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
     {
         var folders = await top.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "选择音乐目录",
+            Title = Localizer.T("FileType.PickFolder"),
             AllowMultiple = false,
         });
 

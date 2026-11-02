@@ -7,6 +7,7 @@ using Avalonia.Platform.Storage;
 using Melotag.Core.Services;
 using Melotag.Core.Sources;
 using Melotag.Storage;
+using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 
 public partial class CoverDialog : ModalView
@@ -60,7 +61,7 @@ public partial class CoverDialog : ModalView
         }
         catch (Exception ex)
         {
-            Status.Text = "无法显示该图片：" + ex.Message;
+            Status.Text = Localizer.F("Cover.CannotShow", ex.Message);
         }
     }
 
@@ -72,7 +73,7 @@ public partial class CoverDialog : ModalView
         _cts = new CancellationTokenSource();
 
         Progress.IsVisible = true;
-        Status.Text = "正在搜索封面…";
+        Status.Text = Localizer.T("Search.CoverSearching");
         ResultCombo.ItemsSource = null;
         _results.Clear();
 
@@ -97,15 +98,17 @@ public partial class CoverDialog : ModalView
             _results.AddRange(results.Where(r => !string.IsNullOrWhiteSpace(r.CoverUrl)));
             ResultCombo.ItemsSource = _results.Select(r => $"{r.SourceId} · {r.Summary}").ToList();
             if (_results.Count > 0) ResultCombo.SelectedIndex = 0;
-            Status.Text = _results.Count == 0 ? "没有可用的封面候选" : $"共 {_results.Count} 条候选";
+            Status.Text = _results.Count == 0
+                ? Localizer.T("Search.NoCoverCandidates")
+                : Localizer.F("Search.CandidateCount", _results.Count);
         }
         catch (OperationCanceledException)
         {
-            Status.Text = "已取消";
+            Status.Text = Localizer.T("Search.Cancelled");
         }
         catch (Exception ex)
         {
-            Status.Text = "搜索失败：" + ex.Message;
+            Status.Text = Localizer.F("Search.Failed", ex.Message);
         }
         finally
         {
@@ -122,14 +125,14 @@ public partial class CoverDialog : ModalView
         if (string.IsNullOrWhiteSpace(candidate.CoverUrl)) return;
 
         Progress.IsVisible = true;
-        Status.Text = "正在下载封面…";
+        Status.Text = Localizer.T("Search.CoverDownloading");
         try
         {
             var source = _search.Find(candidate.SourceId);
             var bytes = source is null ? null : await source.DownloadCoverAsync(candidate.CoverUrl, CancellationToken.None);
             if (bytes is null)
             {
-                Status.Text = "下载失败";
+                Status.Text = Localizer.T("Search.CoverDownloadFailed");
                 return;
             }
 
@@ -154,7 +157,7 @@ public partial class CoverDialog : ModalView
 
         if (normalized is null)
         {
-            Status.Text = "图片格式或体积不符合设置（可在设置里调整上限）";
+            Status.Text = Localizer.T("Cover.Invalid");
             return;
         }
 
@@ -169,11 +172,11 @@ public partial class CoverDialog : ModalView
 
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "选择封面图片",
+            Title = Localizer.T("Cover.PickTitle"),
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("图片") { Patterns = ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", "*.webp"] },
+                new FilePickerFileType(Localizer.T("Cover.ImageType")) { Patterns = ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", "*.webp"] },
             ],
         });
 
@@ -189,7 +192,7 @@ public partial class CoverDialog : ModalView
     {
         if (_current is null)
         {
-            Status.Text = "当前没有封面可导出";
+            Status.Text = Localizer.T("Cover.NoExport");
             return;
         }
 
@@ -198,17 +201,17 @@ public partial class CoverDialog : ModalView
         var ext = _mime.Contains("png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
         var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "导出封面",
+            Title = Localizer.T("Cover.ExportTitle"),
             SuggestedFileName = (_row?.FileName ?? "cover") + "." + ext,
             DefaultExtension = ext,
-            FileTypeChoices = [new FilePickerFileType("图片") { Patterns = [$"*.{ext}"] }],
+            FileTypeChoices = [new FilePickerFileType(Localizer.T("Cover.ImageType")) { Patterns = [$"*.{ext}"] }],
         });
 
         if (file is null) return;
 
         await using var stream = await file.OpenWriteAsync();
         await stream.WriteAsync(_current);
-        Status.Text = "已导出：" + file.Name;
+        Status.Text = Localizer.F("Cover.Exported", file.Name);
     }
 
     private void OnRemove(object? sender, RoutedEventArgs e)
@@ -218,7 +221,7 @@ public partial class CoverDialog : ModalView
         _current = null;
         Result = null;
         Removed = true;
-        Status.Text = "保存时将移除封面";
+        Status.Text = Localizer.T("Cover.RemoveOnSave");
     }
 
     private void OnOk(object? sender, RoutedEventArgs e)

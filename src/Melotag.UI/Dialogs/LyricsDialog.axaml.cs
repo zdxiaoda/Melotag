@@ -7,6 +7,7 @@ using Melotag.Core.Abstractions;
 using Melotag.Core.Lyrics;
 using Melotag.Core.Sources;
 using Melotag.Storage;
+using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 
 public partial class LyricsDialog : ModalView
@@ -49,7 +50,7 @@ public partial class LyricsDialog : ModalView
         _cts = new CancellationTokenSource();
 
         Progress.IsVisible = true;
-        Status.Text = "正在搜索歌词…";
+        Status.Text = Localizer.T("Search.LyricsSearching");
         ResultCombo.ItemsSource = null;
         _results.Clear();
 
@@ -73,22 +74,34 @@ public partial class LyricsDialog : ModalView
                 _cts.Token);
 
             _results.AddRange(results);
-            ResultCombo.ItemsSource = results.Select(r => $"{r.SourceId} · {r.Summary}").ToList();
+            ResultCombo.ItemsSource = results.Select(DescribeResult).ToList();
             if (results.Count > 0) ResultCombo.SelectedIndex = 0;
-            Status.Text = results.Count == 0 ? "没有找到歌词" : $"共 {results.Count} 条";
+            Status.Text = results.Count == 0
+                ? Localizer.T("Search.LyricsNotFound")
+                : Localizer.F("Search.LyricsCount", results.Count);
         }
         catch (OperationCanceledException)
         {
-            Status.Text = "已取消";
+            Status.Text = Localizer.T("Search.Cancelled");
         }
         catch (Exception ex)
         {
-            Status.Text = "搜索失败：" + ex.Message;
+            Status.Text = Localizer.F("Search.Failed", ex.Message);
         }
         finally
         {
             Progress.IsVisible = false;
         }
+    }
+
+    private static string DescribeResult(TagCandidate candidate)
+    {
+        var parts = new[] { candidate.Title, candidate.Artist, candidate.Album }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        var text = string.Join(" · ", parts);
+        return string.IsNullOrWhiteSpace(text)
+            ? $"{candidate.SourceId} · {candidate.Detail}"
+            : $"{candidate.SourceId} · {text}";
     }
 
     private void OnResultChanged(object? sender, SelectionChangedEventArgs e)
@@ -114,7 +127,7 @@ public partial class LyricsDialog : ModalView
         if (Math.Abs(shift) > 0.001) doc.Shift(TimeSpan.FromSeconds(shift));
 
         Editor.Text = doc.ToLrcText();
-        Message.Text = "已应用处理";
+        Message.Text = Localizer.T("Lyrics.Applied");
     }
 
     private async void OnImport(object? sender, RoutedEventArgs e)
@@ -123,9 +136,9 @@ public partial class LyricsDialog : ModalView
 
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "导入 LRC",
+            Title = Localizer.T("Lyrics.ImportTitle"),
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("歌词") { Patterns = ["*.lrc", "*.txt"] }],
+            FileTypeFilter = [new FilePickerFileType(Localizer.T("Lyrics.FileType")) { Patterns = ["*.lrc", "*.txt"] }],
         });
 
         if (files.Count == 0) return;
@@ -133,7 +146,7 @@ public partial class LyricsDialog : ModalView
         await using var stream = await files[0].OpenReadAsync();
         var text = TextFile.ReadAllText(stream, out var encoding);
         Editor.Text = text;
-        Message.Text = $"已导入（编码 {encoding}）";
+        Message.Text = Localizer.F("Lyrics.Imported", encoding);
     }
 
     private async void OnSaveLrc(object? sender, RoutedEventArgs e)
@@ -144,10 +157,10 @@ public partial class LyricsDialog : ModalView
         var suggested = (_row?.FileName ?? "lyrics") + ".lrc";
         var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "保存 LRC",
+            Title = Localizer.T("Lyrics.SaveTitle"),
             SuggestedFileName = suggested,
             DefaultExtension = "lrc",
-            FileTypeChoices = [new FilePickerFileType("歌词") { Patterns = ["*.lrc"] }],
+            FileTypeChoices = [new FilePickerFileType(Localizer.T("Lyrics.FileType")) { Patterns = ["*.lrc"] }],
         });
 
         if (file is null) return;
@@ -155,7 +168,7 @@ public partial class LyricsDialog : ModalView
         var encoding = EncodingCombo.SelectedItem as string ?? _settings.Lyrics.Encoding;
         await using var stream = await file.OpenWriteAsync();
         TextFile.WriteAllText(stream, Editor.Text ?? "", encoding);
-        Message.Text = $"已保存：{file.Name}（{encoding}）";
+        Message.Text = Localizer.F("Lyrics.Saved", file.Name, encoding);
     }
 
     private void OnOk(object? sender, RoutedEventArgs e)

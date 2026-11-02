@@ -31,6 +31,7 @@ jobs:
 
   android:
     uses: ./.github/workflows/android.yml
+    secrets: inherit
 
   publish:
     name: publish (${{ matrix.rid }})
@@ -78,6 +79,78 @@ jobs:
             -o "dist/${{ matrix.rid }}"
           find "dist/${{ matrix.rid }}" -name '*.pdb' -delete
 
+      - name: Publish self-contained (Windows installer)
+        if: matrix.rid == 'win-x64'
+        shell: bash
+        run: |
+          # 安装包自带 .NET 运行时，用户无需另外安装。
+          dotnet publish src/Melotag.Desktop \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -p:Version="$APP_VERSION" \
+            -o "dist/win-x64-installer"
+          find "dist/win-x64-installer" -name '*.pdb' -delete
+
+      - name: Publish self-contained (MSIX)
+        if: matrix.rid == 'win-x64'
+        shell: bash
+        run: |
+          dotnet publish src/Melotag.Desktop \
+            -c Release -r win-x64 --self-contained true \
+            -p:PublishSingleFile=false \
+            -p:DebugType=None -p:DebugSymbols=false \
+            -p:Version="$APP_VERSION" \
+            -o dist/win-x64-msix
+          find dist/win-x64-msix -name '*.pdb' -delete
+
+      - name: Build Windows installer
+        if: matrix.rid == 'win-x64'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          New-Item -ItemType Directory -Force -Path "dist/installer-win-x64" | Out-Null
+          & $iscc "/DMyAppVersion=$env:APP_VERSION" "packaging/windows/melotag.iss"
+          Get-ChildItem "dist/installer-win-x64" | Format-Table Name,Length
+
+      - name: Upload Windows installer
+        if: matrix.rid == 'win-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-win-x64
+          path: dist/installer-win-x64/*.exe
+          if-no-files-found: error
+
+      - name: Build MSIX (Microsoft Store)
+        if: matrix.rid == 'win-x64' && vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '' && vars.MSIX_PUBLISHER_DISPLAY_NAME != ''
+        shell: pwsh
+        run: |
+          $parts = $env:APP_VERSION -split '\.'
+          $msixVersion = (($parts + @('0','0','0'))[0..3]) -join '.'
+          ./packaging/windows/msix/build-msix.ps1 `
+            -Version $msixVersion `
+            -IdentityName "${{ vars.MSIX_IDENTITY_NAME }}" `
+            -Publisher "${{ vars.MSIX_PUBLISHER }}" `
+            -PublisherDisplayName "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}" `
+            -SourceDir "dist/win-x64-msix" `
+            -Output "dist/installer-win-x64/Melotag-$env:APP_VERSION.msix"
+
+      - name: Upload MSIX
+        if: matrix.rid == 'win-x64' && vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '' && vars.MSIX_PUBLISHER_DISPLAY_NAME != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-win-x64
+          path: dist/installer-win-x64/*.msix
+          if-no-files-found: error
+
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
@@ -88,14 +161,17 @@ jobs:
   release:
     name: release
     needs: [ publish, android ]
-    # 推送版本标签自动发布；手动运行时需显式勾选 publish
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish == true
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Download packages
         uses: actions/download-artifact@v4
@@ -112,10 +188,18 @@ jobs:
         run: |
           set -euo pipefail
           version="$APP_VERSION"
-          mkdir -p out stage
+          mkdir -p out stage dist
 
           if ! command -v zip >/dev/null 2>&1; then
             sudo apt-get update -qq && sudo apt-get install -y -qq zip
+          fi
+
+          # Windows 安装包由 publish 任务在 Windows 上生成
+          if compgen -G "artifacts/installer-win-x64/*.exe" >/dev/null; then
+            cp artifacts/installer-win-x64/*.exe out/
+          fi
+          if compgen -G "artifacts/msix-win-x64/*.msix" >/dev/null; then
+            cp artifacts/msix-win-x64/*.msix out/
           fi
 
           readme() {
@@ -136,6 +220,7 @@ jobs:
           win="Melotag-${version}-win-x64"
           mkdir -p "stage/$win"
           cp -r artifacts/publish-win-x64/. "stage/$win/"
+          cp LICENSE "stage/$win/LICENSE.txt"
           readme "双击 Melotag.exe" "%APPDATA%\\Melotag" > "stage/$win/README.txt"
           (cd stage && zip -qr "../out/$win.zip" "$win")
 
@@ -145,6 +230,7 @@ jobs:
           chmod +x "stage/$lin/Melotag"
           cp docs/branding/melotag-logo.png "stage/$lin/melotag.png"
           cp packaging/linux/melotag.desktop "stage/$lin/"
+          cp LICENSE "stage/$lin/LICENSE"
           readme "./Melotag 或执行 install.sh 安装桌面项" "~/.config/Melotag" > "stage/$lin/README.txt"
 
           cat > "stage/$lin/install.sh" <<'EOF'
@@ -192,11 +278,12 @@ jobs:
           跨平台音乐标签编辑器。
 
           上游项目：https://github.com/${GITHUB_REPOSITORY}
-          许可证：以上游仓库中的声明为准；本包同时包含下列第三方组件：
+          许可证：MIT；本包同时包含下列第三方组件：
            Avalonia (MIT)、FluentAvalonia (MIT)、TagLib# (LGPL-2.1)、
            SkiaSharp (MIT)、OpenCC (Apache-2.0)、Microsoft.Data.Sqlite (MIT)。
           EOF
           chmod 644 "$root/usr/share/doc/$pkg/copyright"
+          install -m644 LICENSE "$root/usr/share/doc/$pkg/LICENSE"
 
           {
             echo "$pkg (${APP_VERSION}) unstable; urgency=medium"
@@ -232,6 +319,108 @@ jobs:
           dpkg-deb --contents "out/${pkg}_${APP_VERSION}_amd64.deb" | head -20
           ls -lh out
 
+      - name: Build RPM
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm
+
+          root="$(pwd)"
+          mkdir -p dist/rpmbuild/BUILD dist/rpmbuild/RPMS dist/rpmbuild/SOURCES \
+                   dist/rpmbuild/SPECS dist/rpmbuild/SRPMS
+          sed -e "s|__VERSION__|${APP_VERSION}|g" -e "s|__ROOT__|${root}|g" \
+            packaging/linux/melotag.spec > dist/rpmbuild/SPECS/melotag.spec
+          sed -e 's/^Exec=Melotag/Exec=melotag/' \
+              -e 's/^StartupWMClass=Melotag/StartupWMClass=melotag/' \
+              packaging/linux/melotag.desktop > dist/melotag-rpm.desktop
+
+          rpmbuild -bb --define "_topdir ${root}/dist/rpmbuild" \
+            dist/rpmbuild/SPECS/melotag.spec
+          cp dist/rpmbuild/RPMS/x86_64/*.rpm \
+            "out/melotag-${APP_VERSION}-1.x86_64.rpm"
+          ls -lh out/*.rpm
+
+      - name: Publish self-contained Linux (AppImage/Flatpak)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet publish src/Melotag.Desktop \
+            -c Release -r linux-x64 --self-contained true \
+            -p:PublishSingleFile=false \
+            -p:DebugType=None -p:DebugSymbols=false \
+            -p:Version="$APP_VERSION" \
+            -o dist/linux-x64-selfcontained
+          find dist/linux-x64-selfcontained -name '*.pdb' -delete
+
+      - name: Build AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq squashfs-tools desktop-file-utils libfuse2 \
+            || sudo apt-get install -y -qq squashfs-tools desktop-file-utils libfuse2t64
+
+          appdir="dist/Melotag.AppDir"
+          rm -rf "$appdir"
+          mkdir -p "$appdir/usr/bin" \
+                   "$appdir/usr/share/applications" \
+                   "$appdir/usr/share/icons/hicolor/512x512/apps" \
+                   "$appdir/usr/share/licenses/melotag"
+          cp -a dist/linux-x64-selfcontained/. "$appdir/usr/bin/"
+          chmod +x "$appdir/usr/bin/Melotag"
+          cp docs/branding/melotag-logo.png "$appdir/melotag.png"
+          cp docs/branding/melotag-logo.png "$appdir/usr/share/icons/hicolor/512x512/apps/melotag.png"
+          cp packaging/linux/melotag.desktop "$appdir/melotag.desktop"
+          cp packaging/linux/melotag.desktop "$appdir/usr/share/applications/melotag.desktop"
+          cp LICENSE "$appdir/usr/share/licenses/melotag/LICENSE"
+          cat > "$appdir/AppRun" <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/usr/bin/Melotag" "$@"
+          EOF
+          chmod +x "$appdir/AppRun"
+
+          if ! curl -fsSL -o /tmp/appimagetool \
+            "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"; then
+            curl -fsSL -o /tmp/appimagetool \
+              "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          fi
+          chmod +x /tmp/appimagetool
+          ARCH=x86_64 /tmp/appimagetool --appimage-extract-and-run \
+            "$appdir" "out/Melotag-${APP_VERSION}-x86_64.AppImage"
+          ls -lh out/*.AppImage
+
+      - name: Build Flatpak
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub \
+            org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+
+          flatpak_src="dist/flatpak-src"
+          rm -rf "$flatpak_src"
+          mkdir -p "$flatpak_src/app"
+          cp -a dist/linux-x64-selfcontained/. "$flatpak_src/app/"
+          cp packaging/flatpak/io.melotag.app.desktop "$flatpak_src/"
+          cp docs/branding/melotag-logo.png "$flatpak_src/io.melotag.app.png"
+          cp LICENSE "$flatpak_src/"
+          cp packaging/flatpak/io.melotag.app.yml "$flatpak_src/io.melotag.app.yml"
+          sed -i 's|path: ../../dist/flatpak-src|path: .|' "$flatpak_src/io.melotag.app.yml"
+
+          flatpak-builder --user --disable-rofiles-fuse --force-clean \
+            --install-deps-from=flathub \
+            --repo=dist/flatpak-repo dist/flatpak-build \
+            "$flatpak_src/io.melotag.app.yml"
+          flatpak build-bundle \
+            --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
+            dist/flatpak-repo "out/Melotag-${APP_VERSION}.flatpak" io.melotag.app
+          ls -lh out/*.flatpak
+
       - name: Collect Android APKs
         shell: bash
         run: |
@@ -252,10 +441,20 @@ jobs:
         run: |
           set -euo pipefail
           cd out
-          sha256sum ./*.zip ./*.tar.gz ./*.deb ./*.apk > SHA256SUMS.txt
+          shopt -s nullglob
+          files=(./*.zip ./*.tar.gz ./*.deb ./*.rpm ./*.AppImage ./*.flatpak ./*.exe ./*.msix ./*.apk)
+          sha256sum "${files[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ env.RELEASE_TAG }}
+          path: out/*
+          if-no-files-found: error
+
       - name: Create or update GitHub release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

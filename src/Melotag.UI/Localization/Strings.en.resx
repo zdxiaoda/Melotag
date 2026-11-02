@@ -1,0 +1,952 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="App.Name" xml:space="preserve">
+    <value>Melotag</value>
+  </data>
+  <data name="App.ShortName" xml:space="preserve">
+    <value>Melotag</value>
+  </data>
+  <data name="App.WindowTitle" xml:space="preserve">
+    <value>Melotag · Tag Editor</value>
+  </data>
+  <data name="App.Description" xml:space="preserve">
+    <value>Cross-platform music tag editor</value>
+  </data>
+  <data name="App.AndroidNote" xml:space="preserve">
+    <value>Songs added from the Android file picker are saved back to the original file.</value>
+  </data>
+  <data name="App.SourcesLine" xml:space="preserve">
+    <value>Online sources: {0}</value>
+  </data>
+  <data name="App.AboutTitle" xml:space="preserve">
+    <value>About Melotag</value>
+  </data>
+  <data name="Menu.File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Menu.File.AddFiles" xml:space="preserve">
+    <value>Add Files…</value>
+  </data>
+  <data name="Menu.File.AddFolder" xml:space="preserve">
+    <value>Add Folder…</value>
+  </data>
+  <data name="Menu.File.SaveCurrent" xml:space="preserve">
+    <value>Save Current Tags</value>
+  </data>
+  <data name="Menu.File.SaveAll" xml:space="preserve">
+    <value>Save All</value>
+  </data>
+  <data name="Menu.File.Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Menu.Edit.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Menu.Edit.Remove" xml:space="preserve">
+    <value>Remove from List</value>
+  </data>
+  <data name="Menu.Edit.ClearTags" xml:space="preserve">
+    <value>Clear Tags (memory)</value>
+  </data>
+  <data name="Menu.Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Menu.Tools.Rename" xml:space="preserve">
+    <value>Rename / File Names…</value>
+  </data>
+  <data name="Menu.Tools.TagSearch" xml:space="preserve">
+    <value>Online Tag Match…</value>
+  </data>
+  <data name="Menu.Tools.Lyrics" xml:space="preserve">
+    <value>Lyrics…</value>
+  </data>
+  <data name="Menu.Tools.Cover" xml:space="preserve">
+    <value>Cover…</value>
+  </data>
+  <data name="Menu.Tools.History" xml:space="preserve">
+    <value>Tag History…</value>
+  </data>
+  <data name="Menu.Tools.TagsToTraditional" xml:space="preserve">
+    <value>Tags: Simplified → Traditional</value>
+  </data>
+  <data name="Menu.Tools.TagsToSimplified" xml:space="preserve">
+    <value>Tags: Traditional → Simplified</value>
+  </data>
+  <data name="Menu.Tools.NamesToTraditional" xml:space="preserve">
+    <value>File Names: Simplified → Traditional</value>
+  </data>
+  <data name="Menu.Tools.NamesToSimplified" xml:space="preserve">
+    <value>File Names: Traditional → Simplified</value>
+  </data>
+  <data name="Menu.Tools.Settings" xml:space="preserve">
+    <value>Settings…</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Menu.View.ToggleTheme" xml:space="preserve">
+    <value>Toggle Dark / Light</value>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Menu.Help.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Menu.Help.CheckUpdates" xml:space="preserve">
+    <value>Check for Updates…</value>
+  </data>
+  <data name="Toolbar.AddFile" xml:space="preserve">
+    <value>Add Files</value>
+  </data>
+  <data name="Toolbar.AddFolder" xml:space="preserve">
+    <value>Add Folder (recursive)</value>
+  </data>
+  <data name="Toolbar.Reload" xml:space="preserve">
+    <value>Reload (F5)</value>
+  </data>
+  <data name="Toolbar.SaveCurrent" xml:space="preserve">
+    <value>Save Current Tags (Ctrl+S)</value>
+  </data>
+  <data name="Toolbar.SaveAll" xml:space="preserve">
+    <value>Save All</value>
+  </data>
+  <data name="Toolbar.Remove" xml:space="preserve">
+    <value>Remove from List</value>
+  </data>
+  <data name="Toolbar.Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Toolbar.TagSearch" xml:space="preserve">
+    <value>Online Tag Match</value>
+  </data>
+  <data name="Toolbar.AutoMatch" xml:space="preserve">
+    <value>Batch Auto Match</value>
+  </data>
+  <data name="Toolbar.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Toolbar.Cover" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="Toolbar.ExtractCovers" xml:space="preserve">
+    <value>Extract All Covers</value>
+  </data>
+  <data name="Toolbar.History" xml:space="preserve">
+    <value>Tag History</value>
+  </data>
+  <data name="Toolbar.ClearTags" xml:space="preserve">
+    <value>Clear Tags (memory only)</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Toolbar.ToggleTheme" xml:space="preserve">
+    <value>Toggle Dark / Light Theme</value>
+  </data>
+  <data name="Toolbar.ToggleThemeName" xml:space="preserve">
+    <value>Toggle Theme</value>
+  </data>
+  <data name="Toolbar.More" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="Column.FileName" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="Column.Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Column.Artist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Column.Album" xml:space="preserve">
+    <value>Album</value>
+  </data>
+  <data name="Column.Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="Column.Track" xml:space="preserve">
+    <value>Track</value>
+  </data>
+  <data name="Column.Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Column.Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Field.Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Field.Artist" xml:space="preserve">
+    <value>Artist</value>
+  </data>
+  <data name="Field.Album" xml:space="preserve">
+    <value>Album</value>
+  </data>
+  <data name="Field.AlbumArtist" xml:space="preserve">
+    <value>Album Artist</value>
+  </data>
+  <data name="Field.Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="Field.Track" xml:space="preserve">
+    <value>Track</value>
+  </data>
+  <data name="Field.Disc" xml:space="preserve">
+    <value>Disc</value>
+  </data>
+  <data name="Field.Genre" xml:space="preserve">
+    <value>Genre</value>
+  </data>
+  <data name="Field.Comment" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="Field.Composer" xml:space="preserve">
+    <value>Composer</value>
+  </data>
+  <data name="Field.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Field.Cover" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="Field.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Filter.Placeholder" xml:space="preserve">
+    <value>Filter: file name / title / artist / album</value>
+  </data>
+  <data name="Editor.Title" xml:space="preserve">
+    <value>Tag Editor</value>
+  </data>
+  <data name="Button.OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Button.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Button.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Button.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Button.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Button.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Button.ResetDefault" xml:space="preserve">
+    <value>Reset Defaults</value>
+  </data>
+  <data name="Button.MoveUp" xml:space="preserve">
+    <value>Move Up</value>
+  </data>
+  <data name="Button.MoveDown" xml:space="preserve">
+    <value>Move Down</value>
+  </data>
+  <data name="Button.RestoreSelected" xml:space="preserve">
+    <value>Restore Selected</value>
+  </data>
+  <data name="Button.ClearAll" xml:space="preserve">
+    <value>Clear All</value>
+  </data>
+  <data name="Button.Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Dialog.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Dialog.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Dialog.TagSearch" xml:space="preserve">
+    <value>Online Tag Match</value>
+  </data>
+  <data name="Dialog.Rename" xml:space="preserve">
+    <value>Rename / File Names</value>
+  </data>
+  <data name="Dialog.Cover" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="Dialog.History" xml:space="preserve">
+    <value>Tag History</value>
+  </data>
+  <data name="Dialog.AutoMatch" xml:space="preserve">
+    <value>Batch Auto Match</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Status.NoNewFiles" xml:space="preserve">
+    <value>No new files</value>
+  </data>
+  <data name="Status.LoadingFiles" xml:space="preserve">
+    <value>Reading {0} files…</value>
+  </data>
+  <data name="Status.LoadedFiles" xml:space="preserve">
+    <value>Loaded {0}, failed/skipped {1}</value>
+  </data>
+  <data name="Status.Reloading" xml:space="preserve">
+    <value>Reloading…</value>
+  </data>
+  <data name="Status.Reloaded" xml:space="preserve">
+    <value>Reload complete</value>
+  </data>
+  <data name="Status.SelectFile" xml:space="preserve">
+    <value>Select a file first</value>
+  </data>
+  <data name="Status.NoSavableFiles" xml:space="preserve">
+    <value>No files to save</value>
+  </data>
+  <data name="Status.Saving" xml:space="preserve">
+    <value>Saving {0}…</value>
+  </data>
+  <data name="Status.Saved" xml:space="preserve">
+    <value>Saved {0} files</value>
+  </data>
+  <data name="Status.SavedPartial" xml:space="preserve">
+    <value>Saved {0}, failed {1}</value>
+  </data>
+  <data name="Status.ReadOnlyFile" xml:space="preserve">
+    <value>This file is read-only; please re-select and grant write access.</value>
+  </data>
+  <data name="Status.SaveFailed" xml:space="preserve">
+    <value>Save failed</value>
+  </data>
+  <data name="Status.ClearedTags" xml:space="preserve">
+    <value>Cleared tags for {0} files (not written yet)</value>
+  </data>
+  <data name="Status.RemovedFromList" xml:space="preserve">
+    <value>Removed from list</value>
+  </data>
+  <data name="Status.RemovedMany" xml:space="preserve">
+    <value>Removed {0} files from list</value>
+  </data>
+  <data name="Status.Copied" xml:space="preserve">
+    <value>Copied {0} rows</value>
+  </data>
+  <data name="Status.AppliedCandidate" xml:space="preserve">
+    <value>Applied candidate from {0}; save to write the file</value>
+  </data>
+  <data name="Status.NoMatchFiles" xml:space="preserve">
+    <value>No files to match</value>
+  </data>
+  <data name="Status.AutoMatching" xml:space="preserve">
+    <value>Auto matching {0}/{1}: {2}</value>
+  </data>
+  <data name="Status.AutoMatchDone" xml:space="preserve">
+    <value>Auto match complete: {0} matched, {1} no result (save to write)</value>
+  </data>
+  <data name="Status.NoCovers" xml:space="preserve">
+    <value>No covers to extract</value>
+  </data>
+  <data name="Status.ExtractedCovers" xml:space="preserve">
+    <value>Extracted {0} covers</value>
+  </data>
+  <data name="Status.ExtractedCoversPartial" xml:space="preserve">
+    <value>Extracted {0} covers, failed {1}</value>
+  </data>
+  <data name="Status.TagsToTraditional" xml:space="preserve">
+    <value>Tags converted to Traditional Chinese (save to write)</value>
+  </data>
+  <data name="Status.TagsToSimplified" xml:space="preserve">
+    <value>Tags converted to Simplified Chinese (save to write)</value>
+  </data>
+  <data name="Status.RenameUnsupported" xml:space="preserve">
+    <value>This platform cannot rename files; use the desktop app.</value>
+  </data>
+  <data name="Status.FileNameConverted" xml:space="preserve">
+    <value>File name conversion complete: {0} renamed</value>
+  </data>
+  <data name="Status.FileNameConvertedPartial" xml:space="preserve">
+    <value>File name conversion complete: {0} renamed, {1} failed</value>
+  </data>
+  <data name="Status.Restored" xml:space="preserve">
+    <value>Restored to the record from {0}</value>
+  </data>
+  <data name="Status.RestoreFailed" xml:space="preserve">
+    <value>Restore failed: {0}</value>
+  </data>
+  <data name="Status.LyricsUpdated" xml:space="preserve">
+    <value>Lyrics updated (written when tags are saved)</value>
+  </data>
+  <data name="Status.CoverRemoved" xml:space="preserve">
+    <value>Cover removed (written when saved)</value>
+  </data>
+  <data name="Status.CoverUpdated" xml:space="preserve">
+    <value>Cover updated (written when saved)</value>
+  </data>
+  <data name="Status.EmptyList" xml:space="preserve">
+    <value>The list is empty</value>
+  </data>
+  <data name="Status.FolderPickUnsupported" xml:space="preserve">
+    <value>This platform cannot pick folders; use Add Files with multi-select.</value>
+  </data>
+  <data name="Status.AndroidRenameUnsupported" xml:space="preserve">
+    <value>Renaming files is not supported on mobile; please use the desktop app.</value>
+  </data>
+  <data name="Status.UnsupportedFormat" xml:space="preserve">
+    <value>Unsupported format</value>
+  </data>
+  <data name="Count.Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="Count.Filtered" xml:space="preserve">
+    <value>{0} / {1} files</value>
+  </data>
+  <data name="TrackStatus.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="TrackStatus.Loaded" xml:space="preserve">
+    <value>Loaded</value>
+  </data>
+  <data name="TrackStatus.Modified" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="TrackStatus.Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="TrackStatus.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="TrackStatus.Skipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="Merge.FillEmptyOnly" xml:space="preserve">
+    <value>Fill empty fields only</value>
+  </data>
+  <data name="Merge.Replace" xml:space="preserve">
+    <value>Replace all</value>
+  </data>
+  <data name="Merge.KeepExisting" xml:space="preserve">
+    <value>Keep existing</value>
+  </data>
+  <data name="Search.Searching" xml:space="preserve">
+    <value>Searching…</value>
+  </data>
+  <data name="Search.NoResults" xml:space="preserve">
+    <value>No results (check the network or Last.fm API key)</value>
+  </data>
+  <data name="Search.CandidateCount" xml:space="preserve">
+    <value>{0} candidates</value>
+  </data>
+  <data name="Search.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Search.Failed" xml:space="preserve">
+    <value>Search failed: {0}</value>
+  </data>
+  <data name="Search.SelectCandidate" xml:space="preserve">
+    <value>Select a candidate first</value>
+  </data>
+  <data name="Search.LyricsSearching" xml:space="preserve">
+    <value>Searching lyrics…</value>
+  </data>
+  <data name="Search.LyricsNotFound" xml:space="preserve">
+    <value>No lyrics found</value>
+  </data>
+  <data name="Search.LyricsCount" xml:space="preserve">
+    <value>{0} results</value>
+  </data>
+  <data name="Search.CoverSearching" xml:space="preserve">
+    <value>Searching covers…</value>
+  </data>
+  <data name="Search.NoCoverCandidates" xml:space="preserve">
+    <value>No cover candidates</value>
+  </data>
+  <data name="Search.CoverDownloading" xml:space="preserve">
+    <value>Downloading cover…</value>
+  </data>
+  <data name="Search.CoverDownloadFailed" xml:space="preserve">
+    <value>Download failed</value>
+  </data>
+  <data name="Lyrics.SearchOnline" xml:space="preserve">
+    <value>Search Online</value>
+  </data>
+  <data name="Lyrics.ReformatTimeTags" xml:space="preserve">
+    <value>Reformat time tags</value>
+  </data>
+  <data name="Lyrics.RemoveTimeTags" xml:space="preserve">
+    <value>Remove time tags</value>
+  </data>
+  <data name="Lyrics.DeleteBlankLines" xml:space="preserve">
+    <value>Delete blank lines</value>
+  </data>
+  <data name="Lyrics.DeleteHeadTags" xml:space="preserve">
+    <value>Delete header tags</value>
+  </data>
+  <data name="Lyrics.ShiftSeconds" xml:space="preserve">
+    <value>Shift (seconds)</value>
+  </data>
+  <data name="Lyrics.ApplyOps" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Lyrics.ImportLrc" xml:space="preserve">
+    <value>Import .lrc</value>
+  </data>
+  <data name="Lyrics.SaveLrc" xml:space="preserve">
+    <value>Save as .lrc</value>
+  </data>
+  <data name="Lyrics.Encoding" xml:space="preserve">
+    <value>Encoding</value>
+  </data>
+  <data name="Lyrics.Applied" xml:space="preserve">
+    <value>Applied</value>
+  </data>
+  <data name="Lyrics.ImportTitle" xml:space="preserve">
+    <value>Import LRC</value>
+  </data>
+  <data name="Lyrics.FileType" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Lyrics.Imported" xml:space="preserve">
+    <value>Imported (encoding {0})</value>
+  </data>
+  <data name="Lyrics.SaveTitle" xml:space="preserve">
+    <value>Save LRC</value>
+  </data>
+  <data name="Lyrics.Saved" xml:space="preserve">
+    <value>Saved: {0} ({1})</value>
+  </data>
+  <data name="Cover.NoCover" xml:space="preserve">
+    <value>No cover</value>
+  </data>
+  <data name="Cover.SearchOnline" xml:space="preserve">
+    <value>Search Online</value>
+  </data>
+  <data name="Cover.PickLocal" xml:space="preserve">
+    <value>Choose Local File</value>
+  </data>
+  <data name="Cover.Export" xml:space="preserve">
+    <value>Export to File</value>
+  </data>
+  <data name="Cover.Remove" xml:space="preserve">
+    <value>Remove Cover</value>
+  </data>
+  <data name="Cover.MaxSize" xml:space="preserve">
+    <value>Max size (KB)</value>
+  </data>
+  <data name="Cover.CannotShow" xml:space="preserve">
+    <value>Cannot display this image: {0}</value>
+  </data>
+  <data name="Cover.Invalid" xml:space="preserve">
+    <value>Image format or size exceeds the settings (adjust the limits in Settings).</value>
+  </data>
+  <data name="Cover.PickTitle" xml:space="preserve">
+    <value>Choose Cover Image</value>
+  </data>
+  <data name="Cover.ImageType" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="Cover.NoExport" xml:space="preserve">
+    <value>There is no cover to export</value>
+  </data>
+  <data name="Cover.ExportTitle" xml:space="preserve">
+    <value>Export Cover</value>
+  </data>
+  <data name="Cover.Exported" xml:space="preserve">
+    <value>Exported: {0}</value>
+  </data>
+  <data name="Cover.RemoveOnSave" xml:space="preserve">
+    <value>The cover will be removed when saved</value>
+  </data>
+  <data name="History.NoRecords" xml:space="preserve">
+    <value>No history for this file yet</value>
+  </data>
+  <data name="History.Count" xml:space="preserve">
+    <value>{0} records</value>
+  </data>
+  <data name="History.SelectRecord" xml:space="preserve">
+    <value>Select a record first</value>
+  </data>
+  <data name="History.Restored" xml:space="preserve">
+    <value>Restored the selected record (written on the next save)</value>
+  </data>
+  <data name="History.Cleared" xml:space="preserve">
+    <value>History cleared</value>
+  </data>
+  <data name="Rename.ModeRename" xml:space="preserve">
+    <value>Rename files from tags</value>
+  </data>
+  <data name="Rename.ModeParse" xml:space="preserve">
+    <value>Write tags from file names</value>
+  </data>
+  <data name="Rename.Presets" xml:space="preserve">
+    <value>Presets</value>
+  </data>
+  <data name="Rename.PatternWatermark" xml:space="preserve">
+    <value>e.g. @5. @1 - @2 (@0 unused, @1 title … @8 album artist)</value>
+  </data>
+  <data name="Rename.AlsoLrc" xml:space="preserve">
+    <value>Also rename .lrc</value>
+  </data>
+  <data name="Rename.AlsoPic" xml:space="preserve">
+    <value>Also rename cover files</value>
+  </data>
+  <data name="Rename.RegexWatermark" xml:space="preserve">
+    <value>Regex, e.g. ^(\d+)\. (.+) - (.+)$</value>
+  </data>
+  <data name="Rename.GroupMapping" xml:space="preserve">
+    <value>Capture group mapping</value>
+  </data>
+  <data name="Rename.Group" xml:space="preserve">
+    <value>Group {0}</value>
+  </data>
+  <data name="Rename.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Rename.NoChange" xml:space="preserve">
+    <value>No change</value>
+  </data>
+  <data name="Rename.NoMatch" xml:space="preserve">
+    <value>File name does not match</value>
+  </data>
+  <data name="Rename.Parsed" xml:space="preserve">
+    <value>Parsed</value>
+  </data>
+  <data name="Rename.FileCount" xml:space="preserve">
+    <value>{0} files, {1} can be renamed</value>
+  </data>
+  <data name="Rename.MatchCount" xml:space="preserve">
+    <value>{0} files, {1} matched</value>
+  </data>
+  <data name="Rename.InvalidRegex" xml:space="preserve">
+    <value>Invalid regular expression</value>
+  </data>
+  <data name="Rename.DuplicateField" xml:space="preserve">
+    <value>A field cannot be mapped to multiple capture groups</value>
+  </data>
+  <data name="Rename.AtLeastOneGroup" xml:space="preserve">
+    <value>Map at least one capture group</value>
+  </data>
+  <data name="Rename.Applied" xml:space="preserve">
+    <value>Completed {0}, failed/skipped {1}</value>
+  </data>
+  <data name="Rename.TagsUpdated" xml:space="preserve">
+    <value>Updated tags for {0} files</value>
+  </data>
+  <data name="PatternError.Empty" xml:space="preserve">
+    <value>The template cannot be empty</value>
+  </data>
+  <data name="PatternError.NoPlaceholder" xml:space="preserve">
+    <value>The template must contain at least one valid placeholder (@1–@8)</value>
+  </data>
+  <data name="PatternError.OnlyUnused" xml:space="preserve">
+    <value>Cannot use only @0</value>
+  </data>
+  <data name="PatternError.DuplicatePlaceholder" xml:space="preserve">
+    <value>Placeholders cannot repeat</value>
+  </data>
+  <data name="PatternError.AdjacentPlaceholders" xml:space="preserve">
+    <value>Adjacent placeholders are ambiguous</value>
+  </data>
+  <data name="PatternError.UnknownPlaceholder" xml:space="preserve">
+    <value>Unknown placeholder (only @0–@8 are allowed)</value>
+  </data>
+  <data name="PatternError.Unknown" xml:space="preserve">
+    <value>Invalid template</value>
+  </data>
+  <data name="Settings.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Settings.Threads" xml:space="preserve">
+    <value>Concurrent requests</value>
+  </data>
+  <data name="Settings.ItemsPerSource" xml:space="preserve">
+    <value>Results per source</value>
+  </data>
+  <data name="Settings.AutoMatchThreads" xml:space="preserve">
+    <value>Auto-match concurrency</value>
+  </data>
+  <data name="Settings.Sources" xml:space="preserve">
+    <value>Online sources</value>
+  </data>
+  <data name="Settings.LastFmKey" xml:space="preserve">
+    <value>Last.fm API Key</value>
+  </data>
+  <data name="Settings.ITunesCountry" xml:space="preserve">
+    <value>iTunes store country</value>
+  </data>
+  <data name="Settings.UserAgent" xml:space="preserve">
+    <value>Access identifier (User-Agent)</value>
+  </data>
+  <data name="Settings.MusicBrainzNote" xml:space="preserve">
+    <value>Last.fm requires an API key; leave it empty to skip this source.</value>
+  </data>
+  <data name="Settings.SourceOrder" xml:space="preserve">
+    <value>Enable and order (configured per category; higher is queried first)</value>
+  </data>
+  <data name="Settings.TabTags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Settings.TabCovers" xml:space="preserve">
+    <value>Covers</value>
+  </data>
+  <data name="Settings.TabLyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Settings.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="Settings.ReformatAfterDownload" xml:space="preserve">
+    <value>Reformat time tags after download</value>
+  </data>
+  <data name="Settings.RemoveTimeTags" xml:space="preserve">
+    <value>Remove time tags</value>
+  </data>
+  <data name="Settings.DeleteBlankLines" xml:space="preserve">
+    <value>Delete blank lines</value>
+  </data>
+  <data name="Settings.DeleteHeadTags" xml:space="preserve">
+    <value>Delete header tags</value>
+  </data>
+  <data name="Settings.SkipInstrumental" xml:space="preserve">
+    <value>Skip instrumental tracks</value>
+  </data>
+  <data name="Settings.DefaultEncoding" xml:space="preserve">
+    <value>Default encoding</value>
+  </data>
+  <data name="Settings.SaveDirectory" xml:space="preserve">
+    <value>Save directory</value>
+  </data>
+  <data name="Settings.SaveDirectoryWatermark" xml:space="preserve">
+    <value>Empty = same folder as audio</value>
+  </data>
+  <data name="Settings.LrcFileNameFormat" xml:space="preserve">
+    <value>File name format</value>
+  </data>
+  <data name="Settings.Covers" xml:space="preserve">
+    <value>Covers</value>
+  </data>
+  <data name="Settings.MaxSizeKb" xml:space="preserve">
+    <value>Max size (KB)</value>
+  </data>
+  <data name="Settings.MaxWidth" xml:space="preserve">
+    <value>Max width</value>
+  </data>
+  <data name="Settings.MaxHeight" xml:space="preserve">
+    <value>Max height</value>
+  </data>
+  <data name="Settings.CoverFormats" xml:space="preserve">
+    <value>Supports jpg and png; other formats are converted automatically.</value>
+  </data>
+  <data name="Settings.Writing" xml:space="preserve">
+    <value>Writing</value>
+  </data>
+  <data name="Settings.Id3Version" xml:space="preserve">
+    <value>ID3v2 version</value>
+  </data>
+  <data name="Settings.KeepMtime" xml:space="preserve">
+    <value>Keep file modified time</value>
+  </data>
+  <data name="Settings.WriteLyrics" xml:space="preserve">
+    <value>Write lyrics to tags</value>
+  </data>
+  <data name="Settings.Ui" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="Settings.CompactRows" xml:space="preserve">
+    <value>Compact rows</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings.CheckUpdates" xml:space="preserve">
+    <value>Check for updates on startup</value>
+  </data>
+  <data name="Language.Auto" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Language.Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Language.Japanese" xml:space="preserve">
+    <value>日本語</value>
+  </data>
+  <data name="Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Source.netease" xml:space="preserve">
+    <value>NetEase Cloud Music</value>
+  </data>
+  <data name="Source.qq" xml:space="preserve">
+    <value>QQ Music</value>
+  </data>
+  <data name="Source.kugou" xml:space="preserve">
+    <value>Kugou Music</value>
+  </data>
+  <data name="Source.kuwo" xml:space="preserve">
+    <value>Kuwo Music</value>
+  </data>
+  <data name="Source.musicbrainz" xml:space="preserve">
+    <value>MusicBrainz</value>
+  </data>
+  <data name="Source.coverart" xml:space="preserve">
+    <value>Cover Art Archive</value>
+  </data>
+  <data name="Source.itunes" xml:space="preserve">
+    <value>iTunes</value>
+  </data>
+  <data name="Source.lastfm" xml:space="preserve">
+    <value>Last.fm</value>
+  </data>
+  <data name="Source.lrclib" xml:space="preserve">
+    <value>LRCLIB</value>
+  </data>
+  <data name="Capability.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Capability.Cover" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="Capability.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="SourceOrder.Hint" xml:space="preserve">
+    <value>Check to enable; ↑ ↓ to reorder, higher is queried first</value>
+  </data>
+  <data name="FileType.Audio" xml:space="preserve">
+    <value>Audio files</value>
+  </data>
+  <data name="FileType.PickAudio" xml:space="preserve">
+    <value>Choose Audio Files</value>
+  </data>
+  <data name="FileType.PickFolder" xml:space="preserve">
+    <value>Choose Music Folder</value>
+  </data>
+  <data name="FileType.Lyrics" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="FileType.Image" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="About.Description" xml:space="preserve">
+    <value>Cross-platform music tag editor</value>
+  </data>
+  <data name="About.Repository" xml:space="preserve">
+    <value>GitHub Repository</value>
+  </data>
+  <data name="About.CheckUpdates" xml:space="preserve">
+    <value>Check for Updates</value>
+  </data>
+  <data name="About.Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Update.AvailableStatus" xml:space="preserve">
+    <value>New version v{0} available; see Help → Check for Updates</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>Checking for updates…</value>
+  </data>
+  <data name="Update.NewVersion" xml:space="preserve">
+    <value>New version v{0} available (current v{1})</value>
+  </data>
+  <data name="Update.Latest" xml:space="preserve">
+    <value>You are on the latest version v{0}</value>
+  </data>
+  <data name="Update.Failed" xml:space="preserve">
+    <value>Failed to check for updates. Please try again later.</value>
+  </data>
+  <data name="Update.OpenRelease" xml:space="preserve">
+    <value>Open Release Page</value>
+  </data>
+  <data name="Update.NoNotes" xml:space="preserve">
+    <value>(No release notes for this version)</value>
+  </data>
+  <data name="Mobile.EmptyHint" xml:space="preserve">
+    <value>Tap + in the top-right to add music files; saving writes changes back to the original file.</value>
+  </data>
+  <data name="Mobile.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Mobile.OnlineMatch" xml:space="preserve">
+    <value>Online Match</value>
+  </data>
+  <data name="Mobile.History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Mobile.ClearTags" xml:space="preserve">
+    <value>Clear Tags</value>
+  </data>
+  <data name="Mobile.RemoveFromList" xml:space="preserve">
+    <value>Remove from List</value>
+  </data>
+  <data name="AutoMatch.FileCount" xml:space="preserve">
+    <value>{0} files will be matched</value>
+  </data>
+  <data name="AutoMatch.Fields" xml:space="preserve">
+    <value>Fields to import</value>
+  </data>
+  <data name="AutoMatch.Sources" xml:space="preserve">
+    <value>Online sources</value>
+  </data>
+  <data name="AutoMatch.Rule" xml:space="preserve">
+    <value>Merge mode</value>
+  </data>
+  <data name="AutoMatch.NeedField" xml:space="preserve">
+    <value>Select at least one field</value>
+  </data>
+  <data name="AutoMatch.NeedSource" xml:space="preserve">
+    <value>Enable at least one online source</value>
+  </data>
+  <data name="Error.UnsupportedFormat" xml:space="preserve">
+    <value>Unsupported format</value>
+  </data>
+  <data name="Rename.EmptyName" xml:space="preserve">
+    <value>The generated file name is empty</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>Copy failed</value>
+  </data>
+  <data name="Settings.SearchHint" xml:space="preserve">
+    <value>Higher concurrency is faster, but too many requests may be rate-limited.</value>
+  </data>
+  <data name="Settings.Connection" xml:space="preserve">
+    <value>Connection</value>
+  </data>
+  <data name="Settings.LyricsOptions" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="Settings.LyricsSaving" xml:space="preserve">
+    <value>Saving</value>
+  </data>
+  <data name="Settings.PictureLimits" xml:space="preserve">
+    <value>Size limits</value>
+  </data>
+  <data name="Settings.UiAppearance" xml:space="preserve">
+    <value>Language &amp; appearance</value>
+  </data>
+  <data name="Settings.Updates" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="Settings.UserAgentHint" xml:space="preserve">
+    <value>Usually keep the default; some services require an identifiable string.</value>
+  </data>
+  <data name="About.Features" xml:space="preserve">
+    <value>Read and write title, artist, album, year, track, genre, lyrics and cover art.</value>
+  </data>
+  <data name="About.Formats" xml:space="preserve">
+    <value>Supports MP3, FLAC, M4A, OGG, WAV and other common audio formats.</value>
+  </data>
+</root>

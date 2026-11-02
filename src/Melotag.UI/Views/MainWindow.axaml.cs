@@ -1,18 +1,23 @@
 namespace Melotag.UI.Views;
 
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Melotag.Core.Merge;
 using Melotag.Core.Rename;
 using Melotag.UI.Dialogs;
+using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 
 public partial class MainWindow : Window
 {
+    private readonly UpdateUi _updates = new();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -20,6 +25,25 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
+
+        LocalizeColumns();
+        Localizer.Instance.LanguageChanged += LocalizeColumns;
+    }
+
+    private void LocalizeColumns()
+    {
+        var columns = TracksGrid.Columns;
+        if (columns.Count < 9) return;
+
+        columns[0].Header = Localizer.T("Column.FileName");
+        columns[1].Header = Localizer.T("Column.Title");
+        columns[2].Header = Localizer.T("Column.Artist");
+        columns[3].Header = Localizer.T("Column.Album");
+        columns[4].Header = Localizer.T("Column.Year");
+        columns[5].Header = Localizer.T("Column.Track");
+        columns[6].Header = Localizer.T("Column.Duration");
+        columns[7].Header = Localizer.T("Column.Format");
+        columns[8].Header = Localizer.T("Column.Status");
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -41,6 +65,75 @@ public partial class MainWindow : Window
             .ToList();
 
         if (paths.Count > 0) await Vm.AddPathsAsync(paths);
+    }
+
+    private async void OnTracksKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (Vm is null) return;
+
+        var selected = TracksGrid.SelectedItems?.OfType<TrackRowViewModel>().ToList() ?? [];
+        if (selected.Count == 0) return;
+
+        if (e.Key == Key.Delete)
+        {
+            Vm.RemoveRange(selected);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.C && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            try
+            {
+                if (clipboard is not null) await clipboard.SetTextAsync(BuildTsv(selected));
+                Vm.StatusText = Localizer.F("Status.Copied", selected.Count);
+            }
+            catch
+            {
+                Vm.StatusText = Localizer.T("Status.CopyFailed");
+            }
+
+            e.Handled = true;
+        }
+    }
+
+    private static string BuildTsv(IEnumerable<TrackRowViewModel> rows)
+    {
+        static string Clean(string? value) =>
+            (value ?? "").Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
+
+        var builder = new StringBuilder();
+        builder.AppendLine(string.Join('\t',
+        [
+            Localizer.T("Column.FileName"),
+            Localizer.T("Column.Title"),
+            Localizer.T("Column.Artist"),
+            Localizer.T("Column.Album"),
+            Localizer.T("Column.Year"),
+            Localizer.T("Column.Track"),
+            Localizer.T("Column.Duration"),
+            Localizer.T("Column.Format"),
+            Localizer.T("Column.Status"),
+        ]));
+
+        foreach (var row in rows)
+        {
+            builder.AppendLine(string.Join('\t',
+            [
+                Clean(row.FileName),
+                Clean(row.Title),
+                Clean(row.Artist),
+                Clean(row.Album),
+                Clean(row.YearText),
+                Clean(row.TrackText),
+                Clean(row.DurationText),
+                Clean(row.FormatText),
+                Clean(row.StatusText),
+            ]));
+        }
+
+        return builder.ToString();
     }
 
     private MainWindowViewModel? Vm => DataContext as MainWindowViewModel;
@@ -83,17 +176,22 @@ public partial class MainWindow : Window
         if (Vm is null) return;
         if (Vm.AllTracks.Count == 0)
         {
-            Vm.StatusText = "列表为空";
+            Vm.StatusText = Localizer.T("Status.EmptyList");
             return;
         }
 
         var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
-        await ModalHost.ShowAsync(this, dialog, "重命名 / 文件名相关", 780, 640);
+        await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Rename"), 780, 640);
     }
 
     private async void OnAutoMatch(object? sender, RoutedEventArgs e)
     {
-        if (Vm is not null) await Vm.AutoMatchAllAsync();
+        if (Vm is null) return;
+
+        var dialog = new AutoMatchDialog(Vm.Settings, Vm.Search.Sources, Vm.AllTracks.Count);
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.AutoMatch"), 860, 720) is true &&
+            dialog.Options is { } options)
+            await Vm.AutoMatchAllAsync(options);
     }
 
     private async void OnTagsToTraditional(object? sender, RoutedEventArgs e)
@@ -126,12 +224,12 @@ public partial class MainWindow : Window
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(this, dialog, "在线标签匹配", 940, 640) is true && dialog.Selected is { } candidate)
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.TagSearch"), 940, 640) is true && dialog.Selected is { } candidate)
             await Vm.ApplyCandidateAsync(row, candidate, dialog.Rule);
     }
 
@@ -140,15 +238,15 @@ public partial class MainWindow : Window
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new LyricsDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(this, dialog, "歌词", 860, 680) is true)
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Lyrics"), 860, 680) is true)
         {
             row.Lyrics = dialog.ResultLyrics;
-            Vm.StatusText = "歌词已更新（保存标签后写入文件）";
+            Vm.StatusText = Localizer.T("Status.LyricsUpdated");
         }
     }
 
@@ -157,22 +255,22 @@ public partial class MainWindow : Window
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new CoverDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(this, dialog, "封面", 820, 600) is not true) return;
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Cover"), 820, 600) is not true) return;
 
         if (dialog.Removed)
         {
             row.ClearCover();
-            Vm.StatusText = "封面已移除（保存后写入文件）";
+            Vm.StatusText = Localizer.T("Status.CoverRemoved");
         }
         else if (dialog.Result is { } data)
         {
             row.SetCover(data, dialog.ResultMime);
-            Vm.StatusText = "封面已更新（保存后写入文件）";
+            Vm.StatusText = Localizer.T("Status.CoverUpdated");
         }
     }
 
@@ -181,13 +279,13 @@ public partial class MainWindow : Window
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new HistoryDialog(Vm.HistoryStore, row.Key,
             entry => _ = Vm.RestoreHistoryAsync(row, entry));
-        await ModalHost.ShowAsync(this, dialog, "标签历史", 820, 560);
+        await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.History"), 820, 560);
     }
 
     private async void OnSettings(object? sender, RoutedEventArgs e)
@@ -195,7 +293,7 @@ public partial class MainWindow : Window
         if (Vm is null) return;
 
         var dialog = new SettingsDialog(Vm.Settings, Vm.Search.Sources);
-        if (await ModalHost.ShowAsync(this, dialog, "设置", 760, 840) is true)
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Settings"), 760, 840) is true)
             Vm.SaveSettings();
     }
 
@@ -215,50 +313,31 @@ public partial class MainWindow : Window
 
     private async void OnAbout(object? sender, RoutedEventArgs e)
     {
-        var logo = new Image
-        {
-            Source = new Avalonia.Media.Imaging.Bitmap(
-                Avalonia.Platform.AssetLoader.Open(new Uri("avares://Melotag.UI/Assets/melotag-logo.png"))),
-            Width = 72,
-            Height = 72,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-        };
-
-        var text = new TextBlock
-        {
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-            Text = $"{AppInfo.DisplayName} {AppInfo.Version}\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n图像处理：SkiaSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n独立实现，不复用原软件的任何二进制或素材。",
-        };
-
-        var content = new Grid
-        {
-            Margin = new Thickness(20),
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-        };
-        logo.Margin = new Thickness(0, 0, 16, 0);
-        Grid.SetColumn(text, 1);
-        content.Children.Add(logo);
-        content.Children.Add(text);
-
         var dialog = new Window
         {
-            Title = "关于 音签 Melotag",
+            Title = Localizer.T("App.AboutTitle"),
             Icon = Icon,
-            Width = 480,
-            Height = 260,
+            Width = 500,
+            Height = 430,
             CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = content,
+            Content = new Border
+            {
+                Padding = new Thickness(20),
+                Child = AboutContent.Create(this),
+            },
         };
 
         await dialog.ShowDialog(this);
     }
 
+    private async void OnCheckUpdates(object? sender, RoutedEventArgs e) => await _updates.ShowManualAsync(this);
+
     private void OnExit(object? sender, RoutedEventArgs e) => Close();
 
     protected override void OnClosed(EventArgs e)
     {
+        Localizer.Instance.LanguageChanged -= LocalizeColumns;
         Vm?.SaveSettings();
         base.OnClosed(e);
     }

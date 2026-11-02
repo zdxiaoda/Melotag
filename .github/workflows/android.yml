@@ -33,6 +33,11 @@ jobs:
       matrix:
         # 真机用 arm64，模拟器用 x64；两个 ABI 并行各出一个包
         rid: [ android-arm64, android-x64 ]
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -67,12 +72,39 @@ jobs:
       - name: Restore
         run: dotnet restore src/Melotag.Android/Melotag.Android.csproj
 
+      - name: Decode signing keystore
+        shell: bash
+        run: |
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "未配置 ANDROID_KEYSTORE_BASE64，使用调试签名（仅适合侧载测试）。"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/android-signing"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/android-signing/melotag.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/android-signing/melotag.keystore" >> "$GITHUB_ENV"
+
       - name: Publish APK (Release)
-        run: >
-          dotnet publish src/Melotag.Android/Melotag.Android.csproj
-          -c Release --no-restore
-          -p:AndroidPackageFormat=apk
-          -p:RuntimeIdentifier=${{ matrix.rid }}
+        shell: bash
+        run: |
+          args=()
+          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
+            args+=(
+              -p:AndroidKeyStore=true
+              -p:AndroidSigningKeyStore="$ANDROID_KEYSTORE_PATH"
+              -p:AndroidSigningStorePass="$ANDROID_KEYSTORE_PASSWORD"
+              -p:AndroidSigningKeyAlias="$ANDROID_KEY_ALIAS"
+              -p:AndroidSigningKeyPass="$ANDROID_KEY_PASSWORD"
+            )
+            echo "使用仓库 Secrets 中的固定签名。"
+          else
+            echo "未找到签名密钥，使用调试签名。"
+          fi
+
+          dotnet publish src/Melotag.Android/Melotag.Android.csproj \
+            -c Release --no-restore \
+            -p:AndroidPackageFormat=apk \
+            -p:RuntimeIdentifier=${{ matrix.rid }} \
+            "${args[@]}"
 
       - name: List APK
         run: find src/Melotag.Android/bin/Release -name '*.apk' -exec ls -lh {} \;

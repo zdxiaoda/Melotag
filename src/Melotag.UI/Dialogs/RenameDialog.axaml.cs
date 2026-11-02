@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 using Melotag.Core.Rename;
+using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 
 public partial class RenameDialog : ModalView
@@ -12,22 +13,22 @@ public partial class RenameDialog : ModalView
     private sealed record PreviewRow(string Source, string Target, string Note);
     private sealed record FieldOption(string Name, FieldKey? Field);
 
-    private static readonly FieldOption[] FieldOptions =
+    private static FieldOption[] CreateFieldOptions() =>
     [
-        new("不使用", null),
-        new("标题", FieldKey.Title),
-        new("艺术家", FieldKey.Artist),
-        new("专辑", FieldKey.Album),
-        new("专辑艺术家", FieldKey.AlbumArtist),
-        new("年份", FieldKey.Year),
-        new("音轨", FieldKey.Track),
-        new("碟号", FieldKey.Disc),
-        new("流派", FieldKey.Genre),
-        new("注释", FieldKey.Comment),
+        new(Localizer.T("Field.None"), null),
+        new(Localizer.T("Field.Title"), FieldKey.Title),
+        new(Localizer.T("Field.Artist"), FieldKey.Artist),
+        new(Localizer.T("Field.Album"), FieldKey.Album),
+        new(Localizer.T("Field.AlbumArtist"), FieldKey.AlbumArtist),
+        new(Localizer.T("Field.Year"), FieldKey.Year),
+        new(Localizer.T("Field.Track"), FieldKey.Track),
+        new(Localizer.T("Field.Disc"), FieldKey.Disc),
+        new(Localizer.T("Field.Genre"), FieldKey.Genre),
+        new(Localizer.T("Field.Comment"), FieldKey.Comment),
     ];
 
-    private readonly IReadOnlyList<TrackRowViewModel> _rows;
-    private readonly ISafeNamePolicy _policy;
+    private readonly IReadOnlyList<TrackRowViewModel> _rows = [];
+    private readonly ISafeNamePolicy _policy = new WindowsSafeNamePolicy();
     private readonly IHistoryStore? _history;
     private readonly RenameService _rename = new();
     private readonly List<(int Group, ComboBox Box)> _groupBoxes = [];
@@ -47,18 +48,19 @@ public partial class RenameDialog : ModalView
 
         PresetCombo.ItemsSource = RenamePresets.Defaults;
         BuildGroupRows();
-        PatternBox.Text = RenamePresets.Defaults[0];
-        PresetCombo.SelectedIndex = 0;
+        PatternBox.Text = RenamePresets.DefaultPattern;
+        PresetCombo.SelectedItem = RenamePresets.DefaultPattern;
         RefreshPreview();
     }
 
     private void BuildGroupRows()
     {
+        var fieldOptions = CreateFieldOptions();
         for (var group = 1; group <= 6; group++)
         {
             var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 4, Margin = new Avalonia.Thickness(0, 0, 14, 4) };
-            panel.Children.Add(new TextBlock { Text = $"组 {group}", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
-            var combo = new ComboBox { Width = 132, ItemsSource = FieldOptions, SelectedIndex = 0 };
+            panel.Children.Add(new TextBlock { Text = Localizer.F("Rename.Group", group), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+            var combo = new ComboBox { Width = 132, ItemsSource = fieldOptions, SelectedIndex = 0 };
             panel.Children.Add(combo);
             GroupRows.Children.Add(panel);
             _groupBoxes.Add((group, combo));
@@ -97,48 +99,50 @@ public partial class RenameDialog : ModalView
             var errors = NamePattern.Validate(pattern, PatternDirection.Generate);
             if (errors.Count > 0)
             {
-                Message.Text = RenameService.Describe(errors[0]);
+                Message.Text = Localizer.T($"PatternError.{errors[0]}");
                 PreviewList.ItemsSource = rows;
                 return;
             }
 
+            var ready = 0;
             foreach (var row in _rows)
             {
                 var preview = _rename.Preview(row.Path, row.ToTags(), pattern, _policy);
-                rows.Add(new PreviewRow(
-                    preview.SourceName,
-                    preview.TargetName,
-                    preview.Error ?? (preview.IsValid ? "就绪" : "无变化")));
+                if (preview.IsValid) ready++;
+                var note = preview.Error == RenameService.EmptyNameError
+                    ? Localizer.T("Rename.EmptyName")
+                    : preview.Error ?? (preview.IsValid ? Localizer.T("Rename.Ready") : Localizer.T("Rename.NoChange"));
+                rows.Add(new PreviewRow(preview.SourceName, preview.TargetName, note));
             }
 
-            var ready = rows.Count(r => r.Note == "就绪");
-            Message.Text = $"{rows.Count} 个文件，{ready} 个可重命名";
+            Message.Text = Localizer.F("Rename.FileCount", rows.Count, ready);
         }
         else
         {
             var plan = TryBuildPlan(out var error);
             if (plan is null)
             {
-                Message.Text = error ?? "正则无效";
+                Message.Text = error ?? Localizer.T("Rename.InvalidRegex");
                 PreviewList.ItemsSource = rows;
                 return;
             }
 
+            var matched = 0;
             foreach (var row in _rows)
             {
                 var fileName = Path.GetFileNameWithoutExtension(row.Path);
                 var tags = plan.Map(fileName);
                 if (tags is null)
                 {
-                    rows.Add(new PreviewRow(row.FileName, "—", "文件名不匹配"));
+                    rows.Add(new PreviewRow(row.FileName, "—", Localizer.T("Rename.NoMatch")));
                     continue;
                 }
 
-                rows.Add(new PreviewRow(row.FileName, DescribeTags(tags), "解析成功"));
+                matched++;
+                rows.Add(new PreviewRow(row.FileName, DescribeTags(tags), Localizer.T("Rename.Parsed")));
             }
 
-            var matched = rows.Count(r => r.Note == "解析成功");
-            Message.Text = $"{rows.Count} 个文件，{matched} 个匹配";
+            Message.Text = Localizer.F("Rename.MatchCount", rows.Count, matched);
         }
 
         PreviewList.ItemsSource = rows;
@@ -158,7 +162,7 @@ public partial class RenameDialog : ModalView
             if (box.SelectedItem is not FieldOption { Field: { } field }) continue;
             if (map.ContainsValue(field))
             {
-                error = "同一字段不能映射多个捕获组";
+                error = Localizer.T("Rename.DuplicateField");
                 return null;
             }
             map[group] = field;
@@ -166,7 +170,7 @@ public partial class RenameDialog : ModalView
 
         if (map.Count == 0)
         {
-            error = "至少映射一个捕获组";
+            error = Localizer.T("Rename.AtLeastOneGroup");
             return null;
         }
 
@@ -218,7 +222,7 @@ public partial class RenameDialog : ModalView
             }
         }
 
-        Message.Text = $"已完成 {applied} 个，失败/跳过 {failed} 个";
+        Message.Text = Localizer.F("Rename.Applied", applied, failed);
         if (applied > 0) Close(true);
     }
 
@@ -227,7 +231,7 @@ public partial class RenameDialog : ModalView
         var plan = TryBuildPlan(out var error);
         if (plan is null)
         {
-            Message.Text = error ?? "正则无效";
+            Message.Text = error ?? Localizer.T("Rename.InvalidRegex");
             return;
         }
 
@@ -240,7 +244,7 @@ public partial class RenameDialog : ModalView
             applied++;
         }
 
-        Message.Text = $"已更新 {applied} 个文件的标签";
+        Message.Text = Localizer.F("Rename.TagsUpdated", applied);
         if (applied > 0) Close(true);
     }
 

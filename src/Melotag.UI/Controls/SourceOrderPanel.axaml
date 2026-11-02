@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Controls.SourceOrderPanel">
 
   <Grid RowDefinitions="*,Auto" RowSpacing="6">
@@ -17,10 +18,10 @@
                            FontSize="11" Opacity="0.5" VerticalAlignment="Center" />
                 <Button Grid.Column="3" Content="↑" Width="26" Height="24" Padding="0"
                         FontSize="12" HorizontalContentAlignment="Center"
-                        Click="OnMoveUp" ToolTip.Tip="上移" AutomationProperties.Name="上移" />
+                        Click="OnMoveUp" ToolTip.Tip="{loc:Tr Key=Button.MoveUp}" AutomationProperties.Name="{loc:Tr Key=Button.MoveUp}" />
                 <Button Grid.Column="4" Content="↓" Width="26" Height="24" Padding="0"
                         FontSize="12" HorizontalContentAlignment="Center"
-                        Click="OnMoveDown" ToolTip.Tip="下移" AutomationProperties.Name="下移" />
+                        Click="OnMoveDown" ToolTip.Tip="{loc:Tr Key=Button.MoveDown}" AutomationProperties.Name="{loc:Tr Key=Button.MoveDown}" />
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -29,8 +30,8 @@
     </Border>
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-      <Button Content="恢复默认" FontSize="12" Padding="10,4" Click="OnReset" />
-      <TextBlock Text="勾选启用；↑ ↓ 调整优先级，越靠上越先查询"
+      <Button Content="{loc:Tr Key=Button.ResetDefault}" FontSize="12" Padding="10,4" Click="OnReset" />
+      <TextBlock Text="{loc:Tr Key=SourceOrder.Hint}"
                  FontSize="11" Opacity="0.55" VerticalAlignment="Center" />
     </StackPanel>
   </Grid>

@@ -1,13 +1,18 @@
 namespace Melotag.UI.Dialogs;
 
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Melotag.Core.Lyrics;
 using Melotag.Core.Sources;
 using Melotag.Storage;
+using Melotag.UI.Localization;
 
 public partial class SettingsDialog : ModalView
 {
+    public sealed record LanguageOption(string Code, string Label);
+    public sealed record CountryOption(string Code, string Display);
+
     private readonly AppSettings _settings;
     private readonly Action? _onSaved;
 
@@ -29,8 +34,15 @@ public partial class SettingsDialog : ModalView
         AutoThreadsBox.Value = settings.Search.AutoMatchThreads;
 
         LastFmKeyBox.Text = settings.Sources.LastFmApiKey;
-        CountryBox.Text = settings.Sources.ITunesCountry;
         UserAgentBox.Text = settings.Sources.UserAgent;
+
+        var countryCode = string.IsNullOrWhiteSpace(settings.Sources.ITunesCountry)
+            ? "CN"
+            : settings.Sources.ITunesCountry.Trim().ToUpperInvariant();
+        var countries = CreateCountryOptions(countryCode);
+        CountryBox.ItemsSource = countries;
+        CountryBox.SelectedItem = countries.FirstOrDefault(o =>
+            string.Equals(o.Code, countryCode, StringComparison.OrdinalIgnoreCase)) ?? countries[0];
 
         sources ??= [];
         TagSources.Load(sources, settings.Sources.Tags, SourceDefaults.Tags);
@@ -56,8 +68,57 @@ public partial class SettingsDialog : ModalView
         KeepMtimeBox.IsChecked = settings.Writing.KeepModifiedTime;
         WriteLyricsBox.IsChecked = settings.Writing.WriteLyricsToTag;
 
+        var languageOptions = new List<LanguageOption>
+        {
+            new("auto", Localizer.T("Language.Auto")),
+            new("zh-Hans", Localizer.T("Language.Chinese")),
+            new("ja", Localizer.T("Language.Japanese")),
+            new("en", Localizer.T("Language.English")),
+        };
+
+        var currentLanguage = settings.Ui.Language is "zh-CHS" or "zh-CN" ? "zh-Hans" : settings.Ui.Language;
+        LanguageBox.ItemsSource = languageOptions;
+        LanguageBox.SelectedItem = languageOptions.FirstOrDefault(o =>
+            string.Equals(o.Code, currentLanguage, StringComparison.OrdinalIgnoreCase)) ?? languageOptions[0];
+        CheckUpdatesBox.IsChecked = settings.Ui.CheckForUpdatesOnStartup;
+
         CompactBox.IsChecked = settings.Ui.UseCompactRows;
     }
+
+    private static List<CountryOption> CreateCountryOptions(string currentCode)
+    {
+        var options = CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+            .Select(culture =>
+            {
+                try
+                {
+                    return new RegionInfo(culture.Name);
+                }
+                catch (ArgumentException)
+                {
+                    return null;
+                }
+            })
+            .Where(region => region is not null && region.TwoLetterISORegionName.Length == 2)
+            .GroupBy(region => region!.TwoLetterISORegionName, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First()!)
+            .Select(region => new CountryOption(
+                region.TwoLetterISORegionName,
+                $"{region.TwoLetterISORegionName} — {CountryName(region)}"))
+            .OrderBy(option => option.Code, StringComparer.Ordinal)
+            .ToList();
+
+        if (options.All(option =>
+                !string.Equals(option.Code, currentCode, StringComparison.OrdinalIgnoreCase)))
+            options.Insert(0, new CountryOption(currentCode, currentCode));
+
+        return options;
+    }
+
+    private static string CountryName(RegionInfo region) =>
+        !string.IsNullOrWhiteSpace(region.NativeName) ? region.NativeName :
+        !string.IsNullOrWhiteSpace(region.EnglishName) ? region.EnglishName :
+        region.TwoLetterISORegionName;
 
     private void OnSave(object? sender, RoutedEventArgs e)
     {
@@ -66,7 +127,7 @@ public partial class SettingsDialog : ModalView
         _settings.Search.AutoMatchThreads = (int)(AutoThreadsBox.Value ?? 2);
 
         _settings.Sources.LastFmApiKey = LastFmKeyBox.Text?.Trim() ?? "";
-        _settings.Sources.ITunesCountry = CountryBox.Text?.Trim() ?? "CN";
+        _settings.Sources.ITunesCountry = (CountryBox.SelectedItem as CountryOption)?.Code ?? "CN";
         _settings.Sources.UserAgent = UserAgentBox.Text?.Trim() ?? "";
         if (!string.IsNullOrWhiteSpace(_settings.Sources.UserAgent))
             Melotag.Core.Sources.Http.UserAgent = _settings.Sources.UserAgent;
@@ -93,6 +154,11 @@ public partial class SettingsDialog : ModalView
         _settings.Writing.WriteLyricsToTag = WriteLyricsBox.IsChecked == true;
 
         _settings.Ui.UseCompactRows = CompactBox.IsChecked == true;
+
+        var language = (LanguageBox.SelectedItem as LanguageOption)?.Code ?? "auto";
+        _settings.Ui.Language = language;
+        Localizer.Instance.SetLanguage(language);
+        _settings.Ui.CheckForUpdatesOnStartup = CheckUpdatesBox.IsChecked == true;
 
         _onSaved?.Invoke();
         Close(true);

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Dialogs.LyricsDialog">
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -11,7 +12,7 @@
               BorderThickness="0,0,0,1"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="歌词" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Tr Key=Dialog.Lyrics}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Button Grid.Column="1" Content="✕" Click="OnCancel" Width="36" Height="30" Padding="0"
                   Background="Transparent" BorderThickness="0" />
         </Grid>
@@ -20,27 +21,27 @@
       <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
         <StackPanel Grid.Row="0" Spacing="8">
           <WrapPanel>
-            <Button Content="从网络搜索" Click="OnSearch" Classes="accent" Margin="0,0,8,6" />
+            <Button Content="{loc:Tr Key=Lyrics.SearchOnline}" Click="OnSearch" Classes="accent" Margin="0,0,8,6" />
             <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" Margin="0,0,8,6" />
             <ComboBox x:Name="ResultCombo" Width="280" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
             <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6" />
           </WrapPanel>
 
           <WrapPanel>
-            <CheckBox x:Name="Reformat" Content="重排时间标签" Margin="0,0,16,0" />
-            <CheckBox x:Name="RemoveTags" Content="移除时间标签" Margin="0,0,16,0" />
-            <CheckBox x:Name="DeleteBlank" Content="删除空行" Margin="0,0,16,0" />
-            <CheckBox x:Name="DeleteHead" Content="删除头部标签" Margin="0,0,16,0" />
-            <TextBlock Text="整体偏移(秒)" VerticalAlignment="Center" Margin="8,0,4,0" />
+            <CheckBox x:Name="Reformat" Content="{loc:Tr Key=Lyrics.ReformatTimeTags}" Margin="0,0,16,0" />
+            <CheckBox x:Name="RemoveTags" Content="{loc:Tr Key=Lyrics.RemoveTimeTags}" Margin="0,0,16,0" />
+            <CheckBox x:Name="DeleteBlank" Content="{loc:Tr Key=Lyrics.DeleteBlankLines}" Margin="0,0,16,0" />
+            <CheckBox x:Name="DeleteHead" Content="{loc:Tr Key=Lyrics.DeleteHeadTags}" Margin="0,0,16,0" />
+            <TextBlock Text="{loc:Tr Key=Lyrics.ShiftSeconds}" VerticalAlignment="Center" Margin="8,0,4,0" />
             <NumericUpDown x:Name="ShiftBox" Width="90" Minimum="-600" Maximum="600" Increment="0.1" Value="0" />
           </WrapPanel>
 
           <WrapPanel>
-            <Button Content="应用处理" Click="OnApplyOps" Margin="0,0,8,6" />
-            <Button Content="导入 .lrc" Click="OnImport" Margin="0,0,8,6" />
-            <Button Content="保存为 .lrc" Click="OnSaveLrc" Margin="0,0,8,6" />
+            <Button Content="{loc:Tr Key=Lyrics.ApplyOps}" Click="OnApplyOps" Margin="0,0,8,6" />
+            <Button Content="{loc:Tr Key=Lyrics.ImportLrc}" Click="OnImport" Margin="0,0,8,6" />
+            <Button Content="{loc:Tr Key=Lyrics.SaveLrc}" Click="OnSaveLrc" Margin="0,0,8,6" />
             <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,6">
-              <TextBlock Text="保存编码" VerticalAlignment="Center" />
+              <TextBlock Text="{loc:Tr Key=Lyrics.Encoding}" VerticalAlignment="Center" />
               <ComboBox x:Name="EncodingCombo" Width="120" />
             </StackPanel>
           </WrapPanel>
@@ -55,8 +56,8 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
           <TextBlock x:Name="Message" Grid.Column="0" VerticalAlignment="Center" Opacity="0.75" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Content="确定" Click="OnOk" Classes="accent" />
-          <Button Grid.Column="2" Content="取消" Click="OnCancel" />
+          <Button Grid.Column="1" Content="{loc:Tr Key=Button.OK}" Click="OnOk" Classes="accent" />
+          <Button Grid.Column="2" Content="{loc:Tr Key=Button.Cancel}" Click="OnCancel" />
         </Grid>
       </Grid>
     </Grid>

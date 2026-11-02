@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Views.MobileShellView"
              Background="{DynamicResource ApplicationPageBackgroundThemeBrush}">
 
@@ -45,35 +46,36 @@
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
         <Image Grid.Column="0" Source="avares://Melotag.UI/Assets/melotag-logo.png"
                Width="28" Height="28" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="1" Text="音签 Melotag" FontSize="16" FontWeight="SemiBold"
+        <TextBlock Grid.Column="1" Text="{loc:Tr Key=App.Name}" FontSize="16" FontWeight="SemiBold"
                    Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
         <Button Grid.Column="2" Classes="icon" Click="OnAddFiles"
-                ToolTip.Tip="添加文件" AutomationProperties.Name="添加文件">
+                ToolTip.Tip="{loc:Tr Key=Toolbar.AddFile}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AddFile}">
           <Path Data="{StaticResource IconAddFile}" />
         </Button>
         <Button Grid.Column="3" Classes="icon" Command="{Binding SaveSelectedCommand}"
-                ToolTip.Tip="保存当前标签" AutomationProperties.Name="保存当前标签">
+                ToolTip.Tip="{loc:Tr Key=Toolbar.SaveCurrent}" AutomationProperties.Name="{loc:Tr Key=Toolbar.SaveCurrent}">
           <Path Data="{StaticResource IconSave}" />
         </Button>
-        <Button Grid.Column="4" Classes="icon" AutomationProperties.Name="更多">
+        <Button Grid.Column="4" Classes="icon" AutomationProperties.Name="{loc:Tr Key=Toolbar.More}">
           <Path Data="{StaticResource IconSettings}" />
           <Button.Flyout>
             <MenuFlyout Placement="BottomEdgeAlignedRight">
-              <MenuItem Header="添加文件夹…" Click="OnAddFolder" />
-              <MenuItem Header="重新读取" Click="OnReload" />
-              <MenuItem Header="保存全部" Click="OnSaveAll" />
+              <MenuItem Header="{loc:Tr Key=Menu.File.AddFolder}" Click="OnAddFolder" />
+              <MenuItem Header="{loc:Tr Key=Menu.Edit.Reload}" Click="OnReload" />
+              <MenuItem Header="{loc:Tr Key=Menu.File.SaveAll}" Click="OnSaveAll" />
               <Separator />
-              <MenuItem Header="批量自动匹配" Click="OnAutoMatch" />
-              <MenuItem Header="批量提取封面" Click="OnExtractCovers" />
+              <MenuItem Header="{loc:Tr Key=Toolbar.AutoMatch}" Click="OnAutoMatch" />
+              <MenuItem Header="{loc:Tr Key=Toolbar.ExtractCovers}" Click="OnExtractCovers" />
               <Separator />
-              <MenuItem Header="标签简→繁" Click="OnTagsToTraditional" />
-              <MenuItem Header="标签繁→简" Click="OnTagsToSimplified" />
-              <MenuItem Header="重命名 / 文件名…" Click="OnRename" />
+              <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToTraditional}" Click="OnTagsToTraditional" />
+              <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToSimplified}" Click="OnTagsToSimplified" />
+              <MenuItem Header="{loc:Tr Key=Menu.Tools.Rename}" Click="OnRename" />
               <Separator />
-              <MenuItem Header="设置…" Click="OnSettings" />
-              <MenuItem Header="切换深色 / 浅色" Click="OnToggleTheme" />
-              <MenuItem Header="关于" Click="OnAbout" />
+              <MenuItem Header="{loc:Tr Key=Menu.Tools.Settings}" Click="OnSettings" />
+              <MenuItem Header="{loc:Tr Key=Menu.View.ToggleTheme}" Click="OnToggleTheme" />
+              <MenuItem Header="{loc:Tr Key=Menu.Help.CheckUpdates}" Click="OnCheckUpdates" />
+              <MenuItem Header="{loc:Tr Key=Menu.Help.About}" Click="OnAbout" />
             </MenuFlyout>
           </Button.Flyout>
         </Button>
@@ -81,7 +83,7 @@
     </Border>
 
     <!-- 过滤 -->
-    <TextBox Grid.Row="1" x:Name="FilterBox" Margin="12,8" Watermark="过滤：文件名 / 标题 / 艺术家 / 专辑"
+    <TextBox Grid.Row="1" x:Name="FilterBox" Margin="12,8" PlaceholderText="{loc:Tr Key=Filter.Placeholder}"
              TextChanged="OnFilterChanged" />
 
     <!-- 列表页 -->
@@ -117,14 +119,14 @@
               <Button Grid.Column="2" Content="✕" Command="{Binding RemoveCommand}"
                       Width="40" Height="40" Padding="0" VerticalAlignment="Center"
                       Background="Transparent" BorderThickness="0" CornerRadius="8"
-                      ToolTip.Tip="从列表移除" AutomationProperties.Name="从列表移除" />
+                      ToolTip.Tip="{loc:Tr Key=Toolbar.Remove}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Remove}" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
 
       <TextBlock x:Name="EmptyHint"
-                 Text="点右上角 + 添加音频文件（SAF 选择后复制到应用内编辑）"
+                 Text="{loc:Tr Key=Mobile.EmptyHint}"
                  Opacity="0.55" TextWrapping="Wrap" TextAlignment="Center"
                  HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
     </Grid>
@@ -134,12 +136,12 @@
       <Border Grid.Row="0" Padding="6,2" BorderThickness="0,0,0,1"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <Grid ColumnDefinitions="Auto,*,Auto">
-          <Button Grid.Column="0" Classes="icon" Click="OnBack" AutomationProperties.Name="返回">
+          <Button Grid.Column="0" Classes="icon" Click="OnBack" AutomationProperties.Name="{loc:Tr Key=Mobile.Back}">
             <TextBlock Text="←" FontSize="20" />
           </Button>
           <TextBlock Grid.Column="1" Text="{Binding SelectedTrack.FileName}" FontWeight="SemiBold"
                      VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-          <Button Grid.Column="2" Content="保存" Click="OnSaveSelected" Classes="accent" Margin="0,0,6,0" />
+          <Button Grid.Column="2" Content="{loc:Tr Key=Button.Save}" Click="OnSaveSelected" Classes="accent" Margin="0,0,6,0" />
         </Grid>
       </Border>
 
@@ -152,60 +154,60 @@
           </Border>
 
           <WrapPanel>
-            <Button Content="在线匹配" Click="OnTagSearch" Margin="0,0,8,8" />
-            <Button Content="歌词" Click="OnLyrics" Margin="0,0,8,8" />
-            <Button Content="封面" Click="OnCover" Margin="0,0,8,8" />
-            <Button Content="历史" Click="OnHistory" Margin="0,0,8,8" />
-            <Button Content="清空标签" Click="OnClearTags" Margin="0,0,8,8" />
-            <Button Content="移出列表" Click="OnRemoveSelected" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Mobile.OnlineMatch}" Click="OnTagSearch" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Toolbar.Lyrics}" Click="OnLyrics" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Toolbar.Cover}" Click="OnCover" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Mobile.History}" Click="OnHistory" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Mobile.ClearTags}" Click="OnClearTags" Margin="0,0,8,8" />
+            <Button Content="{loc:Tr Key=Mobile.RemoveFromList}" Click="OnRemoveSelected" Margin="0,0,8,8" />
           </WrapPanel>
 
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="标题" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Title}" />
             <TextBox Text="{Binding SelectedTrack.Title, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="艺术家" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Artist}" />
             <TextBox Text="{Binding SelectedTrack.Artist, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="专辑" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Album}" />
             <TextBox Text="{Binding SelectedTrack.Album, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="专辑艺术家" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.AlbumArtist}" />
             <TextBox Text="{Binding SelectedTrack.AlbumArtist, Mode=TwoWay}" />
           </StackPanel>
 
           <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
             <StackPanel Grid.Column="0" Spacing="4">
-              <TextBlock Classes="label" Text="年份" />
+              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Year}" />
               <TextBox Text="{Binding SelectedTrack.YearText, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Classes="label" Text="音轨" />
+              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Track}" />
               <TextBox Text="{Binding SelectedTrack.TrackText, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="2" Spacing="4">
-              <TextBlock Classes="label" Text="碟号" />
+              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Disc}" />
               <TextBox Text="{Binding SelectedTrack.DiscText, Mode=TwoWay}" />
             </StackPanel>
           </Grid>
 
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="流派" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Genre}" />
             <TextBox Text="{Binding SelectedTrack.Genre, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="作曲" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Composer}" />
             <TextBox Text="{Binding SelectedTrack.Composer, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="注释" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Comment}" />
             <TextBox Text="{Binding SelectedTrack.Comment, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="歌词" />
+            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Lyrics}" />
             <TextBox Text="{Binding SelectedTrack.Lyrics, Mode=TwoWay}"
                      AcceptsReturn="True" TextWrapping="Wrap"
                      Height="160" VerticalContentAlignment="Top" />

@@ -36,7 +36,7 @@ public sealed class SourceSettings
     public string ConnectorsLyricAndTranslation { get; set; } = "\n";
     public string LastFmApiKey { get; set; } = "";
     public string ITunesCountry { get; set; } = "CN";
-    public string UserAgent { get; set; } = "Melotag/1.1.0 (https://github.com/example/melotag)";
+    public string UserAgent { get; set; } = Melotag.Core.ProductInfo.UserAgent;
 }
 
 public sealed class LyricsSettings
@@ -71,7 +71,9 @@ public sealed class WriteSettings
 
 public sealed class UiSettings
 {
-    public string Language { get; set; } = "zh-CHS";
+    /// <summary>"auto" = 跟随系统；也可为 zh-Hans / ja / en。</summary>
+    public string Language { get; set; } = "auto";
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
     public bool UseCompactRows { get; set; } = true;
     public string Theme { get; set; } = "Default";
     public double WindowWidth { get; set; } = 1280;
@@ -94,16 +96,32 @@ public sealed class AppSettings
 
     public void Migrate()
     {
-        if (SettingsVersion >= 4) return;
+        Ui ??= new UiSettings();
+        Sources ??= new SourceSettings();
 
-        Sanitize(Sources.Tags);
-        Sanitize(Sources.Pictures);
-        Sanitize(Sources.Lyrics);
+        if (SettingsVersion < 4)
+        {
+            Sanitize(Sources.Tags);
+            Sanitize(Sources.Pictures);
+            Sanitize(Sources.Lyrics);
 
-        MergeInto(Sources.Tags, ["netease", "qq", "kugou", "kuwo"]);
-        MergeInto(Sources.Pictures, ["netease", "kugou", "kuwo"]);
-        MergeInto(Sources.Lyrics, ["netease", "qq", "kugou", "lrclib"]);
-        SettingsVersion = 4;
+            MergeInto(Sources.Tags, ["netease", "qq", "kugou", "kuwo"]);
+            MergeInto(Sources.Pictures, ["netease", "kugou", "kuwo"]);
+            MergeInto(Sources.Lyrics, ["netease", "qq", "kugou", "lrclib"]);
+            SettingsVersion = 4;
+        }
+
+        if (SettingsVersion < 5)
+        {
+            if (string.IsNullOrWhiteSpace(Ui.Language)) Ui.Language = "auto";
+            else if (Ui.Language is "zh-CHS" or "zh-CN") Ui.Language = "zh-Hans";
+
+            if (string.IsNullOrWhiteSpace(Sources.UserAgent) ||
+                Sources.UserAgent.Contains("example.com", StringComparison.OrdinalIgnoreCase))
+                Sources.UserAgent = Melotag.Core.ProductInfo.UserAgent;
+
+            SettingsVersion = 5;
+        }
 
         static void MergeInto(List<string> list, string[] ids)
         {

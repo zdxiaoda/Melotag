@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Melotag.Core.Rename;
 using Melotag.UI.Dialogs;
+using Melotag.UI.Localization;
 using Melotag.UI.Platform;
 using Melotag.UI.ViewModels;
 
@@ -15,6 +16,8 @@ using Melotag.UI.ViewModels;
 /// </summary>
 public partial class MobileShellView : UserControl
 {
+    private readonly UpdateUi _updates = new();
+
     public MobileShellView()
     {
         InitializeComponent();
@@ -78,7 +81,7 @@ public partial class MobileShellView : UserControl
 
         if (!PlatformServices.FilePicker.SupportsFolderPick)
         {
-            Vm.StatusText = "当前平台不支持选择文件夹，请用「添加文件」多选";
+            Vm.StatusText = Localizer.T("Status.FolderPickUnsupported");
             return;
         }
 
@@ -117,7 +120,12 @@ public partial class MobileShellView : UserControl
 
     private async void OnAutoMatch(object? sender, RoutedEventArgs e)
     {
-        if (Vm is not null) await Vm.AutoMatchAllAsync();
+        if (Vm is null) return;
+
+        var dialog = new AutoMatchDialog(Vm.Settings, Vm.Search.Sources, Vm.AllTracks.Count);
+        if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.AutoMatch"), 860, 720) is true &&
+            dialog.Options is { } options)
+            await Vm.AutoMatchAllAsync(options);
     }
 
     private async void OnExtractCovers(object? sender, RoutedEventArgs e)
@@ -141,18 +149,18 @@ public partial class MobileShellView : UserControl
 
         if (!Vm.Platform.SupportsRename)
         {
-            Vm.StatusText = "Android 版暂不支持重命名文件，请在电脑端处理";
+            Vm.StatusText = Localizer.T("Status.AndroidRenameUnsupported");
             return;
         }
 
         if (Vm.AllTracks.Count == 0)
         {
-            Vm.StatusText = "列表为空";
+            Vm.StatusText = Localizer.T("Status.EmptyList");
             return;
         }
 
         var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
-        await ModalHost.ShowAsync(Top, dialog, "重命名 / 文件名相关", 780, 640);
+        await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Rename"), 780, 640);
     }
 
     private async void OnTagSearch(object? sender, RoutedEventArgs e)
@@ -160,12 +168,12 @@ public partial class MobileShellView : UserControl
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(Top, dialog, "在线标签匹配", 940, 640) is true &&
+        if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.TagSearch"), 940, 640) is true &&
             dialog.Selected is { } candidate)
             await Vm.ApplyCandidateAsync(row, candidate, dialog.Rule);
     }
@@ -175,15 +183,15 @@ public partial class MobileShellView : UserControl
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new LyricsDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(Top, dialog, "歌词", 860, 680) is true)
+        if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Lyrics"), 860, 680) is true)
         {
             row.Lyrics = dialog.ResultLyrics;
-            Vm.StatusText = "歌词已更新（保存标签后写入文件）";
+            Vm.StatusText = Localizer.T("Status.LyricsUpdated");
         }
     }
 
@@ -192,22 +200,22 @@ public partial class MobileShellView : UserControl
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new CoverDialog(Vm.Search, Vm.Settings, row);
-        if (await ModalHost.ShowAsync(Top, dialog, "封面", 820, 600) is not true) return;
+        if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Cover"), 820, 600) is not true) return;
 
         if (dialog.Removed)
         {
             row.ClearCover();
-            Vm.StatusText = "封面已移除（保存后写入文件）";
+            Vm.StatusText = Localizer.T("Status.CoverRemoved");
         }
         else if (dialog.Result is { } data)
         {
             row.SetCover(data, dialog.ResultMime);
-            Vm.StatusText = "封面已更新（保存后写入文件）";
+            Vm.StatusText = Localizer.T("Status.CoverUpdated");
         }
     }
 
@@ -216,13 +224,13 @@ public partial class MobileShellView : UserControl
         if (Vm is null) return;
         if (Vm.SelectedTrack is not { } row)
         {
-            Vm.StatusText = "请先选择一个文件";
+            Vm.StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
         var dialog = new HistoryDialog(Vm.HistoryStore, row.Key,
             entry => _ = Vm.RestoreHistoryAsync(row, entry));
-        await ModalHost.ShowAsync(Top, dialog, "标签历史", 820, 560);
+        await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.History"), 820, 560);
     }
 
     private async void OnSettings(object? sender, RoutedEventArgs e)
@@ -230,7 +238,7 @@ public partial class MobileShellView : UserControl
         if (Vm is null) return;
 
         var dialog = new SettingsDialog(Vm.Settings, Vm.Search.Sources);
-        if (await ModalHost.ShowAsync(Top, dialog, "设置", 760, 840) is true)
+        if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Settings"), 760, 840) is true)
             Vm.SaveSettings();
     }
 
@@ -250,24 +258,9 @@ public partial class MobileShellView : UserControl
 
     private async void OnAbout(object? sender, RoutedEventArgs e)
     {
-        var text = new TextBlock
-        {
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Text = $"{AppInfo.DisplayName} {AppInfo.Version}（Android）\n\n跨平台音乐标签编辑器\n\n标签引擎：TagLib#\n图像处理：SkiaSharp\n界面：Avalonia + FluentAvalonia\n在线源：网易云音乐 / QQ 音乐 / 酷狗 / 酷我 / MusicBrainz / Cover Art Archive / iTunes / Last.fm / LRCLIB\n\n文件通过系统 SAF 授权，标签写回原文件。",
-        };
-
-        var content = new StackPanel { Spacing = 12, Margin = new Thickness(4) };
-        content.Children.Add(new Image
-        {
-            Source = new Avalonia.Media.Imaging.Bitmap(
-                Avalonia.Platform.AssetLoader.Open(new Uri("avares://Melotag.UI/Assets/melotag-logo.png"))),
-            Width = 64,
-            Height = 64,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
-        });
-        content.Children.Add(text);
-
-        var dialog = new InfoDialog("关于 音签 Melotag", content);
-        await ModalHost.ShowAsync(Top, dialog, "关于 音签 Melotag", 460, 380);
+        var dialog = new InfoDialog(Localizer.T("App.AboutTitle"), AboutContent.Create(Top, android: true));
+        await ModalHost.ShowAsync(Top, dialog, Localizer.T("App.AboutTitle"), 480, 500);
     }
+
+    private async void OnCheckUpdates(object? sender, RoutedEventArgs e) => await _updates.ShowManualAsync(Top);
 }

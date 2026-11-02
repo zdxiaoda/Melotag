@@ -7,6 +7,9 @@ public enum OverwriteRule
     KeepExisting,
     FillEmptyOnly,
     Replace,
+
+    /// <summary>完全不修改该字段（批量匹配时用于用户未勾选的字段）。</summary>
+    Ignore,
 }
 
 public sealed class OverwriteOptions
@@ -54,6 +57,7 @@ public static class TagMerger
         var next = TrackTags.Normalize(candidate);
         return rule switch
         {
+            OverwriteRule.Ignore => current,
             OverwriteRule.Replace => next ?? current,
             OverwriteRule.FillEmptyOnly => string.IsNullOrWhiteSpace(current) ? (next ?? current) : current,
             _ => current ?? next,
@@ -62,6 +66,7 @@ public static class TagMerger
 
     private static uint? PickNumber(uint? current, uint? candidate, OverwriteRule rule)
     {
+        if (rule == OverwriteRule.Ignore) return current;
         if (candidate is null) return current;
         return rule switch
         {

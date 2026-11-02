@@ -24,6 +24,9 @@ public enum PatternError
 
 public static class RenamePresets
 {
+    /// <summary>打开重命名对话框时的默认模板：歌手 - 歌名。</summary>
+    public const string DefaultPattern = "@2 - @1";
+
     public static readonly IReadOnlyList<string> Defaults =
     [
         "@5. @1",

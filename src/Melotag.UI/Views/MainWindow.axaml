@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Melotag.UI.Localization"
         x:Class="Melotag.UI.Views.MainWindow"
-        Title="音签 Melotag · 标签编辑器"
+        Title="{loc:Tr Key=App.WindowTitle}"
         Icon="avares://Melotag.UI/Assets/melotag-logo.png"
         Width="1360" Height="760"
         MinWidth="1000" MinHeight="560"
@@ -71,39 +72,40 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto">
 
     <Menu Grid.Row="0">
-      <MenuItem Header="文件">
-        <MenuItem Header="添加文件…" Click="OnAddFiles" />
-        <MenuItem Header="添加文件夹…" Click="OnAddFolder" />
+      <MenuItem Header="{loc:Tr Key=Menu.File}">
+        <MenuItem Header="{loc:Tr Key=Menu.File.AddFiles}" Click="OnAddFiles" />
+        <MenuItem Header="{loc:Tr Key=Menu.File.AddFolder}" Click="OnAddFolder" />
         <Separator />
-        <MenuItem Header="保存当前标签" Command="{Binding SaveSelectedCommand}" />
-        <MenuItem Header="保存全部" Click="OnSaveAll" />
+        <MenuItem Header="{loc:Tr Key=Menu.File.SaveCurrent}" Command="{Binding SaveSelectedCommand}" />
+        <MenuItem Header="{loc:Tr Key=Menu.File.SaveAll}" Click="OnSaveAll" />
         <Separator />
-        <MenuItem Header="退出" Click="OnExit" />
+        <MenuItem Header="{loc:Tr Key=Menu.File.Exit}" Click="OnExit" />
       </MenuItem>
-      <MenuItem Header="编辑">
-        <MenuItem Header="重新读取" Command="{Binding ReloadCommand}" />
-        <MenuItem Header="从列表移除" Command="{Binding RemoveSelectedCommand}" />
-        <MenuItem Header="清空标签（内存）" Click="OnClearTags" />
+      <MenuItem Header="{loc:Tr Key=Menu.Edit}">
+        <MenuItem Header="{loc:Tr Key=Menu.Edit.Reload}" Command="{Binding ReloadCommand}" />
+        <MenuItem Header="{loc:Tr Key=Menu.Edit.Remove}" Command="{Binding RemoveSelectedCommand}" />
+        <MenuItem Header="{loc:Tr Key=Menu.Edit.ClearTags}" Click="OnClearTags" />
       </MenuItem>
-      <MenuItem Header="工具">
-        <MenuItem Header="重命名 / 文件名相关…" Click="OnRename" />
-        <MenuItem Header="在线标签匹配…" Click="OnTagSearch" />
-        <MenuItem Header="歌词…" Click="OnLyrics" />
-        <MenuItem Header="封面…" Click="OnCover" />
-        <MenuItem Header="标签历史…" Click="OnHistory" />
+      <MenuItem Header="{loc:Tr Key=Menu.Tools}">
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.Rename}" Click="OnRename" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.TagSearch}" Click="OnTagSearch" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.Lyrics}" Click="OnLyrics" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.Cover}" Click="OnCover" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.History}" Click="OnHistory" />
         <Separator />
-        <MenuItem Header="标签简→繁" Click="OnTagsToTraditional" />
-        <MenuItem Header="标签繁→简" Click="OnTagsToSimplified" />
-        <MenuItem Header="文件名简→繁" Click="OnNamesToTraditional" />
-        <MenuItem Header="文件名繁→简" Click="OnNamesToSimplified" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToTraditional}" Click="OnTagsToTraditional" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToSimplified}" Click="OnTagsToSimplified" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToTraditional}" Click="OnNamesToTraditional" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToSimplified}" Click="OnNamesToSimplified" />
         <Separator />
-        <MenuItem Header="设置…" Click="OnSettings" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.Settings}" Click="OnSettings" />
       </MenuItem>
-      <MenuItem Header="视图">
-        <MenuItem Header="切换深色 / 浅色" Click="OnToggleTheme" />
+      <MenuItem Header="{loc:Tr Key=Menu.View}">
+        <MenuItem Header="{loc:Tr Key=Menu.View.ToggleTheme}" Click="OnToggleTheme" />
       </MenuItem>
-      <MenuItem Header="帮助">
-        <MenuItem Header="关于" Click="OnAbout" />
+      <MenuItem Header="{loc:Tr Key=Menu.Help}">
+        <MenuItem Header="{loc:Tr Key=Menu.Help.CheckUpdates}" Click="OnCheckUpdates" />
+        <MenuItem Header="{loc:Tr Key=Menu.Help.About}" Click="OnAbout" />
       </MenuItem>
     </Menu>
 
@@ -116,85 +118,85 @@
                  Margin="2,0,10,0" VerticalAlignment="Center" />
 
           <Button Classes="icon" Click="OnAddFiles"
-                  ToolTip.Tip="添加文件" AutomationProperties.Name="添加文件">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.AddFile}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AddFile}">
             <Path Classes="icon" Data="{StaticResource IconAddFile}" />
           </Button>
           <Button Classes="icon" Click="OnAddFolder"
-                  ToolTip.Tip="添加文件夹（含子目录）" AutomationProperties.Name="添加文件夹">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.AddFolder}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AddFolder}">
             <Path Classes="icon" Data="{StaticResource IconAddFolder}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Command="{Binding ReloadCommand}"
-                  ToolTip.Tip="重新读取（F5）" AutomationProperties.Name="重新读取">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Reload}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Reload}">
             <Path Classes="icon" Data="{StaticResource IconReload}" />
           </Button>
           <Button Classes="icon" Command="{Binding SaveSelectedCommand}"
-                  ToolTip.Tip="保存当前标签（Ctrl+S）" AutomationProperties.Name="保存当前标签">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.SaveCurrent}" AutomationProperties.Name="{loc:Tr Key=Toolbar.SaveCurrent}">
             <Path Classes="icon" Data="{StaticResource IconSave}" />
           </Button>
           <Button Classes="icon" Click="OnSaveAll"
-                  ToolTip.Tip="保存全部" AutomationProperties.Name="保存全部">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.SaveAll}" AutomationProperties.Name="{loc:Tr Key=Toolbar.SaveAll}">
             <Path Classes="icon" Data="{StaticResource IconSaveAll}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Command="{Binding RemoveSelectedCommand}"
-                  ToolTip.Tip="从列表移除" AutomationProperties.Name="从列表移除">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Remove}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Remove}">
             <Path Classes="icon" Data="{StaticResource IconRemove}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Click="OnRename"
-                  ToolTip.Tip="重命名 / 文件名相关…" AutomationProperties.Name="重命名">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Rename}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Rename}">
             <Path Classes="icon" Data="{StaticResource IconRename}" />
           </Button>
           <Button Classes="icon" Click="OnTagSearch"
-                  ToolTip.Tip="在线标签匹配…" AutomationProperties.Name="在线标签匹配">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.TagSearch}" AutomationProperties.Name="{loc:Tr Key=Toolbar.TagSearch}">
             <Path Classes="icon" Data="{StaticResource IconOnline}" />
           </Button>
           <Button Classes="icon" Click="OnAutoMatch"
-                  ToolTip.Tip="批量自动匹配" AutomationProperties.Name="批量自动匹配">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.AutoMatch}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AutoMatch}">
             <Path Classes="icon" Data="{StaticResource IconAutoMatch}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Click="OnLyrics"
-                  ToolTip.Tip="歌词…" AutomationProperties.Name="歌词">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Lyrics}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Lyrics}">
             <Path Classes="icon" Data="{StaticResource IconLyrics}" />
           </Button>
           <Button Classes="icon" Click="OnCover"
-                  ToolTip.Tip="封面…" AutomationProperties.Name="封面">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Cover}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Cover}">
             <Path Classes="icon" Data="{StaticResource IconCover}" />
           </Button>
           <Button Classes="icon" Click="OnExtractCovers"
-                  ToolTip.Tip="批量提取封面" AutomationProperties.Name="批量提取封面">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.ExtractCovers}" AutomationProperties.Name="{loc:Tr Key=Toolbar.ExtractCovers}">
             <Path Classes="icon" Data="{StaticResource IconExtractCover}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Click="OnHistory"
-                  ToolTip.Tip="标签历史…" AutomationProperties.Name="标签历史">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.History}" AutomationProperties.Name="{loc:Tr Key=Toolbar.History}">
             <Path Classes="icon" Data="{StaticResource IconHistory}" />
           </Button>
           <Button Classes="icon" Click="OnClearTags"
-                  ToolTip.Tip="清空标签（仅在内存中）" AutomationProperties.Name="清空标签">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.ClearTags}" AutomationProperties.Name="{loc:Tr Key=Toolbar.ClearTags}">
             <Path Classes="icon" Data="{StaticResource IconClear}" />
           </Button>
 
           <Border Classes="toolbarSeparator" />
 
           <Button Classes="icon" Click="OnSettings"
-                  ToolTip.Tip="设置…" AutomationProperties.Name="设置">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.Settings}" AutomationProperties.Name="{loc:Tr Key=Toolbar.Settings}">
             <Path Classes="icon" Data="{StaticResource IconSettings}" />
           </Button>
           <Button Classes="icon" Click="OnToggleTheme"
-                  ToolTip.Tip="切换深色 / 浅色主题" AutomationProperties.Name="切换主题">
+                  ToolTip.Tip="{loc:Tr Key=Toolbar.ToggleTheme}" AutomationProperties.Name="{loc:Tr Key=Toolbar.ToggleThemeName}">
             <Path Classes="icon" Data="{StaticResource IconTheme}" />
           </Button>
         </StackPanel>
@@ -202,7 +204,7 @@
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <Path Classes="icon" Data="{StaticResource IconSearch}" Width="18" Height="18" Opacity="0.5" />
           <TextBox x:Name="FilterBox" Width="250"
-                   PlaceholderText="过滤：文件名 / 标题 / 艺术家 / 专辑"
+                   PlaceholderText="{loc:Tr Key=Filter.Placeholder}"
                    TextChanged="OnFilterChanged" />
         </StackPanel>
       </Grid>
@@ -213,6 +215,8 @@
                 Grid.Column="0"
                 ItemsSource="{Binding Tracks}"
                 SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
+                SelectionMode="Extended"
+                KeyDown="OnTracksKeyDown"
                 AutoGenerateColumns="False"
                 IsReadOnly="True"
                 CanUserResizeColumns="True"
@@ -221,15 +225,15 @@
                 RowHeight="32"
                 Margin="0">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="文件名" Binding="{Binding FileName}" Width="190" MinWidth="120" />
-          <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="2*" MinWidth="120" />
-          <DataGridTextColumn Header="艺术家" Binding="{Binding Artist}" Width="1.5*" MinWidth="100" />
-          <DataGridTextColumn Header="专辑" Binding="{Binding Album}" Width="1.5*" MinWidth="100" />
-          <DataGridTextColumn Header="年份" Binding="{Binding YearText}" Width="76" />
-          <DataGridTextColumn Header="音轨" Binding="{Binding TrackText}" Width="76" />
-          <DataGridTextColumn Header="时长" Binding="{Binding DurationText}" Width="80" />
-          <DataGridTextColumn Header="格式" Binding="{Binding FormatText}" Width="100" />
-          <DataGridTextColumn Header="状态" Binding="{Binding StatusText}" Width="88" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.FileName}" Binding="{Binding FileName}" Width="190" MinWidth="120" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Title}" Binding="{Binding Title}" Width="2*" MinWidth="120" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Artist}" Binding="{Binding Artist}" Width="1.5*" MinWidth="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Album}" Binding="{Binding Album}" Width="1.5*" MinWidth="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Year}" Binding="{Binding YearText}" SortMemberPath="YearNumber" Width="76" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Track}" Binding="{Binding TrackText}" SortMemberPath="TrackNumber" Width="76" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Duration}" Binding="{Binding DurationText}" SortMemberPath="DurationSeconds" Width="80" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Format}" Binding="{Binding FormatText}" Width="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Status}" Binding="{Binding StatusText}" Width="88" />
         </DataGrid.Columns>
       </DataGrid>
 
@@ -239,7 +243,7 @@
         <ScrollViewer>
           <StackPanel Margin="14" Spacing="10"
                       IsEnabled="{Binding SelectedTrack, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <TextBlock Text="标签编辑" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{loc:Tr Key=Editor.Title}" FontSize="18" FontWeight="SemiBold" />
             <TextBlock Text="{Binding SelectedTrack.Path}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
 
             <Border Height="150" CornerRadius="4" Padding="6"
@@ -248,57 +252,57 @@
             </Border>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="标题" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Title}" />
               <TextBox Text="{Binding SelectedTrack.Title, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="艺术家" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Artist}" />
               <TextBox Text="{Binding SelectedTrack.Artist, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="专辑" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Album}" />
               <TextBox Text="{Binding SelectedTrack.Album, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="专辑艺术家" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.AlbumArtist}" />
               <TextBox Text="{Binding SelectedTrack.AlbumArtist, Mode=TwoWay}" />
             </StackPanel>
 
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
               <StackPanel Grid.Column="0" Classes="field">
-                <TextBlock Classes="fieldLabel" Text="年份" />
+                <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Year}" />
                 <TextBox Text="{Binding SelectedTrack.YearText, Mode=TwoWay}" />
               </StackPanel>
               <StackPanel Grid.Column="1" Classes="field">
-                <TextBlock Classes="fieldLabel" Text="音轨" />
+                <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Track}" />
                 <TextBox Text="{Binding SelectedTrack.TrackText, Mode=TwoWay}" />
               </StackPanel>
               <StackPanel Grid.Column="2" Classes="field">
-                <TextBlock Classes="fieldLabel" Text="碟号" />
+                <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Disc}" />
                 <TextBox Text="{Binding SelectedTrack.DiscText, Mode=TwoWay}" />
               </StackPanel>
             </Grid>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="流派" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Genre}" />
               <TextBox Text="{Binding SelectedTrack.Genre, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="作曲" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Composer}" />
               <TextBox Text="{Binding SelectedTrack.Composer, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="注释" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Comment}" />
               <TextBox Text="{Binding SelectedTrack.Comment, Mode=TwoWay}" />
             </StackPanel>
 
             <StackPanel Classes="field">
-              <TextBlock Classes="fieldLabel" Text="歌词" />
+              <TextBlock Classes="fieldLabel" Text="{loc:Tr Key=Field.Lyrics}" />
               <TextBox Text="{Binding SelectedTrack.Lyrics, Mode=TwoWay}"
                        AcceptsReturn="True" TextWrapping="Wrap"
                        Height="150" VerticalContentAlignment="Top" />

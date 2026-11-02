@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -35,6 +36,9 @@ public abstract class ModalView : UserControl
         CloseResult = result;
         CloseRequested?.Invoke(result);
     }
+
+    /// <summary>供宿主（Escape、窗口关闭等）触发关闭。</summary>
+    public void RequestClose(object? result = null) => Close(result);
 }
 
 public static class ModalHost
@@ -140,7 +144,30 @@ public static class ModalHost
             },
         };
 
-        window.Closed += (_, _) => completion.TrySetResult(view.CloseResult);
-        _ = window.ShowDialog(owner).ContinueWith(_ => completion.TrySetResult(view.CloseResult), TaskScheduler.Default);
+        var closed = false;
+
+        void OnCloseRequested(object? result)
+        {
+            if (closed) return;
+            closed = true;
+            window.Close();
+        }
+
+        view.CloseRequested += OnCloseRequested;
+        window.Closed += (_, _) =>
+        {
+            closed = true;
+            view.CloseRequested -= OnCloseRequested;
+            completion.TrySetResult(view.CloseResult);
+        };
+
+        window.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape) return;
+            view.RequestClose(false);
+            e.Handled = true;
+        };
+
+        _ = window.ShowDialog(owner);
     }
 }

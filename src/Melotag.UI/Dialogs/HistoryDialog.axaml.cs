@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
+using Melotag.UI.Localization;
 
 public partial class HistoryDialog : ModalView
 {
@@ -45,19 +46,21 @@ public partial class HistoryDialog : ModalView
         var rows = entries.Select(e => new HistoryRow(e)).ToList();
         HistoryList.ItemsSource = rows;
         if (rows.Count > 0) HistoryList.SelectedItem = rows[0];
-        Status.Text = rows.Count == 0 ? "该文件还没有历史记录" : $"共 {rows.Count} 条记录";
+        Status.Text = rows.Count == 0
+            ? Localizer.T("History.NoRecords")
+            : Localizer.F("History.Count", rows.Count);
     }
 
     private void OnRestore(object? sender, RoutedEventArgs e)
     {
         if (HistoryList.SelectedItem is not HistoryRow row)
         {
-            Status.Text = "请先选择一条记录";
+            Status.Text = Localizer.T("History.SelectRecord");
             return;
         }
 
         _restore?.Invoke(row.Entry);
-        Status.Text = "已恢复到所选记录（标签将在下次保存时写入文件）";
+        Status.Text = Localizer.T("History.Restored");
     }
 
     private void OnClear(object? sender, RoutedEventArgs e)
@@ -65,7 +68,7 @@ public partial class HistoryDialog : ModalView
         if (_store is null) return;
         _store.ClearAll();
         Reload();
-        Status.Text = "历史已清空";
+        Status.Text = Localizer.T("History.Cleared");
     }
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close(true);

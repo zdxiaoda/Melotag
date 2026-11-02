@@ -25,8 +25,11 @@ internal static class Program
             case "emit":
                 Emit(target);
                 break;
+            case "msix":
+                RenderMsix(target);
+                break;
             default:
-                Console.Error.WriteLine("用法: Melotag.Branding [emit|sheet] <output-dir>");
+                Console.Error.WriteLine("用法: Melotag.Branding [emit|sheet|msix] <output-dir>");
                 return 1;
         }
 
@@ -255,6 +258,42 @@ internal static class Program
         File.WriteAllBytes(Path.Combine(uiAssets, "Melotag.ico"), BuildIco(frames));
         Console.WriteLine($"logo + ico written to {uiAssets}");
         Console.WriteLine($"pinup written to {docs}");
+    }
+
+    private static void RenderMsix(string directory)
+    {
+        const Variant variant = Variant.BarsWithHole;
+        Directory.CreateDirectory(directory);
+
+        (int Size, string Name)[] squares =
+        [
+            (44, "Square44x44Logo.png"),
+            (50, "StoreLogo.png"),
+            (71, "Square71x71Logo.png"),
+            (150, "Square150x150Logo.png"),
+            (310, "Square310x310Logo.png"),
+        ];
+
+        foreach (var (size, name) in squares)
+        {
+            using var bitmap = Render(size, variant);
+            File.WriteAllBytes(Path.Combine(directory, name), EncodePng(bitmap));
+        }
+
+        using (var surface = SKSurface.Create(new SKImageInfo(310, 150)))
+        {
+            surface.Canvas.Clear(new SKColor(0x6E, 0x5B, 0xF5));
+            using var logo = Render(150, variant);
+            using var image = SKImage.FromBitmap(logo);
+            surface.Canvas.DrawImage(image, (310 - 150) / 2f, 0);
+            surface.Canvas.Flush();
+            using var snapshot = surface.Snapshot();
+            using var data = snapshot.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = File.Create(Path.Combine(directory, "Wide310x150Logo.png"));
+            data.SaveTo(stream);
+        }
+
+        Console.WriteLine($"MSIX assets written to {directory}");
     }
 
     private static byte[] BuildIco(IReadOnlyList<(int Size, byte[] Png)> frames)

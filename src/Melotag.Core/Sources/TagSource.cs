@@ -112,15 +112,16 @@ public static class Http
         return client;
     }
 
-    public static string UserAgent { get; set; } = "MelotagClone/0.2 (https://github.com/example/musictag-clone)";
+    public static string UserAgent { get; set; } = ProductInfo.UserAgent;
 
-    public static async Task<string> GetStringAsync(string url, CancellationToken ct, string? referer = null)
+    public static async Task<string> GetStringAsync(string url, CancellationToken ct, string? referer = null, string? accept = null)
     {
         for (var attempt = 0; ; attempt++)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
             if (referer is not null) request.Headers.TryAddWithoutValidation("Referer", referer);
+            if (accept is not null) request.Headers.TryAddWithoutValidation("Accept", accept);
             using var response = await Client.SendAsync(request, ct);
 
             if ((int)response.StatusCode is 429 or 503 && attempt < 2)

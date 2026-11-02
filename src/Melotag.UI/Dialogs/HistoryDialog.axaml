@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:Melotag.UI.Localization"
              x:Class="Melotag.UI.Dialogs.HistoryDialog">
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -11,7 +12,7 @@
               BorderThickness="0,0,0,1"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="标签历史" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Tr Key=Dialog.History}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           <Button Grid.Column="1" Content="✕" Click="OnClose" Width="36" Height="30" Padding="0"
                   Background="Transparent" BorderThickness="0" />
         </Grid>
@@ -38,9 +39,9 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
           <TextBlock x:Name="Status" Grid.Column="0" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Content="恢复选中" Click="OnRestore" Classes="accent" />
-          <Button Grid.Column="2" Content="清空全部" Click="OnClear" />
-          <Button Grid.Column="3" Content="关闭" Click="OnClose" />
+          <Button Grid.Column="1" Content="{loc:Tr Key=Button.RestoreSelected}" Click="OnRestore" Classes="accent" />
+          <Button Grid.Column="2" Content="{loc:Tr Key=Button.ClearAll}" Click="OnClear" />
+          <Button Grid.Column="3" Content="{loc:Tr Key=Button.Close}" Click="OnClose" />
         </Grid>
       </Grid>
     </Grid>

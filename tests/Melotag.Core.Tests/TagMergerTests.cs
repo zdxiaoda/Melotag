@@ -67,6 +67,22 @@ public class TagMergerTests
     }
 
     [Fact]
+    public void Ignore_LeavesFieldUntouched_EvenWhenCurrentIsNull()
+    {
+        var options = new OverwriteOptions { Default = OverwriteRule.Replace };
+        options.PerField[FieldKey.Artist] = OverwriteRule.Ignore;
+
+        var result = TagMerger.Merge(
+            new TrackTags { Title = "old", Artist = null, Year = null },
+            new TrackTags { Title = "new", Artist = "candidate", Year = 2024 },
+            options);
+
+        Assert.Equal("new", result.Title);
+        Assert.Null(result.Artist);
+        Assert.Equal(2024u, result.Year);
+    }
+
+    [Fact]
     public void Merge_DoesNotMutateInputs()
     {
         var current = new TrackTags { Title = "A" };

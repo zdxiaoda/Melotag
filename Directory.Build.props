@@ -6,5 +6,11 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsNotAsErrors>CS8618;CS8602;CS8604</WarningsNotAsErrors>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <RepositoryUrl>https://github.com/zdxiaoda/Melotag</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/zdxiaoda/Melotag</PackageProjectUrl>
+    <Authors>zdxiaoda</Authors>
+    <Copyright>Copyright (c) 2025-2026 zdxiaoda</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 </Project>
