@@ -62,9 +62,9 @@ Android 数据目录是应用私有空间 `files/data`。
 ### 版本规则
 
 - 应用版本在 `src/Melotag.UI/AppInfo.cs`、`src/Melotag.Desktop/Melotag.Desktop.csproj`、
-  `src/Melotag.Android/Melotag.Android.csproj` 保持一致；当前 `1.2.0`。
+  `src/Melotag.Android/Melotag.Android.csproj` 保持一致；当前 `1.2.1`。
 - Android `ApplicationVersion`（versionCode）每次发布递增。
-- MSIX 的 `Version` 必须是四段数字（例如 `1.2.0.0`），且高于商店已发布版本。
+- MSIX 的 `Version` 必须是四段数字（例如 `1.2.1.0`），且高于商店已发布版本。
 
 ### 工作流
 
@@ -112,14 +112,15 @@ Android 数据目录是应用私有空间 `files/data`。
 
 密钥库和密码不要提交到仓库；丢失后同签名升级会失效。
 
-### Microsoft Store Variables
+### Microsoft Store 标识（Variables 或 Secrets）
 
-| Variable | 说明 |
+| 名称 | 说明 |
 | --- | --- |
 | `MSIX_IDENTITY_NAME` | Partner Center 的 `Package/Identity/Name` |
 | `MSIX_PUBLISHER` | Partner Center 的 `Package/Identity/Publisher` |
-| `MSIX_PUBLISHER_DISPLAY_NAME` | Partner Center 的 `PublisherDisplayName` |
+| `MSIX_PUBLISHER_DISPLAY_NAME` / `PUBLISHERDISPLAYNAME` | Partner Center 的 `PublisherDisplayName` |
 
+工作流优先读取 Variables，其次读取 Secrets；当前仓库使用的是 Secrets，显示名 Secret 名为 `PUBLISHERDISPLAYNAME`。
 未配置时 CI 跳过 MSIX，不影响其他包。
 
 ## 已知限制与技术备注

@@ -5,5 +5,5 @@ public static class ProductInfo
 {
     public const string RepositoryUrl = "https://github.com/zdxiaoda/Melotag";
     public const string ReleasesApi = "https://api.github.com/repos/zdxiaoda/Melotag/releases/latest";
-    public const string UserAgent = "Melotag/1.2.0 (+https://github.com/zdxiaoda/Melotag)";
+    public const string UserAgent = "Melotag/1.2.1 (+https://github.com/zdxiaoda/Melotag)";
 }

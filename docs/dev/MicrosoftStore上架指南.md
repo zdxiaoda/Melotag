@@ -14,26 +14,28 @@ Microsoft Store 不接受 Inno Setup 的 `.exe` 安装包，需要 **MSIX**。�
 
 > 这三个值必须和 MSIX 里的 `Identity` 完全一致，否则 Partner Center 会拒绝上传。
 
-## 2. 配置 GitHub 仓库 Variables
+## 2. 配置 GitHub 仓库 Variables 或 Secrets
 
 在 GitHub 仓库：
 
-`Settings → Secrets and variables → Actions → Variables`
+`Settings → Secrets and variables → Actions` → 选择 **Variables** 或 **Secrets**。
 
 添加：
 
-| Variable | 值 |
+| 名称 | 值 |
 | --- | --- |
 | `MSIX_IDENTITY_NAME` | Partner Center 的 `Package/Identity/Name` |
 | `MSIX_PUBLISHER` | Partner Center 的 `Package/Identity/Publisher` |
-| `MSIX_PUBLISHER_DISPLAY_NAME` | Partner Center 的 `PublisherDisplayName` |
+| `MSIX_PUBLISHER_DISPLAY_NAME` 或 `PUBLISHERDISPLAYNAME` | Partner Center 的 `PublisherDisplayName` |
+
+当前仓库使用 Secrets，显示名 Secret 名为 `PUBLISHERDISPLAYNAME`。
 
 配置后，`release` workflow 会在 Windows 任务里额外生成：
 
 - `Melotag-<版本>.msix`
 - artifact：`msix-win-x64`
 
-没有配置这三个 Variables 时，MSIX 步骤会自动跳过，不影响其他安装包。
+没有配置这三个标识时，MSIX 步骤会自动跳过，不影响其他安装包。
 
 ## 3. 本地构建 MSIX（可选）
 
@@ -44,7 +46,7 @@ dotnet publish src/Melotag.Desktop `
   -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=false `
   -p:DebugType=None -p:DebugSymbols=false `
-  -p:Version=1.2.0 `
+  -p:Version=1.2.1 `
   -o dist/win-x64-msix
 ```
 
@@ -52,12 +54,12 @@ dotnet publish src/Melotag.Desktop `
 
 ```powershell
 ./packaging/windows/msix/build-msix.ps1 `
-  -Version 1.2.0.0 `
+  -Version 1.2.1.0 `
   -IdentityName "Partner Center 的 Package/Identity/Name" `
   -Publisher "Partner Center 的 Package/Identity/Publisher" `
   -PublisherDisplayName "Partner Center 的 PublisherDisplayName" `
   -SourceDir "dist/win-x64-msix" `
-  -Output "dist/installer-win-x64/Melotag-1.2.0.msix"
+  -Output "dist/installer-win-x64/Melotag-1.2.1.msix"
 ```
 
 脚本会：
@@ -104,12 +106,12 @@ $cert = New-SelfSignedCertificate -Type Custom `
 #    然后签名
 Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
   -FilePath "melotag-test.pfx" -Password (ConvertTo-SecureString "test" -AsPlainText -Force)
-signtool sign /fd SHA256 /f melotag-test.pfx /p test dist\installer-win-x64\Melotag-1.2.0-test.msix
+signtool sign /fd SHA256 /f melotag-test.pfx /p test dist\installer-win-x64\Melotag-1.2.1-test.msix
 
 # 3) 导出并信任测试证书后安装
 Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "melotag-test.cer"
 Import-Certificate -FilePath "melotag-test.cer" -CertStoreLocation "Cert:\LocalMachine\TrustedPeople"
-Add-AppxPackage dist\installer-win-x64\Melotag-1.2.0-test.msix
+Add-AppxPackage dist\installer-win-x64\Melotag-1.2.1-test.msix
 ```
 
 正式提交时不要使用自签名证书；Partner Center 会为商店版本签名。若只是快速侧载，也可以在开发者模式下尝试 `Add-AppxPackage -AllowUnsigned`（不同 Windows 版本行为可能不同）。
@@ -119,8 +121,8 @@ Add-AppxPackage dist\installer-win-x64\Melotag-1.2.0-test.msix
 每次提交新版本时：
 
 - MSIX `Version` 必须是四段数字，并且比已发布版本大，例如：
-  - 首次：`1.2.0.0`
-  - 修复：`1.2.1.0`
+  - 首次：`1.2.1.0`
+  - 修复：`1.2.2.0`
 - 重新生成 `.msix` 并上传到新的 submission。
 - 不要修改 `Identity Name` / `Publisher`，否则会被当成另一个应用。
 
@@ -129,7 +131,7 @@ Add-AppxPackage dist\installer-win-x64\Melotag-1.2.0-test.msix
 | 问题 | 处理 |
 | --- | --- |
 | `Package identity does not match` | 检查 `MSIX_IDENTITY_NAME` / `MSIX_PUBLISHER` 是否完全复制自 Partner Center |
-| `Version must be greater` | 把 MSIX 版本改成 `1.2.1.0` 这类比线上更大的四段版本 |
+| `Version must be greater` | 把 MSIX 版本改成 `1.2.2.0` 这类比线上更大的四段版本 |
 | 上传后图标缺失 | 确认 `Assets/` 下有 44/50/71/150/310/310×150 的 PNG |
 | 文件关联被拒 | `Package.appxmanifest` 里声明了音频扩展名；如 Store 认为 `.mp4` 冲突，可先移除该扩展名再提交 |
 | 应用启动失败 | MSIX 是 full-trust 桌面应用，必须保留 `runFullTrust` 能力，并确保发布目录里 `Melotag.exe` 在包根目录 |

@@ -45,6 +45,11 @@ jobs:
             os: windows-latest
           - rid: linux-x64
             os: ubuntu-latest
+    env:
+      # 兼容 Variables / Secrets；PUBLISHERDISPLAYNAME 是当前仓库已设置的 Secret 名。
+      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME || secrets.MSIX_IDENTITY_NAME }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER || secrets.MSIX_PUBLISHER }}
+      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME || secrets.MSIX_PUBLISHER_DISPLAY_NAME || secrets.PUBLISHERDISPLAYNAME }}
 
     steps:
       - uses: actions/checkout@v7
@@ -130,21 +135,21 @@ jobs:
           if-no-files-found: error
 
       - name: Build MSIX (Microsoft Store)
-        if: matrix.rid == 'win-x64' && vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '' && vars.MSIX_PUBLISHER_DISPLAY_NAME != ''
+        if: matrix.rid == 'win-x64' && env.MSIX_IDENTITY_NAME != '' && env.MSIX_PUBLISHER != '' && env.MSIX_PUBLISHER_DISPLAY_NAME != ''
         shell: pwsh
         run: |
           $parts = $env:APP_VERSION -split '\.'
           $msixVersion = (($parts + @('0','0','0'))[0..3]) -join '.'
           ./packaging/windows/msix/build-msix.ps1 `
             -Version $msixVersion `
-            -IdentityName "${{ vars.MSIX_IDENTITY_NAME }}" `
-            -Publisher "${{ vars.MSIX_PUBLISHER }}" `
-            -PublisherDisplayName "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}" `
+            -IdentityName "$env:MSIX_IDENTITY_NAME" `
+            -Publisher "$env:MSIX_PUBLISHER" `
+            -PublisherDisplayName "$env:MSIX_PUBLISHER_DISPLAY_NAME" `
             -SourceDir "dist/win-x64-msix" `
             -Output "dist/installer-win-x64/Melotag-$env:APP_VERSION.msix"
 
       - name: Upload MSIX
-        if: matrix.rid == 'win-x64' && vars.MSIX_IDENTITY_NAME != '' && vars.MSIX_PUBLISHER != '' && vars.MSIX_PUBLISHER_DISPLAY_NAME != ''
+        if: matrix.rid == 'win-x64' && env.MSIX_IDENTITY_NAME != '' && env.MSIX_PUBLISHER != '' && env.MSIX_PUBLISHER_DISPLAY_NAME != ''
         uses: actions/upload-artifact@v7
         with:
           name: msix-win-x64

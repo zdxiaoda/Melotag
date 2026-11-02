@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.1
+
+### 新增
+
+- Microsoft Store MSIX 打包：GitHub Actions 生成 `Melotag-1.2.1.msix`，可直接上传 Partner Center。
+- MSIX 标识支持 GitHub Variables 或 Secrets（兼容 `PUBLISHERDISPLAYNAME`）。
+
+### 修复
+
+- 设置页在 Android 竖屏下的横向溢出：设置项改为标签在上、控件自适应宽度。
+- 在线源排序列表移除冗余能力列，窄屏显示更完整。
+- Linux RPM 不再被默认 `brp-strip` 剥离 .NET 单文件包。
+
+### 工程
+
+- GitHub Actions 更新到 Node 24 版本：checkout v7、setup-dotnet v6、cache v6、upload-artifact v7、download-artifact v8、setup-java v6、setup-android v4。
+- 版本号同步到 `1.2.1`，Android versionCode 递增到 4。
+
 ## 1.2.0
 
 ### 新增

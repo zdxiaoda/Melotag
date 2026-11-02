@@ -1,4 +1,4 @@
-# 音签 Melotag 1.2.0
+# 音签 Melotag 1.2.1
 
 <p>
   <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">
@@ -18,8 +18,8 @@
 | Windows | `Melotag-<版本>-win-x64.zip` | 免安装，需要 .NET 10 运行时 |
 | Linux | `Melotag-<版本>-x86_64.AppImage` | 免安装，自带运行时 |
 | Linux | `Melotag-<版本>.flatpak` | Flatpak，自带运行时，依赖 Freedesktop 运行时 |
-| Debian / Ubuntu | `melotag_<版本>_amd64.deb` | `sudo apt install ./melotag_1.2.0_amd64.deb`，需要 .NET 10 运行时 |
-| Fedora / RHEL | `melotag-<版本>-1.x86_64.rpm` | `sudo dnf install ./melotag-1.2.0-1.x86_64.rpm`，需要 .NET 10 运行时 |
+| Debian / Ubuntu | `melotag_<版本>_amd64.deb` | `sudo apt install ./melotag_1.2.1_amd64.deb`，需要 .NET 10 运行时 |
+| Fedora / RHEL | `melotag-<版本>-1.x86_64.rpm` | `sudo dnf install ./melotag-1.2.1-1.x86_64.rpm`，需要 .NET 10 运行时 |
 | Linux 通用 | `Melotag-<版本>-linux-x64.tar.gz` | 解压后运行 `./Melotag` 或执行 `install.sh`，需要 .NET 10 运行时 |
 | Android | `Melotag-<版本>-android-arm64.apk` | 真机；允许未知来源安装 |
 | Android | `Melotag-<版本>-android-x64.apk` | 模拟器 |
