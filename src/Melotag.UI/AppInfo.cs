@@ -1,9 +1,9 @@
 namespace Melotag.UI;
 
-/// <summary>产品标识与版本号集中在这里；打包用的 csproj 版本需与之保持一致。</summary>
+/// <summary>产品标识；版本号来自程序集版本，由 Directory.Build.props / 发布流水线注入。</summary>
 public static class AppInfo
 {
-    public const string Version = "1.2.1";
+    public static string Version => Melotag.Core.ProductInfo.Version;
     public const string RepositoryUrl = Melotag.Core.ProductInfo.RepositoryUrl;
 
     public static string ReleasesUrl => RepositoryUrl + "/releases";

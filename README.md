@@ -1,4 +1,4 @@
-# 音签 Melotag 1.2.1
+# 音签 Melotag 1.2.2
 
 <p>
   <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">

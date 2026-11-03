@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.2
+
+### 改进
+
+- 默认 User-Agent 改为随程序集版本自动生成（`Melotag/<版本> (+仓库地址)`），升级版本后无需再手改；
+  已有配置中的内置 UA 会在启动时自动刷新，自定义 UA 不受影响。
+- 版本号收敛到 `Directory.Build.props` 的 `Version`，桌面端、Android 与发布流水线共用同一来源。
+
+### 工程
+
+- 版本号升级到 `1.2.2`，Android versionCode 递增到 5。
+
 ## 1.2.1
 
 ### 新增

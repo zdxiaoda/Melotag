@@ -1,9 +1,9 @@
 ; 音签 Melotag Windows 安装包（Inno Setup 6）
 ; 由 .github/workflows/release.yml 在 windows-latest 上调用：
-;   ISCC.exe /DMyAppVersion=1.2.1 packaging\windows\melotag.iss
+;   ISCC.exe /DMyAppVersion=1.2.2 packaging\windows\melotag.iss
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.2.1"
+  #define MyAppVersion "1.2.2"
 #endif
 
 #define MyAppName "音签 Melotag"

@@ -18,7 +18,7 @@
 | 网站 | https://github.com/zdxiaoda/Melotag |
 | 物料整理日期 | 2026-11-03 |
 
-版本号来源：`src/Melotag.UI/AppInfo.cs` 的 `Version` 为 `1.2.1`；`src/Melotag.Desktop/Melotag.Desktop.csproj` 的 `Version` 为 `1.2.1`，`FileVersion`/`AssemblyVersion` 为 `1.2.1.0`；`src/Melotag.Android/Melotag.Android.csproj` 的 `ApplicationDisplayVersion` 为 `1.2.1`。MSIX 的 `Identity/@Version` 必须是四段数字 `1.2.1.0`，由 `packaging/windows/msix/build-msix.ps1` 注入。
+版本号来源：应用版本统一由 `Directory.Build.props` 的 `Version` 决定（本物料快照为 `1.2.1`）；桌面端程序集版本、Android `ApplicationDisplayVersion` 与默认 User-Agent 都从它自动派生。MSIX 的 `Identity/@Version` 必须是四段数字（本快照为 `1.2.1.0`），由 `packaging/windows/msix/build-msix.ps1` 注入。
 
 ## 1. 交付目录
 

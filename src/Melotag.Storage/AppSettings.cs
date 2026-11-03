@@ -123,6 +123,20 @@ public sealed class AppSettings
             SettingsVersion = 5;
         }
 
+        if (SettingsVersion < 6)
+        {
+            // 内置默认 UA 跟随应用版本更新；用户自定义的 UA 保持原样。
+            if (IsBuiltInUserAgent(Sources.UserAgent))
+                Sources.UserAgent = Melotag.Core.ProductInfo.UserAgent;
+
+            SettingsVersion = 6;
+        }
+
+        static bool IsBuiltInUserAgent(string? value) =>
+            !string.IsNullOrWhiteSpace(value) &&
+            value.StartsWith("Melotag/", StringComparison.OrdinalIgnoreCase) &&
+            value.EndsWith($"(+{Melotag.Core.ProductInfo.RepositoryUrl})", StringComparison.OrdinalIgnoreCase);
+
         static void MergeInto(List<string> list, string[] ids)
         {
             foreach (var id in ids)

@@ -8,10 +8,7 @@
     <AssemblyTitle>音签 Melotag</AssemblyTitle>
     <Description>跨平台音乐标签编辑器</Description>
     <Company>Melotag</Company>
-    <Version>1.2.1</Version>
-    <FileVersion>1.2.1.0</FileVersion>
-    <AssemblyVersion>1.2.1.0</AssemblyVersion>
-    <InformationalVersion>1.2.1</InformationalVersion>
+    <!-- 版本号继承 Directory.Build.props 的 Version；发布流水线可 -p:Version 覆盖。 -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\Melotag.UI\Assets\Melotag.ico</ApplicationIcon>

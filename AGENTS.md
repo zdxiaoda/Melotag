@@ -61,8 +61,9 @@ Android 数据目录是应用私有空间 `files/data`。
 
 ### 版本规则
 
-- 应用版本在 `src/Melotag.UI/AppInfo.cs`、`src/Melotag.Desktop/Melotag.Desktop.csproj`、
-  `src/Melotag.Android/Melotag.Android.csproj` 保持一致；当前 `1.2.1`。
+- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.2.2`）；桌面端、
+  Android 的 `ApplicationDisplayVersion` 与默认 User-Agent 都由程序集版本自动派生，
+  发布流水线也可用 `-p:Version=...` 覆盖。
 - Android `ApplicationVersion`（versionCode）每次发布递增。
 - MSIX 的 `Version` 必须是四段数字（例如 `1.2.1.0`），且高于商店已发布版本。
 
