@@ -39,12 +39,9 @@ public sealed class UpdateUi
 
         if (info is { IsNewer: true })
         {
-            content.Children.Add(new TextBlock
-            {
-                Text = string.IsNullOrWhiteSpace(info.Notes) ? Localizer.T("Update.NoNotes") : info.Notes,
-                TextWrapping = TextWrapping.Wrap,
-                MaxHeight = 220,
-            });
+            content.Children.Add(string.IsNullOrWhiteSpace(info.Notes)
+                ? new TextBlock { Text = Localizer.T("Update.NoNotes"), TextWrapping = TextWrapping.Wrap }
+                : ReleaseNotesView.Build(info.Notes));
 
             var open = new Button { Content = Localizer.T("Update.OpenRelease"), Classes = { "accent" } };
             open.Click += async (_, _) =>
