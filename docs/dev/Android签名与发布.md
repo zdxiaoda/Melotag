@@ -56,22 +56,22 @@ Android 要求同一个应用的后续版本必须使用同一份签名密钥。
 
 如果没有配置这些 Secrets（例如 fork 的 PR），CI 会自动回退到调试签名，只适合侧载测试，不能用于正式发布。
 
-## 4. 发布 1.3.1
+## 4. 发布 1.3.2
 
 ```bash
-git tag v1.3.1
-git push origin v1.3.1
+git tag v1.3.2
+git push origin v1.3.2
 ```
 
 `release.yml` 会复用 `android.yml` 构建 `arm64` 与 `x64` 两个 APK，并把它们放进 GitHub Release：
 
-- `Melotag-1.3.1-android-arm64.apk`（真机）
-- `Melotag-1.3.1-android-x64.apk`（模拟器）
+- `Melotag-1.3.2-android-arm64.apk`（真机）
+- `Melotag-1.3.2-android-x64.apk`（模拟器）
 
 ## 5. 验证签名
 
 ```bash
-apksigner verify --print-certs Melotag-1.3.1-android-arm64.apk
+apksigner verify --print-certs Melotag-1.3.2-android-arm64.apk
 ```
 
 应看到与首次发布一致的证书指纹（SHA-256）。

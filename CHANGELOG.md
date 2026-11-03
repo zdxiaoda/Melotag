@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2
+
+### 修复
+
+- 「检查更新」中的 GitHub Release 说明现在按 Markdown 渲染（标题、列表、粗体、代码与链接），不再显示原始标记。
+
+### 工程
+
+- 新增 `ReleaseNotesView`，用轻量解析覆盖自动生成说明实际使用的语法。
+- 版本号升级到 `1.3.2`，Android versionCode 递增到 8。
+
 ## 1.3.1
 
 ### 修复
