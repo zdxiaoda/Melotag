@@ -79,16 +79,18 @@ public partial class MobileShellView : UserControl
     {
         if (Vm is null || Top is not { } top) return;
 
-        if (!PlatformServices.FilePicker.SupportsFolderPick)
+        try
+        {
+            Vm.StatusText = Localizer.T("Status.FolderScanning");
+            var files = await PlatformServices.FilePicker.PickFolderAsync(top, Vm.CanHandle);
+            if (files.Count > 0) await Vm.AddFilesAsync(files);
+            else Vm.StatusText = Localizer.T("Status.Ready");
+        }
+        catch (Exception)
         {
             Vm.StatusText = Localizer.T("Status.FolderPickUnsupported");
-            return;
         }
 
-        Vm.StatusText = Localizer.T("Status.FolderScanning");
-        var files = await PlatformServices.FilePicker.PickFolderAsync(top, Vm.CanHandle);
-        if (files.Count > 0) await Vm.AddFilesAsync(files);
-        else Vm.StatusText = Localizer.T("Status.Ready");
         UpdateEmptyHint();
     }
 

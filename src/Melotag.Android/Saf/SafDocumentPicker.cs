@@ -1,7 +1,6 @@
 namespace Melotag.Droid;
 
 using Android.Content;
-using Android.Content.PM;
 using Android.Provider;
 using Avalonia.Controls;
 using Melotag.Core.Abstractions;
@@ -21,17 +20,11 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
 
     public static SafDocumentPicker Instance { get; } = new();
 
-    public bool SupportsFolderPick
-    {
-        get
-        {
-            var activity = MainActivity.Current;
-            if (activity?.PackageManager is not { } manager) return false;
-
-            var probe = new Intent(Intent.ActionOpenDocumentTree);
-            return manager.ResolveActivity(probe, (PackageInfoFlags)0) is not null;
-        }
-    }
+    /// <summary>
+    /// ACTION_OPEN_DOCUMENT_TREE 是 API 21+ 的标准动作。部分 ROM 的
+    /// resolveActivity 结果不可靠，因此不在点击前拦截，启动失败时再提示。
+    /// </summary>
+    public bool SupportsFolderPick => true;
 
     public async Task<IReadOnlyList<IFileHandle>> PickFilesAsync(TopLevel top)
     {
@@ -49,16 +42,7 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
         var activity = MainActivity.Current;
         if (activity is null) return [];
 
-        AndroidUri? treeUri;
-        try
-        {
-            treeUri = await activity.PickFolderAsync();
-        }
-        catch
-        {
-            return [];
-        }
-
+        var treeUri = await activity.PickFolderAsync();
         if (treeUri is null) return [];
 
         var resolver = activity.ContentResolver!;
