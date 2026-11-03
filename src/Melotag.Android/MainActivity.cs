@@ -20,8 +20,10 @@ namespace Melotag.Droid;
 public class MainActivity : AvaloniaMainActivity
 {
     private const int PickFilesRequestCode = 0x4D54;
+    private const int PickFolderRequestCode = 0x4D55;
 
-    private static TaskCompletionSource<IReadOnlyList<AndroidUri>>? _picked;
+    private static TaskCompletionSource<IReadOnlyList<AndroidUri>>? _pickedFiles;
+    private static TaskCompletionSource<AndroidUri?>? _pickedFolder;
 
     internal static MainActivity? Current { get; private set; }
 
@@ -44,10 +46,10 @@ public class MainActivity : AvaloniaMainActivity
     /// <summary>弹出系统 SAF 选择器，返回用户选中的文档 URI（取消则返回空）。</summary>
     internal Task<IReadOnlyList<AndroidUri>> PickDocumentsAsync()
     {
-        if (_picked is { } pending) return pending.Task;
+        if (_pickedFiles is { } pending) return pending.Task;
 
         var completion = new TaskCompletionSource<IReadOnlyList<AndroidUri>>();
-        _picked = completion;
+        _pickedFiles = completion;
 
         try
         {
@@ -55,11 +57,37 @@ public class MainActivity : AvaloniaMainActivity
             intent.AddCategory(Intent.CategoryOpenable);
             intent.SetType("*/*");
             intent.PutExtra(Intent.ExtraAllowMultiple, true);
+            intent.AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantWriteUriPermission);
             StartActivityForResult(intent, PickFilesRequestCode);
         }
         catch (Exception ex)
         {
-            _picked = null;
+            _pickedFiles = null;
+            completion.SetException(ex);
+        }
+
+        return completion.Task;
+    }
+
+    /// <summary>弹出 SAF 目录选择器，返回用户选中的目录树 URI（取消则返回 null）。</summary>
+    internal Task<AndroidUri?> PickFolderAsync()
+    {
+        if (_pickedFolder is { } pending) return pending.Task;
+
+        var completion = new TaskCompletionSource<AndroidUri?>();
+        _pickedFolder = completion;
+
+        try
+        {
+            var intent = new Intent(Intent.ActionOpenDocumentTree);
+            intent.AddFlags(ActivityFlags.GrantReadUriPermission |
+                            ActivityFlags.GrantWriteUriPermission |
+                            ActivityFlags.GrantPersistableUriPermission);
+            StartActivityForResult(intent, PickFolderRequestCode);
+        }
+        catch (Exception ex)
+        {
+            _pickedFolder = null;
             completion.SetException(ex);
         }
 
@@ -70,10 +98,22 @@ public class MainActivity : AvaloniaMainActivity
     {
         base.OnActivityResult(requestCode, resultCode, data);
 
+        if (requestCode == PickFolderRequestCode)
+        {
+            var pendingFolder = _pickedFolder;
+            _pickedFolder = null;
+            if (pendingFolder is null) return;
+
+            var tree = resultCode == Result.Ok ? data?.Data : null;
+            if (tree is not null) TryPersist(tree);
+            pendingFolder.SetResult(tree);
+            return;
+        }
+
         if (requestCode != PickFilesRequestCode) return;
 
-        var completion = _picked;
-        _picked = null;
+        var completion = _pickedFiles;
+        _pickedFiles = null;
         if (completion is null) return;
 
         var uris = new List<AndroidUri>();
@@ -89,5 +129,19 @@ public class MainActivity : AvaloniaMainActivity
         }
 
         completion.SetResult(uris);
+    }
+
+    private void TryPersist(AndroidUri uri)
+    {
+        try
+        {
+            ContentResolver!.TakePersistableUriPermission(
+                uri,
+                ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantWriteUriPermission);
+        }
+        catch
+        {
+            // 少数 provider 不支持持久化授权，忽略即可
+        }
     }
 }

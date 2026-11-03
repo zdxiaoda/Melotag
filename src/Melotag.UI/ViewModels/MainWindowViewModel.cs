@@ -63,6 +63,10 @@ public partial class MainWindowViewModel : ObservableObject
     public TagSearchService Search => _search;
     public IHistoryStore HistoryStore => _historyStore;
     public IPlatformHost Platform => _host;
+
+    /// <summary>供文件夹导入时按扩展名过滤。</summary>
+    public bool CanHandle(string extension) => _tagStore.CanHandle(extension);
+
     public ObservableCollection<TrackRowViewModel> Tracks { get; } = [];
     public IReadOnlyList<TrackRowViewModel> AllTracks => _all;
 
@@ -438,7 +442,7 @@ public partial class MainWindowViewModel : ObservableObject
     /// <summary>把列表中的文件名做简繁转换（直接改磁盘文件）。</summary>
     public Task ConvertFileNamesAsync(bool toTraditional, ISafeNamePolicy policy)
     {
-        if (!_host.SupportsRename)
+        if (!_all.Any(r => ResolveHandle(r)?.CanRename == true))
         {
             StatusText = Localizer.T("Status.RenameUnsupported");
             return Task.CompletedTask;
@@ -450,18 +454,25 @@ public partial class MainWindowViewModel : ObservableObject
 
         foreach (var row in _all.ToList())
         {
-            var baseName = Path.GetFileNameWithoutExtension(row.FileName);
+            var handle = ResolveHandle(row);
+            var baseName = handle?.FileNameWithoutExtension ?? Path.GetFileNameWithoutExtension(row.FileName);
             var converted = toTraditional ? _chinese.ToTraditional(baseName) : _chinese.ToSimplified(baseName);
             if (string.Equals(baseName, converted, StringComparison.Ordinal)) continue;
 
+            if (handle is not { CanRename: true })
+            {
+                failed++;
+                continue;
+            }
+
             try
             {
-                var result = service.ApplyExact(row.Path, converted, policy,
-                    alsoRenameLyrics: _host.SupportsSiblingFiles,
-                    alsoRenamePictures: _host.SupportsSiblingFiles);
-                if (result.NewPath != result.OldPath)
+                var result = service.ApplyExact(handle, converted, policy,
+                    alsoRenameLyrics: true,
+                    alsoRenamePictures: true);
+                if (!string.Equals(result.New.Key, result.Old.Key, StringComparison.Ordinal))
                 {
-                    row.RenameTo(result.NewPath);
+                    row.RenameTo(result.New);
                     renamed++;
                 }
             }
@@ -475,6 +486,12 @@ public partial class MainWindowViewModel : ObservableObject
             ? Localizer.F("Status.FileNameConvertedPartial", renamed, failed)
             : Localizer.F("Status.FileNameConverted", renamed);
         return Task.CompletedTask;
+    }
+
+    private static IFileHandle? ResolveHandle(TrackRowViewModel row)
+    {
+        if (row.Source is { } source) return source;
+        return Path.IsPathRooted(row.Path) ? new PhysicalFileHandle(row.Path) : null;
     }
 
     public async Task RestoreHistoryAsync(TrackRowViewModel row, HistoryEntry entry)

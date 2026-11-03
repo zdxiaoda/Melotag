@@ -11,7 +11,7 @@ public interface IFilePickerPlatform
 
     Task<IReadOnlyList<IFileHandle>> PickFilesAsync(TopLevel top);
 
-    Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top);
+    Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top, Func<string, bool>? filter = null);
 }
 
 public static class PlatformServices

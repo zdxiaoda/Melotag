@@ -20,11 +20,20 @@ public interface IFileHandle
     /// <summary>是否可写回。SAF 只读授权时为 false。</summary>
     bool IsWritable { get; }
 
+    /// <summary>能否原地改名。SAF 由 Document.COLUMN_FLAGS 决定，与平台无关。</summary>
+    bool CanRename { get; }
+
+    /// <summary>同目录标识。桌面=目录全路径；SAF 树内=父文档标识；无法枚举目录时为 null。</summary>
+    string? DirectoryKey { get; }
+
     Stream OpenRead();
     Stream OpenReadWrite();
 
-    /// <summary>同目录下按文件名找兄弟文件（用于 .lrc / 封面），不存在返回 null。</summary>
-    IFileHandle? GetSibling(string fileName);
+    /// <summary>同目录文件列表（含自身）。无法枚举时返回空集合。</summary>
+    IReadOnlyList<IFileHandle> GetSiblings();
+
+    /// <summary>原地改名（只传文件名，不含目录），返回改名后的新句柄。</summary>
+    IFileHandle Rename(string newFileName);
 
     /// <summary>写入标签后恢复修改时间；平台不支持时静默忽略。</summary>
     void SetLastWriteTimeUtc(DateTime utc);

@@ -85,7 +85,8 @@ public partial class MobileShellView : UserControl
             return;
         }
 
-        var files = await PlatformServices.FilePicker.PickFolderAsync(top);
+        Vm.StatusText = Localizer.T("Status.FolderScanning");
+        var files = await PlatformServices.FilePicker.PickFolderAsync(top, Vm.CanHandle);
         if (files.Count > 0) await Vm.AddFilesAsync(files);
         UpdateEmptyHint();
     }
@@ -147,7 +148,7 @@ public partial class MobileShellView : UserControl
     {
         if (Vm is null) return;
 
-        if (!Vm.Platform.SupportsRename)
+        if (!Vm.AllTracks.Any(r => r.Source?.CanRename == true))
         {
             Vm.StatusText = Localizer.T("Status.AndroidRenameUnsupported");
             return;

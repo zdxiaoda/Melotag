@@ -146,12 +146,12 @@ public partial class TrackRowViewModel : ObservableObject
         Status = TrackStatus.Modified;
     }
 
-    public void RenameTo(string newPath)
+    public void RenameTo(IFileHandle newHandle)
     {
-        Path = newPath;
-        FileName = System.IO.Path.GetFileName(newPath);
-        Key = newPath;
-        Source = null;
+        Source = newHandle;
+        Key = newHandle.Key;
+        Path = newHandle.DisplayPath;
+        FileName = newHandle.FileName;
     }
 
     public TrackTags ToTags() => new()

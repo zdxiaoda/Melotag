@@ -403,8 +403,11 @@
   <data name="Status.FolderPickUnsupported" xml:space="preserve">
     <value>当前平台不支持选择文件夹，请用「添加文件」多选</value>
   </data>
+  <data name="Status.FolderScanning" xml:space="preserve">
+    <value>正在扫描文件夹…</value>
+  </data>
   <data name="Status.AndroidRenameUnsupported" xml:space="preserve">
-    <value>手机版暂不支持重命名文件，请在电脑版操作。</value>
+    <value>当前列表中的文件未获得写入授权，请用「添加文件夹」重新导入后再试。</value>
   </data>
   <data name="Status.UnsupportedFormat" xml:space="preserve">
     <value>不支持的格式</value>
@@ -915,6 +918,9 @@
   </data>
   <data name="Rename.EmptyName" xml:space="preserve">
     <value>生成的文件名为空</value>
+  </data>
+  <data name="Rename.NotRenameable" xml:space="preserve">
+    <value>该文件未获得重命名权限</value>
   </data>
   <data name="Status.CopyFailed" xml:space="preserve">
     <value>复制失败</value>
