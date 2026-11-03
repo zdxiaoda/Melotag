@@ -46,12 +46,13 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
         });
 
         var result = new List<IFileHandle>();
+        var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
         foreach (var folder in folders)
         {
             var path = folder.TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(path)) continue;
 
-            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            foreach (var file in Directory.EnumerateFiles(path, "*", options))
             {
                 if (filter is not null && !filter(Path.GetExtension(file).ToLowerInvariant())) continue;
                 result.Add(new PhysicalFileHandle(file));

@@ -138,6 +138,25 @@ public class RenameServiceTests : IDisposable
         Assert.Equal(2, result.RenamedSiblings.Count);
     }
 
+    [Fact]
+    public void Apply_LeavesUnrelatedPrefixSiblingsUntouched()
+    {
+        var path = CreateFile("Love.mp3");
+        CreateFile("Love.lrc");
+        var unrelated = CreateFile("Love Song.lrc");
+
+        var preview = _service.Preview(
+            new PhysicalFileHandle(path),
+            new TrackTags { Title = "Song" },
+            "@1",
+            new WindowsSafeNamePolicy());
+        _service.Apply(preview, alsoRenameLyrics: true, alsoRenamePictures: true);
+
+        Assert.True(File.Exists(Path.Combine(_dir, "Song.mp3")));
+        Assert.True(File.Exists(Path.Combine(_dir, "Song.lrc")));
+        Assert.True(File.Exists(unrelated));
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_dir, recursive: true); } catch { }

@@ -83,6 +83,13 @@ public sealed class RenameService
             if ((isLyrics && !alsoRenameLyrics) || (isImage && !alsoRenamePictures) || (!isLyrics && !isImage)) continue;
 
             var suffix = name[oldBase.Length..];
+            var isCompanion = suffix.Length == 0
+                || suffix[0] == '.'
+                || suffix.StartsWith(" (", StringComparison.Ordinal)
+                || suffix.StartsWith("-cover", StringComparison.OrdinalIgnoreCase)
+                || suffix.StartsWith("_cover", StringComparison.OrdinalIgnoreCase);
+            if (!isCompanion) continue;
+
             var target = newBase + suffix;
             if (siblings.Any(s => string.Equals(s.FileName, target, StringComparison.OrdinalIgnoreCase))) continue;
 

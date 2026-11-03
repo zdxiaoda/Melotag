@@ -139,11 +139,16 @@ public partial class MainWindowViewModel : ObservableObject
         if (_all.Count == 0) return;
 
         StatusText = Localizer.T("Status.Reloading");
-        var handles = _all.Select(t => t.Source ?? (IFileHandle)new PhysicalFileHandle(t.Path)).ToList();
-        var results = await Task.Run(() => handles.Select(SafeRead).ToList());
+        var pairs = _all
+            .Select(row => (Row: row, Handle: row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path)))
+            .ToList();
+        var results = await Task.Run(() => pairs.Select(p => SafeRead(p.Handle)).ToList());
 
-        for (var i = 0; i < results.Count && i < _all.Count; i++)
-            _all[i].ApplyFrom(results[i]);
+        for (var i = 0; i < results.Count; i++)
+        {
+            var row = pairs[i].Row;
+            if (_all.Contains(row)) row.ApplyFrom(results[i]);
+        }
 
         StatusText = Localizer.T("Status.Reloaded");
     }
@@ -193,8 +198,15 @@ public partial class MainWindowViewModel : ObservableObject
                 if (!handle.IsWritable)
                     throw new InvalidOperationException(Localizer.T("Status.ReadOnlyFile"));
 
+                var previous = await Task.Run(() =>
+                {
+                    try { return _tagStore.Read(handle).Tags; }
+                    catch { return null; }
+                });
+
                 await Task.Run(() => _tagStore.Write(handle, tags, options));
-                await Task.Run(() => _historyStore.AddSnapshot(row.Key, tags));
+                if (previous is not null)
+                    await Task.Run(() => _historyStore.AddSnapshot(row.Key, previous));
 
                 row.ApplyFrom(new TrackItem
                 {

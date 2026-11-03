@@ -52,6 +52,7 @@ public sealed class CoverService
                 for (var attempt = 0; attempt < 4; attempt++)
                 {
                     var bytes = Encode(current, usePng, 85 - attempt * 15);
+                    if (bytes.Length == 0) return null;
                     if (bytes.Length <= budget || attempt == 3)
                         return new CoverResult(bytes, usePng ? "image/png" : "image/jpeg", current.Width, current.Height);
 
