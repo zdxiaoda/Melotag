@@ -23,7 +23,7 @@ internal static class SafTree
         var results = new List<SafDocument>();
         var visited = new HashSet<string>(StringComparer.Ordinal);
         var stack = new Stack<string>();
-        stack.Push(DocumentsContract.GetTreeDocumentId(treeUri));
+        stack.Push(DocumentsContract.GetTreeDocumentId(treeUri)!);
 
         while (stack.Count > 0)
         {
@@ -52,7 +52,7 @@ internal static class SafTree
         List<SafDocument> results,
         Stack<string>? directories)
     {
-        var childrenUri = DocumentsContract.BuildChildDocumentsUriUsingTree(treeUri, parentId);
+        var childrenUri = DocumentsContract.BuildChildDocumentsUriUsingTree(treeUri, parentId)!;
         using var cursor = resolver.Query(childrenUri, Projection, null, null, null);
         if (cursor is null) return;
 
@@ -83,16 +83,18 @@ internal static class SafTree
 
             var size = sizeIndex >= 0 && !cursor.IsNull(sizeIndex) ? cursor.GetLong(sizeIndex) : 0;
             var modified = modifiedIndex >= 0 && !cursor.IsNull(modifiedIndex) ? cursor.GetLong(modifiedIndex) : 0;
-            var flags = flagsIndex >= 0 && !cursor.IsNull(flagsIndex) ? cursor.GetInt(flagsIndex) : 0;
+            var flags = flagsIndex >= 0 && !cursor.IsNull(flagsIndex)
+                ? (DocumentContractFlags)cursor.GetInt(flagsIndex)
+                : default;
 
             results.Add(new SafDocument(
-                DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId!),
+                DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId!)!,
                 docId!,
                 name!,
                 size,
                 modified,
-                (flags & (int)DocumentsContract.Document.FlagSupportsWrite) != 0,
-                (flags & (int)DocumentsContract.Document.FlagSupportsRename) != 0,
+                flags.HasFlag(DocumentContractFlags.SupportsWrite),
+                flags.HasFlag(DocumentContractFlags.SupportsRename),
                 treeUri));
         }
     }

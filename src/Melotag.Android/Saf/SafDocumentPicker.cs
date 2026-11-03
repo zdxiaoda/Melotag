@@ -78,7 +78,7 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
         string? name = null;
         long size = 0;
         long modified = 0;
-        var flags = 0;
+        var flags = default(DocumentContractFlags);
 
         try
         {
@@ -95,7 +95,8 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
                 if (modifiedIndex >= 0 && !cursor.IsNull(modifiedIndex)) modified = cursor.GetLong(modifiedIndex);
 
                 var flagsIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnFlags);
-                if (flagsIndex >= 0 && !cursor.IsNull(flagsIndex)) flags = cursor.GetInt(flagsIndex);
+                if (flagsIndex >= 0 && !cursor.IsNull(flagsIndex))
+                    flags = (DocumentContractFlags)cursor.GetInt(flagsIndex);
             }
         }
         catch
@@ -107,12 +108,12 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
 
         return new SafDocument(
             uri,
-            DocumentsContract.GetDocumentId(uri),
-            name,
+            DocumentsContract.GetDocumentId(uri)!,
+            name!,
             size,
             modified,
-            (flags & (int)DocumentsContract.Document.FlagSupportsWrite) != 0,
-            (flags & (int)DocumentsContract.Document.FlagSupportsRename) != 0,
+            flags.HasFlag(DocumentContractFlags.SupportsWrite),
+            flags.HasFlag(DocumentContractFlags.SupportsRename),
             TreeUri: null);
     }
 }
