@@ -8,7 +8,7 @@ using AndroidEnvironment = Android.OS.Environment;
 namespace Melotag.Droid;
 
 /// <summary>
-/// Android 平台能力：数据目录放应用私有空间；SAF 不支持重命名与同目录兄弟文件；
+/// Android 平台能力：数据目录放应用私有空间；
 /// 封面导出走 MediaStore（Android 10+），失败时回退到应用外部目录。
 /// </summary>
 public sealed class AndroidPlatformHost : IPlatformHost
@@ -25,12 +25,6 @@ public sealed class AndroidPlatformHost : IPlatformHost
     }
 
     public string DataDirectory => AppPaths.DataDirectory;
-
-    /// <summary>SAF 单文档授权下无法原地重命名。</summary>
-    public bool SupportsRename => false;
-
-    /// <summary>无法访问音频同目录的 .lrc / 封面文件。</summary>
-    public bool SupportsSiblingFiles => false;
 
     public Task<string?> ExportCoverAsync(IFileHandle audio, byte[] data, string extension) =>
         Task.FromResult(Export(audio, data, extension));

@@ -403,8 +403,11 @@
   <data name="Status.FolderPickUnsupported" xml:space="preserve">
     <value>This platform cannot pick folders; use Add Files with multi-select.</value>
   </data>
+  <data name="Status.FolderScanning" xml:space="preserve">
+    <value>Scanning folder…</value>
+  </data>
   <data name="Status.AndroidRenameUnsupported" xml:space="preserve">
-    <value>Renaming files is not supported on mobile; please use the desktop app.</value>
+    <value>These files were not granted write access. Re-import them with Add Folder to rename.</value>
   </data>
   <data name="Status.UnsupportedFormat" xml:space="preserve">
     <value>Unsupported format</value>
@@ -915,6 +918,9 @@
   </data>
   <data name="Rename.EmptyName" xml:space="preserve">
     <value>The generated file name is empty</value>
+  </data>
+  <data name="Rename.NotRenameable" xml:space="preserve">
+    <value>This file cannot be renamed</value>
   </data>
   <data name="Status.CopyFailed" xml:space="preserve">
     <value>Copy failed</value>

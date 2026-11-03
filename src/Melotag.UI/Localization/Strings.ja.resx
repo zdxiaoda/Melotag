@@ -403,8 +403,11 @@
   <data name="Status.FolderPickUnsupported" xml:space="preserve">
     <value>このプラットフォームではフォルダーを選択できません。「ファイルを追加」で複数選択してください。</value>
   </data>
+  <data name="Status.FolderScanning" xml:space="preserve">
+    <value>フォルダーをスキャン中…</value>
+  </data>
   <data name="Status.AndroidRenameUnsupported" xml:space="preserve">
-    <value>モバイル版ではファイル名を変更できません。デスクトップ版をご利用ください。</value>
+    <value>これらのファイルには書き込み権限がありません。「フォルダーを追加」で再読み込みしてください。</value>
   </data>
   <data name="Status.UnsupportedFormat" xml:space="preserve">
     <value>未対応の形式</value>
@@ -915,6 +918,9 @@
   </data>
   <data name="Rename.EmptyName" xml:space="preserve">
     <value>生成されるファイル名が空です</value>
+  </data>
+  <data name="Rename.NotRenameable" xml:space="preserve">
+    <value>このファイルは名前を変更できません</value>
   </data>
   <data name="Status.CopyFailed" xml:space="preserve">
     <value>コピーに失敗しました</value>

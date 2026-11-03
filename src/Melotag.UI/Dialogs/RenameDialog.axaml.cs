@@ -91,6 +91,7 @@ public partial class RenameDialog : ModalView
     {
         if (PreviewList is null || Message is null) return;
 
+        _rename.Invalidate();
         var rows = new List<PreviewRow>();
 
         if (ModeRename.IsChecked != false)
@@ -107,11 +108,21 @@ public partial class RenameDialog : ModalView
             var ready = 0;
             foreach (var row in _rows)
             {
-                var preview = _rename.Preview(row.Path, row.ToTags(), pattern, _policy);
+                if (row.Source is not { } source)
+                {
+                    rows.Add(new PreviewRow(row.FileName, "—", Localizer.T("Rename.NotRenameable")));
+                    continue;
+                }
+
+                var preview = _rename.Preview(source, row.ToTags(), pattern, _policy);
                 if (preview.IsValid) ready++;
-                var note = preview.Error == RenameService.EmptyNameError
-                    ? Localizer.T("Rename.EmptyName")
-                    : preview.Error ?? (preview.IsValid ? Localizer.T("Rename.Ready") : Localizer.T("Rename.NoChange"));
+                var note = preview.Error switch
+                {
+                    RenameService.EmptyNameError => Localizer.T("Rename.EmptyName"),
+                    RenameService.NotRenameableError => Localizer.T("Rename.NotRenameable"),
+                    null => preview.IsValid ? Localizer.T("Rename.Ready") : Localizer.T("Rename.NoChange"),
+                    _ => preview.Error,
+                };
                 rows.Add(new PreviewRow(preview.SourceName, preview.TargetName, note));
             }
 
@@ -130,7 +141,7 @@ public partial class RenameDialog : ModalView
             var matched = 0;
             foreach (var row in _rows)
             {
-                var fileName = Path.GetFileNameWithoutExtension(row.Path);
+                var fileName = row.Source?.FileNameWithoutExtension ?? Path.GetFileNameWithoutExtension(row.FileName);
                 var tags = plan.Map(fileName);
                 if (tags is null)
                 {
@@ -201,7 +212,13 @@ public partial class RenameDialog : ModalView
 
         foreach (var row in _rows)
         {
-            var preview = _rename.Preview(row.Path, row.ToTags(), pattern, _policy);
+            if (row.Source is not { } source)
+            {
+                failed++;
+                continue;
+            }
+
+            var preview = _rename.Preview(source, row.ToTags(), pattern, _policy);
             if (!preview.IsValid)
             {
                 failed++;
@@ -212,8 +229,8 @@ public partial class RenameDialog : ModalView
             {
                 var tags = row.ToTags();
                 var result = _rename.Apply(preview, AlsoLrc.IsChecked == true, AlsoPic.IsChecked == true);
-                row.RenameTo(result.NewPath);
-                _history?.AddSnapshot(result.NewPath, tags);
+                row.RenameTo(result.New);
+                _history?.AddSnapshot(result.New.Key, tags);
                 applied++;
             }
             catch (Exception)
@@ -238,7 +255,8 @@ public partial class RenameDialog : ModalView
         var applied = 0;
         foreach (var row in _rows)
         {
-            var tags = plan.Map(Path.GetFileNameWithoutExtension(row.Path));
+            var fileName = row.Source?.FileNameWithoutExtension ?? Path.GetFileNameWithoutExtension(row.FileName);
+            var tags = plan.Map(fileName);
             if (tags is null) continue;
             row.ApplyTags(tags);
             applied++;

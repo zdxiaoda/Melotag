@@ -14,7 +14,7 @@ public static class ProductInfo
 
     public static string Version { get; } = ReadVersion();
 
-    /// <summary>形如 <c>Melotag/1.2.2 (+https://github.com/zdxiaoda/Melotag)</c>，随版本自动变化。</summary>
+    /// <summary>形如 <c>Melotag/1.3.0 (+https://github.com/zdxiaoda/Melotag)</c>，随版本自动变化。</summary>
     public static string UserAgent { get; } = $"Melotag/{Version} (+{RepositoryUrl})";
 
     private static string ReadVersion()

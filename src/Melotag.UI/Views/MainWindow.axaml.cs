@@ -150,7 +150,7 @@ public partial class MainWindow : Window
     {
         if (Vm is null) return;
 
-        var files = await Platform.PlatformServices.FilePicker.PickFolderAsync(this);
+        var files = await Platform.PlatformServices.FilePicker.PickFolderAsync(this, Vm.CanHandle);
         if (files.Count > 0) await Vm.AddFilesAsync(files);
     }
 

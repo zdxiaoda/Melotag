@@ -37,7 +37,7 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
             .ToList();
     }
 
-    public async Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top)
+    public async Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top, Func<string, bool>? filter = null)
     {
         var folders = await top.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
@@ -52,7 +52,10 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
             if (string.IsNullOrWhiteSpace(path)) continue;
 
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                if (filter is not null && !filter(Path.GetExtension(file).ToLowerInvariant())) continue;
                 result.Add(new PhysicalFileHandle(file));
+            }
         }
 
         return result;

@@ -43,7 +43,7 @@
     <!-- 顶栏 -->
     <Border Grid.Row="0" Padding="10,6" BorderThickness="0,0,0,1"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
         <Image Grid.Column="0" Source="avares://Melotag.UI/Assets/melotag-logo.png"
                Width="28" Height="28" VerticalAlignment="Center" />
         <TextBlock Grid.Column="1" Text="{loc:Tr Key=App.Name}" FontSize="16" FontWeight="SemiBold"
@@ -53,11 +53,15 @@
                 ToolTip.Tip="{loc:Tr Key=Toolbar.AddFile}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AddFile}">
           <Path Data="{StaticResource IconAddFile}" />
         </Button>
-        <Button Grid.Column="3" Classes="icon" Command="{Binding SaveSelectedCommand}"
+        <Button Grid.Column="3" Classes="icon" Click="OnAddFolder"
+                ToolTip.Tip="{loc:Tr Key=Toolbar.AddFolder}" AutomationProperties.Name="{loc:Tr Key=Toolbar.AddFolder}">
+          <Path Data="{StaticResource IconAddFolder}" />
+        </Button>
+        <Button Grid.Column="4" Classes="icon" Command="{Binding SaveSelectedCommand}"
                 ToolTip.Tip="{loc:Tr Key=Toolbar.SaveCurrent}" AutomationProperties.Name="{loc:Tr Key=Toolbar.SaveCurrent}">
           <Path Data="{StaticResource IconSave}" />
         </Button>
-        <Button Grid.Column="4" Classes="icon" AutomationProperties.Name="{loc:Tr Key=Toolbar.More}">
+        <Button Grid.Column="5" Classes="icon" AutomationProperties.Name="{loc:Tr Key=Toolbar.More}">
           <Path Data="{StaticResource IconSettings}" />
           <Button.Flyout>
             <MenuFlyout Placement="BottomEdgeAlignedRight">

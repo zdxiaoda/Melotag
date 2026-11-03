@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
-using System.Text;
+namespace Melotag.Droid;
+
 using Android.Content;
 using Android.Provider;
 using Avalonia.Controls;
@@ -7,15 +7,24 @@ using Melotag.Core.Abstractions;
 using Melotag.UI.Platform;
 using AndroidUri = Android.Net.Uri;
 
-namespace Melotag.Droid;
-
-/// <summary>Android 文件选择：ACTION_OPEN_DOCUMENT 多选，导入到私有缓存后交给标签引擎。</summary>
+/// <summary>Android 文件选择：ACTION_OPEN_DOCUMENT 多选 / ACTION_OPEN_DOCUMENT_TREE 目录树。</summary>
 public sealed class SafDocumentPicker : IFilePickerPlatform
 {
+    private static readonly string[] Projection =
+    [
+        DocumentsContract.Document.ColumnDisplayName,
+        DocumentsContract.Document.ColumnSize,
+        DocumentsContract.Document.ColumnLastModified,
+        DocumentsContract.Document.ColumnFlags,
+    ];
+
     public static SafDocumentPicker Instance { get; } = new();
 
-    /// <summary>SAF 目录树在 Android 11+ 限制较多，先用多选文件代替。</summary>
-    public bool SupportsFolderPick => false;
+    /// <summary>
+    /// ACTION_OPEN_DOCUMENT_TREE 是 API 21+ 的标准动作。部分 ROM 的
+    /// resolveActivity 结果不可靠，因此不在点击前拦截，启动失败时再提示。
+    /// </summary>
+    public bool SupportsFolderPick => true;
 
     public async Task<IReadOnlyList<IFileHandle>> PickFilesAsync(TopLevel top)
     {
@@ -25,61 +34,62 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
         var uris = await activity.PickDocumentsAsync();
         if (uris.Count == 0) return [];
 
-        return await Task.Run(() => Import(activity, uris));
+        return await Task.Run(() => ToHandles(activity, uris));
     }
 
-    public Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top) =>
-        Task.FromResult<IReadOnlyList<IFileHandle>>([]);
+    public async Task<IReadOnlyList<IFileHandle>> PickFolderAsync(TopLevel top, Func<string, bool>? filter = null)
+    {
+        var activity = MainActivity.Current;
+        if (activity is null) return [];
 
-    private static IReadOnlyList<IFileHandle> Import(Context context, IReadOnlyList<AndroidUri> uris)
+        var treeUri = await activity.PickFolderAsync();
+        if (treeUri is null) return [];
+
+        var resolver = activity.ContentResolver!;
+        return await Task.Run(() => SafTree.Enumerate(resolver, treeUri, filter)
+            .Select(document => (IFileHandle)new SafFileHandle(activity, resolver, document))
+            .ToList());
+    }
+
+    private static IReadOnlyList<IFileHandle> ToHandles(Context context, IReadOnlyList<AndroidUri> uris)
     {
         var resolver = context.ContentResolver!;
         var results = new List<IFileHandle>();
 
         foreach (var uri in uris)
         {
-            var (name, size) = QueryDocument(context, uri);
-            if (string.IsNullOrWhiteSpace(name)) name = "audio";
-
-            var cacheDir = Path.Combine(context.FilesDir!.AbsolutePath, "mediacache", StableHash(uri.ToString()!));
-            Directory.CreateDirectory(cacheDir);
-            var cachePath = Path.Combine(cacheDir, Sanitize(name));
-
-            try
-            {
-                using var input = resolver.OpenInputStream(uri);
-                if (input is null) continue;
-
-                using var output = new FileStream(cachePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                input.CopyTo(output);
-            }
-            catch
-            {
-                // 单个文档读失败不影响其它文件
-                continue;
-            }
-
-            results.Add(new SafFileHandle(resolver, uri, name, cachePath, size, writable: true));
+            if (QueryDocument(context, uri) is { } document)
+                results.Add(new SafFileHandle(context, resolver, document));
         }
 
         return results;
     }
 
-    private static (string Name, long Size) QueryDocument(Context context, AndroidUri uri)
+    private static SafDocument? QueryDocument(Context context, AndroidUri uri)
     {
-        var name = "audio";
+        var resolver = context.ContentResolver!;
+        string? name = null;
         long size = 0;
+        long modified = 0;
+        var flags = default(DocumentContractFlags);
 
         try
         {
-            using var cursor = context.ContentResolver!.Query(uri, null, null, null, null);
+            using var cursor = resolver.Query(uri, Projection, null, null, null);
             if (cursor is not null && cursor.MoveToFirst())
             {
-                var nameIndex = cursor.GetColumnIndex(OpenableColumns.DisplayName);
-                if (nameIndex >= 0) name = cursor.GetString(nameIndex) ?? name;
+                var nameIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnDisplayName);
+                if (nameIndex >= 0) name = cursor.GetString(nameIndex);
 
-                var sizeIndex = cursor.GetColumnIndex(OpenableColumns.Size);
+                var sizeIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnSize);
                 if (sizeIndex >= 0 && !cursor.IsNull(sizeIndex)) size = cursor.GetLong(sizeIndex);
+
+                var modifiedIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnLastModified);
+                if (modifiedIndex >= 0 && !cursor.IsNull(modifiedIndex)) modified = cursor.GetLong(modifiedIndex);
+
+                var flagsIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnFlags);
+                if (flagsIndex >= 0 && !cursor.IsNull(flagsIndex))
+                    flags = (DocumentContractFlags)cursor.GetInt(flagsIndex);
             }
         }
         catch
@@ -87,20 +97,16 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
             // 有些 provider 不支持查询列，用默认值
         }
 
-        return (name, size);
-    }
+        if (string.IsNullOrWhiteSpace(name)) name = "audio";
 
-    private static string StableHash(string value)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return Convert.ToHexString(bytes, 0, 8).ToLowerInvariant();
-    }
-
-    private static string Sanitize(string name)
-    {
-        foreach (var invalid in Path.GetInvalidFileNameChars())
-            name = name.Replace(invalid, '_');
-
-        return string.IsNullOrWhiteSpace(name) ? "audio" : name;
+        return new SafDocument(
+            uri,
+            DocumentsContract.GetDocumentId(uri)!,
+            name!,
+            size,
+            modified,
+            flags.HasFlag(DocumentContractFlags.SupportsWrite),
+            flags.HasFlag(DocumentContractFlags.SupportsRename),
+            TreeUri: null);
     }
 }
