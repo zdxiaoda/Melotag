@@ -88,6 +88,7 @@ public partial class MobileShellView : UserControl
         Vm.StatusText = Localizer.T("Status.FolderScanning");
         var files = await PlatformServices.FilePicker.PickFolderAsync(top, Vm.CanHandle);
         if (files.Count > 0) await Vm.AddFilesAsync(files);
+        else Vm.StatusText = Localizer.T("Status.Ready");
         UpdateEmptyHint();
     }
 

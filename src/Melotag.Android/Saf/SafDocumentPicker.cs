@@ -29,7 +29,7 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
             if (activity?.PackageManager is not { } manager) return false;
 
             var probe = new Intent(Intent.ActionOpenDocumentTree);
-            return manager.ResolveActivity(probe, PackageInfoFlags.MatchDefaultOnly) is not null;
+            return manager.ResolveActivity(probe, (PackageInfoFlags)0) is not null;
         }
     }
 
@@ -49,7 +49,16 @@ public sealed class SafDocumentPicker : IFilePickerPlatform
         var activity = MainActivity.Current;
         if (activity is null) return [];
 
-        var treeUri = await activity.PickFolderAsync();
+        AndroidUri? treeUri;
+        try
+        {
+            treeUri = await activity.PickFolderAsync();
+        }
+        catch
+        {
+            return [];
+        }
+
         if (treeUri is null) return [];
 
         var resolver = activity.ContentResolver!;
