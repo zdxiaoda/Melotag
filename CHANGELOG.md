@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.3.0
+
+### 新增
+
+- Android 支持按文件夹导入：通过 SAF 目录树递归读取整个文件夹，不再受系统文件选择器 100 个文件的上限。
+- Android 支持批量重命名：模板改名、文件名简繁转换都能在手机上完成，`.lrc` 与封面会随音频一起改名。
+- 移动端顶栏新增「添加文件夹」按钮。
+
+### 修复
+
+- Android 通过 SAF 选中单个文件时补齐写权限，保存标签不再因只读授权失败。
+- Android 读取音频时优先直连可 seek 的文件描述符，避免把整个曲库复制进应用私有目录。
+- 重命名 / 简繁转换改为按文件能力判断；单文件授权或云盘 provider 不支持时逐行提示，而不是整批禁用。
+
+### 工程
+
+- `IFileHandle` 增加 `CanRename` / `DirectoryKey` / `GetSiblings` / `Rename`，`RenameService` 改为句柄驱动。
+- 新增本地签名脚本 `tools/publish-android-signed.sh`，并在 `docs/dev/Android签名与发布.md` 补充本地打包流程。
+- 单元测试增加到 65 个；版本号升级到 `1.3.0`，Android versionCode 递增到 6。
+
 ## 1.2.2
 
 ### 改进

@@ -61,7 +61,7 @@ Android 数据目录是应用私有空间 `files/data`。
 
 ### 版本规则
 
-- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.2.2`）；桌面端、
+- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.3.0`）；桌面端、
   Android 的 `ApplicationDisplayVersion` 与默认 User-Agent 都由程序集版本自动派生，
   发布流水线也可用 `-p:Version=...` 覆盖。
 - Android `ApplicationVersion`（versionCode）每次发布递增。
