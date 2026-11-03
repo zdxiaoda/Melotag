@@ -108,7 +108,7 @@ public sealed class SafFileHandle : IFileHandle
         var updated = Document with
         {
             Uri = renamedUri,
-            DocId = DocumentsContract.GetDocumentId(renamedUri),
+            DocId = DocumentsContract.GetDocumentId(renamedUri)!,
             DisplayName = newFileName,
         };
 
