@@ -6,25 +6,18 @@
 
 [GitHub 仓库](https://github.com/zdxiaoda/Melotag) · [Releases](https://github.com/zdxiaoda/Melotag/releases) · [更新日志](CHANGELOG.md) · [开发文档](AGENTS.md)
 
-跨平台音乐标签编辑器（Windows / Linux 桌面 + Android），支持标签、封面、歌词、在线匹配、重命名、历史撤销与简繁转换。
+跨平台音乐标签编辑器，支持 Windows、Linux 和 Android。轻松整理音乐标签、封面与歌词，支持在线匹配、批量重命名、历史撤销与简繁转换。
+
+## 项目优势
+
+- **多端一致**：Windows、Linux 和 Android 共享统一的界面与操作体验。
+- **轻量流畅**：基于 .NET 与 Avalonia，不使用 Electron 或 Chromium 外壳。
+- **本地处理**：标签读写、保存和重命名都在设备上完成，无需上传音频。
+- **高效整理**：支持批量匹配、批量保存、封面提取和模板/正则重命名。
 
 ## 下载与安装
 
-从 [Releases](https://github.com/zdxiaoda/Melotag/releases) 下载：
-
-| 平台 | 推荐包 | 说明 |
-| --- | --- | --- |
-| Windows | `Melotag-<版本>-win-x64-setup.exe` | 安装包，自带 .NET 运行时 |
-| Windows | `Melotag-<版本>-win-x64.zip` | 免安装，需要 .NET 10 运行时 |
-| Linux | `Melotag-<版本>-x86_64.AppImage` | 免安装，自带运行时 |
-| Linux | `Melotag-<版本>.flatpak` | Flatpak，自带运行时，依赖 Freedesktop 运行时 |
-| Debian / Ubuntu | `melotag_<版本>_amd64.deb` | `sudo apt install ./melotag_1.2.1_amd64.deb`，需要 .NET 10 运行时 |
-| Fedora / RHEL | `melotag-<版本>-1.x86_64.rpm` | `sudo dnf install ./melotag-1.2.1-1.x86_64.rpm`，需要 .NET 10 运行时 |
-| Linux 通用 | `Melotag-<版本>-linux-x64.tar.gz` | 解压后运行 `./Melotag` 或执行 `install.sh`，需要 .NET 10 运行时 |
-| Android | `Melotag-<版本>-android-arm64.apk` | 真机；允许未知来源安装 |
-| Android | `Melotag-<版本>-android-x64.apk` | 模拟器 |
-
-框架依赖包（zip / deb / rpm / tar.gz）需要 [.NET 10 运行时](https://dotnet.microsoft.com/download/dotnet/10.0)；未安装时启动会提示并给出下载地址。
+前往 [Releases](https://github.com/zdxiaoda/Melotag/releases) 下载适合你设备的版本。
 
 ## 功能
 
@@ -90,6 +83,12 @@ MP3 / FLAC / APE / WavPack / TTA / MPC / OGG / Opus / MP4 / M4A / WAV / AIFF / W
 - Windows 10 2004 或更高版本（x64）
 - Linux x64（AppImage / Flatpak 自带运行时；deb / rpm / tar.gz 需要 .NET 10）
 - Android 6.0 或更高版本
+
+## 产品预览
+
+<p>
+  <img src="packaging/store/images/screenshots/zh-CN/01-main.png" width="960" alt="音签 Melotag 主界面">
+</p>
 
 ## 开发
 
