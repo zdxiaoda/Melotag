@@ -47,7 +47,7 @@ foreach ($arch in @('x64', 'arm64')) {
     -c Release -r "win-$arch" --self-contained true `
     -p:PublishSingleFile=false `
     -p:DebugType=None -p:DebugSymbols=false `
-    -p:Version=1.4.0 `
+    -p:Version=1.4.1 `
     -o "dist/win-$arch-msix"
 }
 ```
@@ -56,27 +56,27 @@ foreach ($arch in @('x64', 'arm64')) {
 
 ```powershell
 ./packaging/windows/msix/build-msix.ps1 `
-  -Version 1.4.0.0 `
+  -Version 1.4.1.0 `
   -Architecture x64 `
   -IdentityName "Partner Center 的 Package/Identity/Name" `
   -Publisher "Partner Center 的 Package/Identity/Publisher" `
   -PublisherDisplayName "Partner Center 的 PublisherDisplayName" `
   -SourceDir "dist/win-x64-msix" `
-  -Output "dist/msix/win-x64/Melotag-1.4.0-win-x64.msix"
+  -Output "dist/msix/win-x64/Melotag-1.4.1-win-x64.msix"
 
 ./packaging/windows/msix/build-msix.ps1 `
-  -Version 1.4.0.0 `
+  -Version 1.4.1.0 `
   -Architecture arm64 `
   -IdentityName "Partner Center 的 Package/Identity/Name" `
   -Publisher "Partner Center 的 Package/Identity/Publisher" `
   -PublisherDisplayName "Partner Center 的 PublisherDisplayName" `
   -SourceDir "dist/win-arm64-msix" `
-  -Output "dist/msix/win-arm64/Melotag-1.4.0-win-arm64.msix"
+  -Output "dist/msix/win-arm64/Melotag-1.4.1-win-arm64.msix"
 
 ./packaging/windows/msix/build-msix-bundle.ps1 `
-  -Version 1.4.0 `
+  -Version 1.4.1 `
   -PackageDir "dist/msix/win-x64", "dist/msix/win-arm64" `
-  -Output "dist/msix-bundle/Melotag-1.4.0.msixbundle"
+  -Output "dist/msix-bundle/Melotag-1.4.1.msixbundle"
 ```
 
 脚本会：
@@ -123,12 +123,12 @@ $cert = New-SelfSignedCertificate -Type Custom `
 #    然后签名
 Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
   -FilePath "melotag-test.pfx" -Password (ConvertTo-SecureString "test" -AsPlainText -Force)
-signtool sign /fd SHA256 /f melotag-test.pfx /p test dist\installer-win-x64\Melotag-1.4.0.0-win-x64.msix
+signtool sign /fd SHA256 /f melotag-test.pfx /p test dist\installer-win-x64\Melotag-1.4.1.0-win-x64.msix
 
 # 3) 导出并信任测试证书后安装
 Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath "melotag-test.cer"
 Import-Certificate -FilePath "melotag-test.cer" -CertStoreLocation "Cert:\LocalMachine\TrustedPeople"
-Add-AppxPackage dist\installer-win-x64\Melotag-1.4.0.0-win-x64.msix
+Add-AppxPackage dist\installer-win-x64\Melotag-1.4.1.0-win-x64.msix
 ```
 
 正式提交时不要使用自签名证书；Partner Center 会为商店版本签名。若只是快速侧载，也可以在开发者模式下尝试 `Add-AppxPackage -AllowUnsigned`（不同 Windows 版本行为可能不同）。

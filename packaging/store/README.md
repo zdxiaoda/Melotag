@@ -8,17 +8,17 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 应用版本 | 1.4.0 |
-| MSIX 包版本 | 1.4.0.0 |
+| 应用版本 | 1.4.1 |
+| MSIX 包版本 | 1.4.1.0 |
 | 价格 | 免费（Free） |
 | 商店类别 | Music |
 | 平台 | Windows PC |
 | 系统要求 | Windows 10 版本 2004（内部版本 19041，即 10.0.19041）或更高；x64 或 arm64 处理器 |
 | 支持 URL | https://github.com/zdxiaoda/Melotag/issues |
 | 网站 | https://github.com/zdxiaoda/Melotag |
-| 物料整理日期 | 2026-11-03 |
+| 物料整理日期 | 2026-11-04 |
 
-版本号来源：应用版本统一由 `Directory.Build.props` 的 `Version` 决定（本物料快照为 `1.4.0`）；桌面端程序集版本、Android `ApplicationDisplayVersion` 与默认 User-Agent 都从它自动派生。MSIX 的 `Identity/@Version` 必须是四段数字（本快照为 `1.4.0.0`），由 `packaging/windows/msix/build-msix.ps1` 注入。
+版本号来源：应用版本统一由 `Directory.Build.props` 的 `Version` 决定（本物料快照为 `1.4.1`）；桌面端程序集版本、Android `ApplicationDisplayVersion` 与默认 User-Agent 都从它自动派生。MSIX 的 `Identity/@Version` 必须是四段数字（本快照为 `1.4.1.0`），由 `packaging/windows/msix/build-msix.ps1` 注入。
 
 ## 1. 交付目录
 
@@ -87,7 +87,7 @@ packaging/store/
 | --- | --- | --- | --- | --- |
 | Product name / 产品名称 | `listing/zh-CN/listing.md` §产品名称 | `listing/ja-JP/listing.md` §製品名 | `listing/en-US/listing.md` §Product name | 中文为“音签 Melotag”，日文和英文为“Melotag”；须先在 Partner Center 确认或预留名称 |
 | Short title / 简短标题 | §简短标题 | §短いタイトル | §Short title | 与产品名称一致 |
-| Short description / 简短说明 | §简短说明 | §短い説明 | §Short description | 简中 171、日文 260、英文 265 字符，保持单段 |
+| Short description / 简短说明 | §简短说明 | §短い説明 | §Short description | 简中 116、日文 140、英文 246 字符，保持单段 |
 | Description / 详细说明 | §详细说明 | §詳細説明 | §Description | 必需字段；保留 DSF/DFF、多音轨和第三方在线结果的限制说明 |
 | Product features / 产品功能 | §产品功能（10 条） | §製品の機能（10 項目） | §Product features（10 items） | 每条单独一行 |
 | Search terms / 搜索关键词 | §搜索关键词（7 条） | §検索キーワード（7 件） | §Search keywords（7 items） | 以逗号分隔，不带编号 |
@@ -221,7 +221,7 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 2. 填写 Properties：Free、Music、Windows 10 2004+ x64/arm64、支持 URL、网站、版权和开发者信息。
 3. 将 `packaging/store/privacy/` 推送到公开仓库的 `main` 分支，验证三个隐私政策 URL 可公开访问后，再填入 Partner Center。
 4. 完成 IARC 问卷并取得评级结果；在证书签发前不要填写或宣称评级。
-5. 生成并上传 `.msixbundle`，确认包版本为 `1.4.0.0` 且包标识与 Partner Center 一致。
+5. 生成并上传 `.msixbundle`，确认包版本为 `1.4.1.0` 且包标识与 Partner Center 一致。
 6. 按 zh-CN、ja-JP、en-US 分别填写 listing，上传对应 4 张截图和 caption，以及 300×300 商店图标。
 7. 如需美化 PC 商店页面，再上传可选的 poster、box art 和 hero art。
 8. 在 Notes for certification 中粘贴英文认证备注，完成冒烟测试后提交认证。
@@ -258,7 +258,7 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 
 ## 10. 发布前提醒
 
-- 应用版本为 `1.4.0`，MSIX 包版本为 `1.4.0.0`；最终以 `AppxManifest.xml` 的 `Identity/@Version` 为准。
+- 应用版本为 `1.4.1`，MSIX 包版本为 `1.4.1.0`；最终以 `AppxManifest.xml` 的 `Identity/@Version` 为准。
 - 商店价格为免费，类别为 Music；系统要求为 Windows 10 2004（10.0.19041）或更高、x64/arm64；商店包为包含两个架构的 `.msixbundle`。
 - 支持 URL 和网站分别为 `https://github.com/zdxiaoda/Melotag/issues` 与 `https://github.com/zdxiaoda/Melotag`。
 - 隐私政策 URL 只有在推送并验证后才有效；IARC 评级只有在证书签发后才可引用。
