@@ -19,21 +19,22 @@ if ([string]::IsNullOrWhiteSpace($Output)) {
 }
 
 # makeappx bundle 要求所有包在同一目录里，且不能有子目录。
-$input = Join-Path $repo 'dist\msix-bundle-input'
-Remove-Item -Recurse -Force $input -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $input | Out-Null
+# 注意：不要用 $input，它是 PowerShell 的自动变量，在 ForEach-Object 里会被覆盖。
+$bundleInput = Join-Path $repo 'dist\msix-bundle-input'
+Remove-Item -Recurse -Force $bundleInput -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $bundleInput | Out-Null
 
 foreach ($dir in $PackageDir) {
   $path = if ([System.IO.Path]::IsPathRooted($dir)) { $dir } else { Join-Path $repo $dir }
   if (!(Test-Path $path)) { throw "找不到 MSIX 目录：$path" }
   Get-ChildItem $path -Filter *.msix -File | ForEach-Object {
-    Copy-Item $_.FullName (Join-Path $input $_.Name) -Force
+    Copy-Item $_.FullName (Join-Path $bundleInput $_.Name) -Force
   }
 }
 
-$packages = @(Get-ChildItem $input -Filter *.msix -File)
+$packages = @(Get-ChildItem $bundleInput -Filter *.msix -File)
 if ($packages.Count -lt 2) {
-  throw "至少需要两个架构的 MSIX（当前 $($packages.Count) 个）：$input"
+  throw "至少需要两个架构的 MSIX（当前 $($packages.Count) 个）：$bundleInput"
 }
 
 $hostArch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
@@ -51,7 +52,8 @@ if (-not $makeappx) {
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path $Output) | Out-Null
-& $makeappx bundle /d $input /p $Output /o
+$bundleArgs = @('bundle', '/d', $bundleInput, '/p', $Output, '/o')
+& $makeappx @bundleArgs
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx bundle 打包失败' }
 
 Write-Host "MSIX Bundle 已生成：$Output"
