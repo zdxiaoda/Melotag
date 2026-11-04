@@ -13,6 +13,18 @@ public partial class TrackRowViewModel : ObservableObject
     private readonly List<TagPicture> _pictures = [];
     private AudioInfo? _info;
 
+    private string? _savedTitle;
+    private string? _savedArtist;
+    private string? _savedAlbum;
+    private string? _savedAlbumArtist;
+    private uint? _savedYear;
+    private uint? _savedTrack;
+    private uint? _savedDisc;
+    private string? _savedGenre;
+    private string? _savedComposer;
+    private string? _savedComment;
+    private string? _savedLyrics;
+
     public TrackRowViewModel(TrackItem item, Action<TrackRowViewModel>? remove = null)
     {
         path = item.Path;
@@ -66,6 +78,25 @@ public partial class TrackRowViewModel : ObservableObject
     /// <summary>本地化后的状态文本；逻辑判断一律使用 <see cref="Status"/>。</summary>
     public string StatusText => Localizer.T($"TrackStatus.{Status}");
 
+    /// <summary>编辑面板字段标题；相对上次保存有改动时追加“（已修改）”。</summary>
+    public string TitleLabel => FieldLabel("Field.Title", !SameText(Title, _savedTitle));
+    public string ArtistLabel => FieldLabel("Field.Artist", !SameText(Artist, _savedArtist));
+    public string AlbumLabel => FieldLabel("Field.Album", !SameText(Album, _savedAlbum));
+    public string AlbumArtistLabel => FieldLabel("Field.AlbumArtist", !SameText(AlbumArtist, _savedAlbumArtist));
+    public string YearLabel => FieldLabel("Field.Year", ParseUInt(YearText) != _savedYear);
+    public string TrackLabel => FieldLabel("Field.Track", ParseUInt(TrackText) != _savedTrack);
+    public string DiscLabel => FieldLabel("Field.Disc", ParseUInt(DiscText) != _savedDisc);
+    public string GenreLabel => FieldLabel("Field.Genre", !SameText(Genre, _savedGenre));
+    public string ComposerLabel => FieldLabel("Field.Composer", !SameText(Composer, _savedComposer));
+    public string CommentLabel => FieldLabel("Field.Comment", !SameText(Comment, _savedComment));
+    public string LyricsLabel => FieldLabel("Field.Lyrics", !SameText(Lyrics, _savedLyrics));
+
+    private static string FieldLabel(string key, bool modified) =>
+        modified ? Localizer.T(key) + Localizer.T("Field.ModifiedSuffix") : Localizer.T(key);
+
+    private static bool SameText(string? value, string? saved) =>
+        string.Equals(TrackTags.Normalize(value), saved, StringComparison.Ordinal);
+
     /// <summary>供 DataGrid 按数值排序（显示仍用 *Text）。</summary>
     public uint? TrackNumber => ParseUInt(TrackText);
     public uint? DiscNumber => ParseUInt(DiscText);
@@ -74,7 +105,11 @@ public partial class TrackRowViewModel : ObservableObject
 
     partial void OnStatusChanged(TrackStatus value) => OnPropertyChanged(nameof(StatusText));
 
-    public void RefreshLocalizedText() => OnPropertyChanged(nameof(StatusText));
+    public void RefreshLocalizedText()
+    {
+        OnPropertyChanged(nameof(StatusText));
+        NotifyFieldLabels();
+    }
 
     public void ApplyFrom(TrackItem item)
     {
@@ -83,6 +118,18 @@ public partial class TrackRowViewModel : ObservableObject
             Source = item.Source;
             Key = item.Key;
         }
+
+        _savedTitle = TrackTags.Normalize(item.Tags.Title);
+        _savedArtist = TrackTags.Normalize(item.Tags.Artist);
+        _savedAlbum = TrackTags.Normalize(item.Tags.Album);
+        _savedAlbumArtist = TrackTags.Normalize(item.Tags.AlbumArtist);
+        _savedYear = item.Tags.Year;
+        _savedTrack = item.Tags.Track;
+        _savedDisc = item.Tags.Disc;
+        _savedGenre = TrackTags.Normalize(item.Tags.Genre);
+        _savedComposer = TrackTags.Normalize(item.Tags.Composer);
+        _savedComment = TrackTags.Normalize(item.Tags.Comment);
+        _savedLyrics = TrackTags.Normalize(item.Tags.Lyrics);
 
         Title = item.Tags.Title;
         Artist = item.Tags.Artist;
@@ -109,6 +156,7 @@ public partial class TrackRowViewModel : ObservableObject
         _pictures.AddRange(item.Tags.Pictures);
         PicturesDirty = false;
         UpdateCoverPreview();
+        NotifyFieldLabels();
     }
 
     /// <summary>只更新标签字段（用于在线匹配/正则解析），保留文件与技术信息。</summary>
@@ -193,32 +241,91 @@ public partial class TrackRowViewModel : ObservableObject
         }
     }
 
-    partial void OnTitleChanged(string? value) => MarkModified();
-    partial void OnArtistChanged(string? value) => MarkModified();
-    partial void OnAlbumChanged(string? value) => MarkModified();
-    partial void OnAlbumArtistChanged(string? value) => MarkModified();
+    partial void OnTitleChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(TitleLabel));
+    }
+
+    partial void OnArtistChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(ArtistLabel));
+    }
+
+    partial void OnAlbumChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(AlbumLabel));
+    }
+
+    partial void OnAlbumArtistChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(AlbumArtistLabel));
+    }
+
     partial void OnYearTextChanged(string? value)
     {
         MarkModified();
         OnPropertyChanged(nameof(YearNumber));
+        OnPropertyChanged(nameof(YearLabel));
     }
 
     partial void OnTrackTextChanged(string? value)
     {
         MarkModified();
         OnPropertyChanged(nameof(TrackNumber));
+        OnPropertyChanged(nameof(TrackLabel));
     }
 
     partial void OnDiscTextChanged(string? value)
     {
         MarkModified();
         OnPropertyChanged(nameof(DiscNumber));
+        OnPropertyChanged(nameof(DiscLabel));
     }
-    partial void OnGenreChanged(string? value) => MarkModified();
-    partial void OnCommentChanged(string? value) => MarkModified();
-    partial void OnComposerChanged(string? value) => MarkModified();
+
+    partial void OnGenreChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(GenreLabel));
+    }
+
+    partial void OnCommentChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(CommentLabel));
+    }
+
+    partial void OnComposerChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(ComposerLabel));
+    }
+
     partial void OnLyricistChanged(string? value) => MarkModified();
-    partial void OnLyricsChanged(string? value) => MarkModified();
+
+    partial void OnLyricsChanged(string? value)
+    {
+        MarkModified();
+        OnPropertyChanged(nameof(LyricsLabel));
+    }
+
+    private void NotifyFieldLabels()
+    {
+        OnPropertyChanged(nameof(TitleLabel));
+        OnPropertyChanged(nameof(ArtistLabel));
+        OnPropertyChanged(nameof(AlbumLabel));
+        OnPropertyChanged(nameof(AlbumArtistLabel));
+        OnPropertyChanged(nameof(YearLabel));
+        OnPropertyChanged(nameof(TrackLabel));
+        OnPropertyChanged(nameof(DiscLabel));
+        OnPropertyChanged(nameof(GenreLabel));
+        OnPropertyChanged(nameof(ComposerLabel));
+        OnPropertyChanged(nameof(CommentLabel));
+        OnPropertyChanged(nameof(LyricsLabel));
+    }
 
     private void MarkModified()
     {

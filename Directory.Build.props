@@ -7,7 +7,7 @@
     <WarningsNotAsErrors>CS8618;CS8602;CS8604</WarningsNotAsErrors>
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- 应用版本的唯一来源；发布流水线可用 -p:Version=... 覆盖。 -->
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <RepositoryUrl>https://github.com/zdxiaoda/Melotag</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/zdxiaoda/Melotag</PackageProjectUrl>

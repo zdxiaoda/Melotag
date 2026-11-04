@@ -232,6 +232,9 @@
   <data name="Field.None" xml:space="preserve">
     <value>使用しない</value>
   </data>
+  <data name="Field.ModifiedSuffix" xml:space="preserve">
+    <value>（変更あり）</value>
+  </data>
   <data name="Filter.Placeholder" xml:space="preserve">
     <value>フィルター：ファイル名 / タイトル / アーティスト / アルバム</value>
   </data>

@@ -167,51 +167,51 @@
           </WrapPanel>
 
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Title}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.TitleLabel}" />
             <TextBox Text="{Binding SelectedTrack.Title, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Artist}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.ArtistLabel}" />
             <TextBox Text="{Binding SelectedTrack.Artist, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Album}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.AlbumLabel}" />
             <TextBox Text="{Binding SelectedTrack.Album, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.AlbumArtist}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.AlbumArtistLabel}" />
             <TextBox Text="{Binding SelectedTrack.AlbumArtist, Mode=TwoWay}" />
           </StackPanel>
 
           <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
             <StackPanel Grid.Column="0" Spacing="4">
-              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Year}" />
+              <TextBlock Classes="label" Text="{Binding SelectedTrack.YearLabel}" />
               <TextBox Text="{Binding SelectedTrack.YearText, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Track}" />
+              <TextBlock Classes="label" Text="{Binding SelectedTrack.TrackLabel}" />
               <TextBox Text="{Binding SelectedTrack.TrackText, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Grid.Column="2" Spacing="4">
-              <TextBlock Classes="label" Text="{loc:Tr Key=Field.Disc}" />
+              <TextBlock Classes="label" Text="{Binding SelectedTrack.DiscLabel}" />
               <TextBox Text="{Binding SelectedTrack.DiscText, Mode=TwoWay}" />
             </StackPanel>
           </Grid>
 
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Genre}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.GenreLabel}" />
             <TextBox Text="{Binding SelectedTrack.Genre, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Composer}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.ComposerLabel}" />
             <TextBox Text="{Binding SelectedTrack.Composer, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Comment}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.CommentLabel}" />
             <TextBox Text="{Binding SelectedTrack.Comment, Mode=TwoWay}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="{loc:Tr Key=Field.Lyrics}" />
+            <TextBlock Classes="label" Text="{Binding SelectedTrack.LyricsLabel}" />
             <TextBox Text="{Binding SelectedTrack.Lyrics, Mode=TwoWay}"
                      AcceptsReturn="True" TextWrapping="Wrap"
                      Height="160" VerticalContentAlignment="Top" />

@@ -232,6 +232,9 @@
   <data name="Field.None" xml:space="preserve">
     <value>不使用</value>
   </data>
+  <data name="Field.ModifiedSuffix" xml:space="preserve">
+    <value>（已修改）</value>
+  </data>
   <data name="Filter.Placeholder" xml:space="preserve">
     <value>过滤：文件名 / 标题 / 艺术家 / 专辑</value>
   </data>

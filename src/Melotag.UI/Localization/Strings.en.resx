@@ -232,6 +232,9 @@
   <data name="Field.None" xml:space="preserve">
     <value>None</value>
   </data>
+  <data name="Field.ModifiedSuffix" xml:space="preserve">
+    <value> (Modified)</value>
+  </data>
   <data name="Filter.Placeholder" xml:space="preserve">
     <value>Filter: file name / title / artist / album</value>
   </data>
