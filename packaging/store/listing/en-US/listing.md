@@ -12,7 +12,7 @@ Melotag
 
 ## Short description (270 characters max)
 
-Local music tag editor. Tags, covers, lyrics, and filenames in one window; online lookups when you need them; batch changes never upload your audio; and the history panel can undo a bad edit. No account required.
+Free, open source music tag editor. Source code is on GitHub. Tags, covers, lyrics, and filenames can be edited, individually or in batches. Audio files never leave the computer; no sketchy cloud provider or company can see the audio. Changes can be undone via history.
 
 ## Description
 

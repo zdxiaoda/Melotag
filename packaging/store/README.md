@@ -87,7 +87,7 @@ packaging/store/
 | --- | --- | --- | --- | --- |
 | Product name / 产品名称 | `listing/zh-CN/listing.md` §产品名称 | `listing/ja-JP/listing.md` §製品名 | `listing/en-US/listing.md` §Product name | 中文为“音签 Melotag”，日文和英文为“Melotag”；须先在 Partner Center 确认或预留名称 |
 | Short title / 简短标题 | §简短标题 | §短いタイトル | §Short title | 与产品名称一致 |
-| Short description / 简短说明 | §简短说明 | §短い説明 | §Short description | 简中 71、日文 108、英文 212 字符，保持单段 |
+| Short description / 简短说明 | §简短说明 | §短い説明 | §Short description | 简中 102、日文 159、英文 269 字符，保持单段 |
 | Description / 详细说明 | §详细说明 | §詳細説明 | §Description | 必需字段；保留 DSF/DFF、多音轨和第三方在线结果的限制说明 |
 | Product features / 产品功能 | §产品功能（10 条） | §製品の機能（10 項目） | §Product features（10 items） | 每条单独一行 |
 | Search terms / 搜索关键词 | §搜索关键词（7 条） | §検索キーワード（7 件） | §Search keywords（7 items） | 以逗号分隔，不带编号 |
