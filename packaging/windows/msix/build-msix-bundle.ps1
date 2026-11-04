@@ -3,6 +3,7 @@
 #   ./packaging/windows/msix/build-msix-bundle.ps1 `
 #     -Version 1.4.1 `
 #     -PackageDir "dist/msix/win-x64", "dist/msix/win-arm64"
+# -Version 会补齐为四段数字并作为 bundle 版本（makeappx /bv）。
 param(
   [Parameter(Mandatory = $true)] [string] $Version,
   [Parameter(Mandatory = $true)] [string[]] $PackageDir,
@@ -17,6 +18,11 @@ if ([string]::IsNullOrWhiteSpace($Output)) {
 } elseif (![System.IO.Path]::IsPathRooted($Output)) {
   $Output = Join-Path $repo $Output
 }
+
+# 不传 /bv 时 makeappx 会用当前日期时间作为 bundle 版本（例如 2026.1104.1104.0），
+# 与商店里的应用版本对不上。这里统一补齐为四段数字。
+$parts = @($Version -split '\.' | Where-Object { $_ -ne '' })
+$bundleVersion = (($parts + @('0', '0', '0'))[0..3]) -join '.'
 
 # makeappx bundle 要求所有包在同一目录里，且不能有子目录。
 # 注意：不要用 $input，它是 PowerShell 的自动变量，在 ForEach-Object 里会被覆盖。
@@ -52,9 +58,9 @@ if (-not $makeappx) {
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path $Output) | Out-Null
-$bundleArgs = @('bundle', '/d', $bundleInput, '/p', $Output, '/o')
+$bundleArgs = @('bundle', '/d', $bundleInput, '/p', $Output, '/o', '/bv', $bundleVersion)
 & $makeappx @bundleArgs
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx bundle 打包失败' }
 
-Write-Host "MSIX Bundle 已生成：$Output"
+Write-Host "MSIX Bundle 已生成：$Output（版本 $bundleVersion）"
 Write-Host "包含：$($packages.Name -join ', ')"
