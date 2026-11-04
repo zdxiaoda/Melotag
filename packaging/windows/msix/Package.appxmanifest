@@ -9,7 +9,7 @@
   <Identity Name="__IDENTITY_NAME__"
             Publisher="__PUBLISHER__"
             Version="__VERSION__"
-            ProcessorArchitecture="x64" />
+            ProcessorArchitecture="__ARCH__" />
 
   <Properties>
     <DisplayName>音签 Melotag</DisplayName>

@@ -1,4 +1,4 @@
-# 音签 Melotag 1.3.2
+# 音签 Melotag 1.4.0
 
 <p>
   <img src="docs/branding/melotag-logo.png" width="88" alt="音签 Melotag">
@@ -80,7 +80,7 @@ MP3 / FLAC / APE / WavPack / TTA / MPC / OGG / Opus / MP4 / M4A / WAV / AIFF / W
 
 ## 系统要求
 
-- Windows 10 2004 或更高版本（x64）
+- Windows 10 2004 或更高版本（x64 / arm64）
 - Linux x64（AppImage / Flatpak 自带运行时；deb / rpm / tar.gz 需要 .NET 10）
 - Android 6.0 或更高版本
 

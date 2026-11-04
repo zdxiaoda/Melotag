@@ -1,6 +1,6 @@
 # 认证备注草稿（Notes for certification）
 
-适用版本：应用 `1.2.1`；MSIX 包版本 `1.2.1.0`。
+适用版本：应用 `1.4.0`；MSIX 包版本 `1.4.0.0`。
 
 > 本文是提交给 Microsoft Store 认证团队的备注草稿及中文说明，不代表应用已经提交、通过认证、上架或获得任何评级。英文正文中的版本号、包标识和隐私政策 URL 在提交前必须按最终 MSIX 和实际公开地址核对。
 
@@ -9,7 +9,7 @@
 复制下面代码块中的正文到 Partner Center 的 Notes for certification 字段。不要加入无法验证的测试账号、密码或授权信息。
 
 ```text
-Melotag 1.2.1 - notes for certification
+Melotag 1.4.0 - notes for certification
 
 Melotag is a full-trust Windows desktop tag editor for local audio files, packaged as MSIX (Windows.FullTrustApplication). Full trust is used to read and write user-selected audio, .lrc, and cover files, preserve timestamps, and rename files in place. It does not install a service or driver and does not require administrator rights.
 
@@ -48,7 +48,7 @@ Support: https://github.com/zdxiaoda/Melotag/issues
 
 ### 2.3 提交前核对
 
-1. 版本号和包标识：确认草稿中的 `1.2.1` 与最终 MSIX 的 `Identity Version 1.2.1.0`、Partner Center 产品标识一致。
+1. 版本号和包标识：确认草稿中的 `1.4.0` 与最终 MSIX 的 `Identity Version 1.4.0.0`、Partner Center 产品标识一致。
 2. 隐私政策 URL：草稿保留了 `main` 分支上的英文隐私政策源文件路径，并注明公开 URL 以 Partner Center 字段为准。该源文件只有在推送到公开仓库后才可访问；提交前用无痕窗口验证。如果尚未公开，请以 Partner Center 中实际填写的公开 URL 为准，不要把 404 链接交给审核员。
 3. 在线服务名单：草稿没有逐项列出第三方服务，但隐私政策和 listing 应保留实际使用的服务类别。如果发布前移除或新增了某个源，同步修改隐私政策和认证备注。
 4. `.mp4` 关联：包清单把 `.mp4` 列为支持的文件类型。草稿明确说明应用是标签编辑器、不是播放器；如果发布前调整了关联范围，同步修改草稿。

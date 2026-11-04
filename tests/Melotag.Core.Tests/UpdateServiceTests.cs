@@ -21,6 +21,7 @@ public class UpdateServiceTests
 
         Assert.NotNull(info);
         Assert.Equal("1.2.0", info!.Version);
+        Assert.Equal("v1.2.0", info.Tag);
         Assert.Equal("https://github.com/zdxiaoda/Melotag/releases/tag/v1.2.0", info.Url);
         Assert.Contains("i18n", info.Notes);
         Assert.True(info.IsNewer);

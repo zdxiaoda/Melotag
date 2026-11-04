@@ -1,6 +1,6 @@
 # MSIX 包与发布前检查
 
-适用版本：应用 `1.2.1`；MSIX 包版本 `1.2.1.0`；整理日期：2026-11-03。
+适用版本：应用 `1.4.0`；MSIX 包版本 `1.4.0.0`；整理日期：2026-11-04。
 
 > 本文只记录发布前的标识、路径、包内容和风险检查项，不表示应用已经提交、通过认证、发布或获得评级。任何一项如果需要改代码、清单或打包参数，都应单独评审、重新构建、重新测试并重新上传，不能只改文件名或只改 listing。
 
@@ -30,61 +30,76 @@ MSIX_PUBLISHER_DISPLAY_NAME=<PublisherDisplayName>
 
 检查点：
 
-- [ ] 三个值都已在 GitHub 仓库的 Actions Variables 或 Secrets 中配置；任一为空时，`release.yml` 会跳过 MSIX 构建和 `msix-win-x64` 上传。
+- [ ] 三个值都已在 GitHub 仓库的 Actions Variables 或 Secrets 中配置；任一为空时，`release.yml` 会跳过 MSIX 构建和 `msix-bundle` 上传。
 - [ ] 三个值与 Partner Center 产品标识逐字符一致，包括大小写、空格和证书主题中的逗号/等号顺序。
-- [ ] 不要把值直接写进 `Package.appxmanifest`；清单中的 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__` 由 `build-msix.ps1` 替换。
+- [ ] 不要把值直接写进 `Package.appxmanifest`；清单中的 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__`、`__ARCH__` 由构建脚本替换。
 - [ ] 不要把 Publisher 证书、密码或 Partner Center 凭据提交到仓库；本文只涉及产品标识，不涉及签名证书。
 
-本地构建命令（在 Windows 上，需 Windows 10/11 SDK 的 `makeappx.exe`）：
+本地构建命令（在 Windows 上，需 Windows 10/11 SDK 的 `makeappx.exe`）：先为两个架构各做一次自包含发布（`-p:PublishSingleFile=false`，MSIX 需要展开的应用文件），再逐架构打包并合并：
 
 ```powershell
+foreach ($arch in @('x64', 'arm64')) {
+  dotnet publish src/Melotag.Desktop `
+    -c Release -r "win-$arch" --self-contained true `
+    -p:PublishSingleFile=false `
+    -p:DebugType=None -p:DebugSymbols=false `
+    -p:Version=1.4.0 `
+    -o "dist/win-$arch-msix"
+}
+
 ./packaging/windows/msix/build-msix.ps1 `
-  -Version 1.2.1.0 `
+  -Version 1.4.0.0 `
+  -Architecture x64 `
   -IdentityName "<Package/Identity/Name>" `
   -Publisher "<Package/Identity/Publisher>" `
-  -PublisherDisplayName "<PublisherDisplayName>"
-```
+  -PublisherDisplayName "<PublisherDisplayName>" `
+  -SourceDir dist/win-x64-msix `
+  -Output dist/msix/win-x64/Melotag-1.4.0-win-x64.msix
 
-脚本要求 `-SourceDir` 指向已完成的 self-contained 发布目录，默认是 `dist/win-x64-msix`。发布步骤必须关闭单文件打包，因为 MSIX 需要展开的应用文件：
+./packaging/windows/msix/build-msix.ps1 `
+  -Version 1.4.0.0 `
+  -Architecture arm64 `
+  -IdentityName "<Package/Identity/Name>" `
+  -Publisher "<Package/Identity/Publisher>" `
+  -PublisherDisplayName "<PublisherDisplayName>" `
+  -SourceDir dist/win-arm64-msix `
+  -Output dist/msix/win-arm64/Melotag-1.4.0-win-arm64.msix
 
-```bash
-dotnet publish src/Melotag.Desktop \
-  -c Release -r win-x64 --self-contained true \
-  -p:PublishSingleFile=false \
-  -p:DebugType=None -p:DebugSymbols=false \
-  -p:Version=1.2.1 \
-  -o dist/win-x64-msix
+./packaging/windows/msix/build-msix-bundle.ps1 `
+  -Version 1.4.0 `
+  -PackageDir dist/msix/win-x64, dist/msix/win-arm64 `
+  -Output dist/msix-bundle/Melotag-1.4.0.msixbundle
 ```
 
 ## 2. MSIX 路径与版本
 
 | 产物 | 路径 | 说明 |
 | --- | --- | --- |
-| MSIX 发布源目录 | `dist/win-x64-msix` | self-contained、`PublishSingleFile=false` 的展开文件 |
-| CI 生成的 MSIX | `dist/installer-win-x64/Melotag-1.2.1.msix` | `release.yml` 显式传入 `-Output`，文件名使用应用版本 |
-| 本地默认输出（省略 `-Output`） | `dist/installer-win-x64/Melotag-1.2.1.0.msix` | `build-msix.ps1` 默认用 `-Version` 拼文件名 |
-| GitHub Actions artifact | `msix-win-x64` | 仅当三项产品标识都配置时生成 |
-| GitHub Release 资产（如发布） | `Melotag-1.2.1.msix` | 发布工作流把 `msix-win-x64` 复制到 `out/` 后上传 |
+| MSIX 发布源目录 | `dist/win-{x64,arm64}-msix` | self-contained、`PublishSingleFile=false` 的展开文件 |
+| 单架构 MSIX | `dist/msix/win-<arch>/Melotag-1.4.0-win-<arch>.msix` | `release.yml` 显式传入 `-Output`（与本地示例一致） |
+| 本地默认输出（省略 `-Output`） | `dist/installer-win-<arch>/Melotag-1.4.0.0-win-<arch>.msix` | `build-msix.ps1` 默认用 `-Architecture`/`-Version` 拼路径 |
+| MSIX Bundle | `dist/msix-bundle/Melotag-1.4.0.msixbundle` | `build-msix-bundle.ps1` 合并两个架构 |
+| GitHub Actions artifact | `msix-bundle` | 仅当三项产品标识都配置时生成 |
+| GitHub Release 资产（如发布） | `Melotag-1.4.0.msixbundle` | 发布工作流把 `msix-bundle` 复制到 `out/` 后上传 |
 
-注意：文件名中的 `1.2.1` 或 `1.2.1.0` 不代表包内版本；包内版本以 `AppxManifest.xml` 的 `Identity/@Version` 为准，应为四段数字 `1.2.1.0`。Partner Center 上传的是 `.msix`；本地安装测试需要自签名证书，Store 包由 Microsoft 在认证/发布流程中签名。
+注意：文件名中的 `1.4.0` 或 `1.4.0.0` 不代表包内版本；包内版本以 `AppxManifest.xml` 的 `Identity/@Version` 为准，应为四段数字 `1.4.0.0`。Partner Center 上传的是 `.msixbundle`；本地安装测试需要自签名证书，Store 包由 Microsoft 在认证/发布流程中签名。
 
 其他包清单事实：
 
-- `Identity/@ProcessorArchitecture` 为 `x64`；当前只面向 x64，不包含 arm64/x86 包。
+- `Identity/@ProcessorArchitecture` 由 `-Architecture` 写入：x64 包为 `x64`，arm64 包为 `arm64`；两个包版本一致，合并为 `.msixbundle` 后同时覆盖两种设备。
 - `TargetDeviceFamily` 为 `Windows.Desktop`，`MinVersion` 为 `10.0.19041.0`，`MaxVersionTested` 为 `10.0.26100.0`。
 - `Application/@EntryPoint` 为 `Windows.FullTrustApplication`，`Executable` 为 `Melotag.exe`。
 - `Capabilities` 只包含 `runFullTrust` 和 `internetClient`。
-- 最终 `AppxManifest.xml` 中不得残留 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__`、`__VERSION__`。
+- 最终 `AppxManifest.xml` 中不得残留 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__`、`__VERSION__`、`__ARCH__`。
 
 ## 3. 版本规则
 
-- 应用版本：`src/Melotag.UI/AppInfo.cs` 的 `Version` 为 `1.2.1`。
-- 桌面程序集：`src/Melotag.Desktop/Melotag.Desktop.csproj` 的 `Version` 为 `1.2.1`，`FileVersion`/`AssemblyVersion` 为 `1.2.1.0`。
-- Android：`src/Melotag.Android/Melotag.Android.csproj` 的 `ApplicationDisplayVersion` 为 `1.2.1`，`ApplicationVersion`（versionCode）为 `4`；Android versionCode 不用于 MSIX，但每次 Android 发布应递增。
-- MSIX：`Identity/@Version` 必须是四段纯数字，例如 `1.2.1.0`。`release.yml` 会把三段版本补齐为四段；`build-msix.ps1` 直接使用 `-Version` 参数，因此本地构建也要显式传 `1.2.1.0`。
-- Store 版本必须高于已发布版本，且不能重复使用已发布的版本号。首次提交使用 `1.2.1.0`；后续提交按实际发布递增，并同步检查 `AppInfo.cs`、桌面 csproj 和 Android 显示版本。
+- 应用版本：`Directory.Build.props` 的 `Version` 为 `1.4.0`；桌面端、Android 显示版本与 User-Agent 都由程序集版本派生。
+- Android：`ApplicationVersion`（versionCode）每次发布递增；它不用于 MSIX。
+- MSIX：`Identity/@Version` 必须是四段纯数字，例如 `1.4.0.0`。`release.yml` 会把三段版本补齐为四段；`build-msix.ps1` 直接使用 `-Version` 参数，因此本地构建也要显式传 `1.4.0.0`。
+- Store 版本必须高于已发布版本，且不能重复使用已发布的版本号；后续提交按实际发布递增。
 - 如果认证要求重新提交，按 Partner Center 的要求处理版本号（可能需要递增）并重新打包；不要只改输出文件名。
-- 不要用三段版本（如 `1.2.1`）生成最终 MSIX；四段数字（如 `1.2.1.0`）是 Store 包的必要格式。
+- 不要用三段版本（如 `1.4.0`）生成最终 MSIX；四段数字（如 `1.4.0.0`）是 Store 包的必要格式。
 
 ## 4. 包内图标与 listing 300×300 图标的区别
 
@@ -156,7 +171,7 @@ dotnet publish src/Melotag.Desktop \
 
 - [ ] 隐私政策和认证备注已披露启动时的 GitHub 请求；请求包含 IP、User-Agent 等常规信息。
 - [ ] 向审核说明这不是自更新机制：不下载、不安装，只显示提示和外部链接；避免被误判为绕过 Store 更新。
-- [ ] 确认 Store 版本 `1.2.1` 与 GitHub Release 标签的比较结果符合预期；`UpdateService` 会去掉 `v` 前缀和预发布后缀。
+- [ ] 确认 Store 版本 `1.4.0` 与 GitHub Release 标签的比较结果符合预期；`UpdateService` 会去掉 `v` 前缀和预发布后缀。
 - [ ] 离线/被墙/GitHub 限流时不应阻塞启动或崩溃；当前实现是静默失败，但发布前应实测。
 - [ ] 如果 Store 政策或认证要求 Store 包不进行启动外部检查，需要单独改代码（例如默认关闭或按包类型禁用）；本文不修改源码。
 - [ ] 不要在任何商店文案中宣称“完全离线”或“无网络请求”。
@@ -187,19 +202,19 @@ dotnet publish src/Melotag.Desktop \
 
 ## 8. 发布前检查清单
 
-- [ ] `AppInfo.cs`、桌面 csproj、Android 显示版本均为 `1.2.1`；MSIX 为 `1.2.1.0`。
+- [ ] `Directory.Build.props` 的版本为当前版本；MSIX 为对应的四段数字。
 - [ ] `dotnet test Melotag.slnx` 通过。
 - [ ] `dotnet build Melotag.slnx -c Release` 通过。
-- [ ] 用 `PublishSingleFile=false` 生成 `dist/win-x64-msix`。
-- [ ] 用三项产品标识生成 MSIX，检查 `AppxManifest.xml` 无占位符。
-- [ ] 在干净 Windows 10 2004+ x64 环境安装并启动；不需要管理员权限。
+- [ ] 用 `PublishSingleFile=false` 为 x64 与 arm64 各生成 `dist/win-<arch>-msix`。
+- [ ] 用三项产品标识生成两个架构的 MSIX，并合并为 `.msixbundle`；检查 `AppxManifest.xml` 无占位符。
+- [ ] 在干净 Windows 10 2004+ x64 与 arm64 环境各安装并启动一次；不需要管理员权限。
 - [ ] 检查包内图标、`Properties/Logo` 和各尺寸资产。
 - [ ] 复核 `.mp4` 关联并做双击测试。
 - [ ] 复核硬编码中文显示名和“跨平台”描述。
 - [ ] 复核 GitHub 更新检查的披露与行为。
 - [ ] 复核酷我 HTTP 风险并决定保留、改 HTTPS 还是禁用。
 - [ ] 确认隐私政策 URL 在推送后可以公开访问；三语 listing 与截图已上传。
-- [ ] 上传 MSIX 到 Partner Center，等待包验证；不要跳过失败项。
+- [ ] 上传 `.msixbundle` 到 Partner Center，等待包验证；不要跳过失败项。
 - [ ] 认证通过前不宣称已上架或已获评级。
 
 ## 9. 结论

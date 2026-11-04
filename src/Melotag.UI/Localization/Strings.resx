@@ -877,6 +877,9 @@
   <data name="Update.NoNotes" xml:space="preserve">
     <value>（该版本没有发布说明）</value>
   </data>
+  <data name="Update.WhatsNew" xml:space="preserve">
+    <value>v{0} 更新内容</value>
+  </data>
   <data name="Mobile.EmptyHint" xml:space="preserve">
     <value>点右上角 + 添加音乐文件，保存后会写回原文件。</value>
   </data>

@@ -877,6 +877,9 @@
   <data name="Update.NoNotes" xml:space="preserve">
     <value>（このバージョンのリリースノートはありません）</value>
   </data>
+  <data name="Update.WhatsNew" xml:space="preserve">
+    <value>v{0} の更新内容</value>
+  </data>
   <data name="Mobile.EmptyHint" xml:space="preserve">
     <value>右上の + をタップして音楽ファイルを追加します。保存すると元のファイルに書き戻されます。</value>
   </data>

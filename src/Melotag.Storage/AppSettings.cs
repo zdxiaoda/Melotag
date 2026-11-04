@@ -78,6 +78,9 @@ public sealed class UiSettings
     public string Theme { get; set; } = "Default";
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 820;
+
+    /// <summary>已提示过更新日志的版本；与当前版本不同（或为空）时启动后弹一次更新内容。</summary>
+    public string LastSeenVersion { get; set; } = "";
 }
 
 public sealed class AppSettings

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Melotag.Storage;
 using Melotag.Tags;
 using Melotag.UI.Localization;
@@ -69,13 +70,25 @@ public partial class App : Application
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
-                desktop.MainWindow = new MainWindow { DataContext = viewModel };
+            {
+                var window = new MainWindow { DataContext = viewModel };
+                window.Opened += (_, _) => Dispatcher.UIThread.Post(
+                    () => _ = ChangelogUi.ShowIfNeededAsync(window, viewModel),
+                    DispatcherPriority.Background);
+                desktop.MainWindow = window;
                 desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 break;
+            }
 
             case ISingleViewApplicationLifetime single:
-                single.MainView = new MobileShellView { DataContext = viewModel };
+            {
+                var view = new MobileShellView { DataContext = viewModel };
+                view.Loaded += (_, _) => Dispatcher.UIThread.Post(
+                    () => _ = ChangelogUi.ShowIfNeededAsync(TopLevel.GetTopLevel(view), viewModel),
+                    DispatcherPriority.Background);
+                single.MainView = view;
                 break;
+            }
         }
 
         if (settings.Ui.CheckForUpdatesOnStartup)

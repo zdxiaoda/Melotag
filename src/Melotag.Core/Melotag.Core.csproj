@@ -7,4 +7,8 @@
     <PackageReference Include="OpenCC" Version="0.1.2" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- 升级提示与更新检查共用仓库根目录的 CHANGELOG.md，发布包里自带，离线可读。 -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="Melotag.Core.CHANGELOG.md" />
+  </ItemGroup>
 </Project>

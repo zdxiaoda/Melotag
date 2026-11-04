@@ -13,7 +13,7 @@ src/
   Melotag.Desktop/    桌面入口（net10.0）
   Melotag.Android/    Android 头项目（net10.0-android，不在 Melotag.slnx 中）
 tests/
-  Melotag.Core.Tests/ 59 个单元测试
+  Melotag.Core.Tests/ 71 个单元测试
 tools/
   Melotag.Probe/      在线源诊断
   Melotag.Branding/   LOGO / .ico / MSIX 图标生成
@@ -61,7 +61,7 @@ Android 数据目录是应用私有空间 `files/data`。
 
 ### 版本规则
 
-- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.3.2`）；桌面端、
+- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.4.0`）；桌面端、
   Android 的 `ApplicationDisplayVersion` 与默认 User-Agent 都由程序集版本自动派生，
   发布流水线也可用 `-p:Version=...` 覆盖。
 - Android `ApplicationVersion`（versionCode）每次发布递增。
@@ -72,6 +72,8 @@ Android 数据目录是应用私有空间 `files/data`。
 - `ci.yml`：Ubuntu + Windows 上 Release 构建并跑全部单元测试。
 - `android.yml`：Android arm64/x64 APK；配置 Secrets 后使用固定签名。
 - `release.yml`：
+  - `publish` 矩阵构建 Windows x64/arm64 与 Linux x64；Windows 两个架构各出便携 zip 与安装包；
+  - 独立 `msix` 作业合并两个架构的 MSIX 为 `.msixbundle`（未配置 `MSIX_*` 时跳过）；
   - 推 `v*` 标签或手动运行都会生成完整包集，并上传 `packages-<tag>` artifact；
   - 推标签或手动勾选 `publish` 时才创建/更新 GitHub Release；
   - 手动运行不勾选 `publish` 时只产出 artifact，不发布。
@@ -80,9 +82,9 @@ Android 数据目录是应用私有空间 `files/data`。
 
 | 产物 | 类型 | 说明 |
 | --- | --- | --- |
-| `Melotag-<ver>-win-x64.zip` | 框架依赖 | 单文件 exe，需要 .NET 10 运行时 |
-| `Melotag-<ver>-win-x64-setup.exe` | 自带运行时 | Inno Setup 安装包 |
-| `Melotag-<ver>.msix` | 自带运行时 | Microsoft Store 用，需配置 `MSIX_*` Variables |
+| `Melotag-<ver>-win-{x64,arm64}.zip` | 框架依赖 | 单文件 exe，需要 .NET 10 运行时 |
+| `Melotag-<ver>-win-{x64,arm64}-setup.exe` | 自带运行时 | Inno Setup 安装包（arm64 需 Inno 6.3+） |
+| `Melotag-<ver>.msixbundle` | 自带运行时 | Microsoft Store 用，内含 x64 + arm64，需配置 `MSIX_*` Variables/Secrets |
 | `Melotag-<ver>-linux-x64.tar.gz` | 框架依赖 | 单文件 + `.desktop` + `install.sh` |
 | `melotag_<ver>_amd64.deb` | 框架依赖 | Debian / Ubuntu |
 | `melotag-<ver>-1.x86_64.rpm` | 框架依赖 | Fedora / RHEL 系 |

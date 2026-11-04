@@ -1,6 +1,6 @@
 # Microsoft Store 提交清单
 
-适用版本：应用 `1.2.1`；MSIX `1.2.1.0`；核对日期：2026-11-03。
+适用版本：应用 `1.4.0`；MSIX `1.4.0.0`；核对日期：2026-11-04。
 
 > 本清单只区分“仓库内物料已备妥”和“需要发布者在 Partner Center 或发布流程中完成”的事项。勾选 `[x]` 不代表应用已经提交、通过认证、上架或获得评级；提交、认证、评级和上架状态均以 Microsoft Partner Center、IARC 和 Microsoft Store 的实际结果为准。
 
@@ -25,12 +25,12 @@
 - [x] 通用 hero art：`images/hero/super-hero-1920x1080.png`。
 - [x] 三语隐私政策源文件：`privacy/zh-CN/privacy.md`、`privacy/ja-JP/privacy.md`、`privacy/en-US/privacy.md`。
 - [x] 提交辅助文档：`submission/upload-checklist.md`、`submission/age-rating-notes.md`、`submission/certification-notes.md`、`submission/package-and-release.md`。
-- [x] 版本一致性可核对：`src/Melotag.UI/AppInfo.cs`、`src/Melotag.Desktop/Melotag.Desktop.csproj`、`src/Melotag.Android/Melotag.Android.csproj` 均为 `1.2.1`；MSIX 目标版本为 `1.2.1.0`。
-- [x] 系统要求可核对：`packaging/windows/msix/Package.appxmanifest` 的 `TargetDeviceFamily` 为 `Windows.Desktop`，`MinVersion` 为 `10.0.19041.0`，`ProcessorArchitecture` 为 `x64`。
-- [x] MSIX 清单和构建脚本存在：`packaging/windows/msix/Package.appxmanifest`、`packaging/windows/msix/build-msix.ps1`。
+- [x] 版本一致性可核对：版本只在 `Directory.Build.props` 维护；桌面端与 Android 显示版本由程序集版本派生。
+- [x] 系统要求可核对：`packaging/windows/msix/Package.appxmanifest` 的 `TargetDeviceFamily` 为 `Windows.Desktop`，`MinVersion` 为 `10.0.19041.0`，`ProcessorArchitecture` 由构建参数注入（x64 / arm64）。
+- [x] MSIX 清单和构建脚本存在：`packaging/windows/msix/Package.appxmanifest`、`build-msix.ps1`、`build-msix-bundle.ps1`。
 - [x] 截图和商店图片复现脚本存在：`tools/Generate-StoreArt.py`、`tools/Capture-StoreScreenshots.ps1`。
 
-注意：仓库中没有已生成、已签名、可直接上传的 `.msix` 成品；MSIX 属于构建产物，需要在 Windows 上生成后再上传。
+注意：仓库中没有已生成、已签名、可直接上传的 `.msixbundle` 成品；商店包属于构建产物，需要在 Windows 上生成后再上传。
 
 ## 2. 待发布者操作：预留名称、创建产品与记录标识
 
@@ -38,8 +38,8 @@
 - [ ] 创建 Microsoft Store 应用，产品类型选择 Windows PC/桌面应用。
 - [ ] 记录 Partner Center 的 `Package/Identity/Name`、`Package/Identity/Publisher`、`PublisherDisplayName`。这三个值必须与最终 MSIX 完全一致。
 - [ ] 将三个产品标识配置为 GitHub Actions 的 Variables 或 Secrets：`MSIX_IDENTITY_NAME`、`MSIX_PUBLISHER`、`MSIX_PUBLISHER_DISPLAY_NAME`（兼容 Secret 名 `PUBLISHERDISPLAYNAME`）。
-- [ ] 确认仓库工作流能读取上述值；任一为空时，`release.yml` 会跳过 MSIX 构建和 `msix-win-x64` 上传。
-- [ ] 不要手工修改 `packaging/windows/msix/Package.appxmanifest` 中的四个占位符；由 `build-msix.ps1` 注入。详见 [package-and-release.md](package-and-release.md)。
+- [ ] 确认仓库工作流能读取上述值；任一为空时，`release.yml` 会跳过 MSIX 构建和 `msix-bundle` 上传。
+- [ ] 不要手工修改 `packaging/windows/msix/Package.appxmanifest` 中的占位符；由构建脚本注入。详见 [package-and-release.md](package-and-release.md)。
 - [ ] 不要把 Publisher 证书、密码或 Partner Center 凭据提交到仓库。
 
 ## 3. 待发布者操作：Properties 与定价
@@ -47,7 +47,7 @@
 - [ ] 价格选择 Free（免费）。
 - [ ] 类别选择 Music。若 Partner Center 还要求子类别，按实际可用选项选择最接近“音乐工具/音乐”的类别。
 - [ ] 市场/国家或地区按发布计划选择；不要在未确认的情况下宣称全球可用。
-- [ ] 系统要求填写：Windows 10 版本 2004（内部版本 19041）或更高；x64 处理器。
+- [ ] 系统要求填写：Windows 10 版本 2004（内部版本 19041）或更高；x64 或 arm64 处理器。
 - [ ] 说明 Store 包已包含运行所需组件，不要求用户另装 .NET 运行时。
 - [ ] 支持 URL：`https://github.com/zdxiaoda/Melotag/issues`。
 - [ ] 网站：`https://github.com/zdxiaoda/Melotag`。
@@ -85,17 +85,17 @@
 
 ## 6. 待发布者操作：MSIX 包
 
-- [ ] 确认版本：应用版本 `1.2.1`，MSIX `Identity/@Version` 为 `1.2.1.0`；MSIX 版本必须高于 Store 已发布版本。
-- [ ] 在 Windows 上生成 MSIX，或在 GitHub Actions 的 `win-x64` 任务中生成；CI 产物路径为 `dist/installer-win-x64/Melotag-1.2.1.msix`，artifact 名为 `msix-win-x64`。
-- [ ] 本地直接运行 `build-msix.ps1` 且省略 `-Output` 时，默认输出是 `dist/installer-win-x64/Melotag-1.2.1.0.msix`；文件名不同但包内版本仍是 `1.2.1.0`。
-- [ ] 检查 `AppxManifest.xml` 中不再残留 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__`、`__VERSION__`。
+- [ ] 确认版本：应用版本取 `Directory.Build.props`，MSIX `Identity/@Version` 为对应四段数字；MSIX 版本必须高于 Store 已发布版本。
+- [ ] 在 Windows 上生成商店包，或在 GitHub Actions 的 `msix` 任务中生成；CI 产物为 `dist/msix-bundle/Melotag-<版本>.msixbundle`（x64 + arm64），artifact 名为 `msix-bundle`。
+- [ ] 单架构包位于 `dist/msix/win-<arch>/Melotag-<版本>-win-<arch>.msix`；本地省略 `-Output` 时默认输出到 `dist/installer-win-<arch>/`。
+- [ ] 检查 `AppxManifest.xml` 中不再残留 `__IDENTITY_NAME__`、`__PUBLISHER__`、`__PUBLISHER_DISPLAY_NAME__`、`__VERSION__`、`__ARCH__`。
 - [ ] 检查 `Identity Name`、`Publisher`、`PublisherDisplayName` 与 Partner Center 产品标识完全一致。
-- [ ] 检查架构为 `x64`，`TargetDeviceFamily` 为 `Windows.Desktop`，最低版本为 `10.0.19041.0`。
-- [ ] 在干净 Windows 10 2004+ x64 环境安装并启动一次；确认不需要管理员权限、无需账号、无缺失运行时。
+- [ ] 检查 x64 包架构为 `x64`、arm64 包架构为 `arm64`，`TargetDeviceFamily` 为 `Windows.Desktop`，最低版本为 `10.0.19041.0`。
+- [ ] 在干净 Windows 10 2004+ x64 与 arm64 环境各安装并启动一次；确认不需要管理员权限、无需账号、无缺失运行时。
 - [ ] 检查 `.mp4` 文件关联是否符合预期；应用是标签编辑器，不是媒体播放器。关联范围的决定见 [package-and-release.md](package-and-release.md)。
 - [ ] 检查包内图标与 listing 的 300×300 图标不是同一个文件；两者都要保留，不要互相替换。
 - [ ] 不要将 `tools/`、`listing/*.md` 或 `privacy/*.md` 放入 MSIX 包或作为 Store 图片上传。
-- [ ] 在 Partner Center 上传 `.msix`，等待包验证完成；如果验证失败，先修复包，并按 Partner Center 的要求决定是否递增版本，不要只改文件名。
+- [ ] 在 Partner Center 上传 `.msixbundle`，等待包验证完成；如果验证失败，先修复包，并按 Partner Center 的要求决定是否递增版本，不要只改文件名。
 - [ ] 上传前复核 `package-and-release.md` 中的 `.mp4` 关联、硬编码中文、GitHub 更新检查和酷我 HTTP 风险。
 
 ## 7. 待发布者操作：三语 listing
@@ -119,7 +119,7 @@
 | 通用 box art（PC 可选） | [ ] | [ ] | [ ] | `images/logo/box-art-1080x1080.png`；不能替代截图 |
 | 通用 hero art（PC 可选） | [ ] | [ ] | [ ] | `images/hero/super-hero-1920x1080.png`；不能替代截图 |
 | 更新说明 | [ ] | [ ] | [ ] | 首次提交可留空；备用文本见 listing |
-| 附加系统要求 | [ ] | [ ] | [ ] | Windows 10 2004+ x64；Store 包已包含运行时 |
+| 附加系统要求 | [ ] | [ ] | [ ] | Windows 10 2004+ x64/arm64；Store 包已包含运行时 |
 | 支持 URL | [ ] | [ ] | [ ] | `https://github.com/zdxiaoda/Melotag/issues` |
 | 网站 | [ ] | [ ] | [ ] | `https://github.com/zdxiaoda/Melotag` |
 | 隐私政策 URL | [ ] | [ ] | [ ] | 见第 4 节；推送并验证后才可填写 |

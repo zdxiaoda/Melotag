@@ -4,21 +4,21 @@
 
 ## 定位与优势
 
-音签 Melotag 是跨 Windows、Linux 与 Android 的本地音乐标签编辑器。三端共用 .NET 10、C# 与 Avalonia 12 的标签核心和界面代码，文件列表、编辑流程与设置项保持一致。应用不使用 Electron 或 Chromium 外壳，界面与逻辑运行在同一个 .NET 进程中。标签通过 TagLib# 在本地直接读写，音频文件不会上传；匹配结果的应用、重命名和保存都在本机完成，在线匹配只在需要时查询元数据、封面或歌词。面向曲库整理提供批量自动匹配、批量保存、封面批量提取、模板/正则重命名与本地历史快照。Microsoft Store 提交物料仅覆盖 Windows x64 包，Linux 与 Android 版本从项目 Release 获取；实际耗时取决于文件数量、磁盘与网络状况，本文不提供性能承诺。
+音签 Melotag 是跨 Windows、Linux 与 Android 的本地音乐标签编辑器。三端共用 .NET 10、C# 与 Avalonia 12 的标签核心和界面代码，文件列表、编辑流程与设置项保持一致。应用不使用 Electron 或 Chromium 外壳，界面与逻辑运行在同一个 .NET 进程中。标签通过 TagLib# 在本地直接读写，音频文件不会上传；匹配结果的应用、重命名和保存都在本机完成，在线匹配只在需要时查询元数据、封面或歌词。面向曲库整理提供批量自动匹配、批量保存、封面批量提取、模板/正则重命名与本地历史快照。Microsoft Store 提交物料覆盖 Windows x64 与 arm64（合并为一个 `.msixbundle`），Linux 与 Android 版本从项目 Release 获取；实际耗时取决于文件数量、磁盘与网络状况，本文不提供性能承诺。
 
 | 项目 | 值 |
 | --- | --- |
-| 应用版本 | 1.2.1 |
-| MSIX 包版本 | 1.2.1.0 |
+| 应用版本 | 1.4.0 |
+| MSIX 包版本 | 1.4.0.0 |
 | 价格 | 免费（Free） |
 | 商店类别 | Music |
 | 平台 | Windows PC |
-| 系统要求 | Windows 10 版本 2004（内部版本 19041，即 10.0.19041）或更高；x64 处理器 |
+| 系统要求 | Windows 10 版本 2004（内部版本 19041，即 10.0.19041）或更高；x64 或 arm64 处理器 |
 | 支持 URL | https://github.com/zdxiaoda/Melotag/issues |
 | 网站 | https://github.com/zdxiaoda/Melotag |
 | 物料整理日期 | 2026-11-03 |
 
-版本号来源：应用版本统一由 `Directory.Build.props` 的 `Version` 决定（本物料快照为 `1.2.1`）；桌面端程序集版本、Android `ApplicationDisplayVersion` 与默认 User-Agent 都从它自动派生。MSIX 的 `Identity/@Version` 必须是四段数字（本快照为 `1.2.1.0`），由 `packaging/windows/msix/build-msix.ps1` 注入。
+版本号来源：应用版本统一由 `Directory.Build.props` 的 `Version` 决定（本物料快照为 `1.4.0`）；桌面端程序集版本、Android `ApplicationDisplayVersion` 与默认 User-Agent 都从它自动派生。MSIX 的 `Identity/@Version` 必须是四段数字（本快照为 `1.4.0.0`），由 `packaging/windows/msix/build-msix.ps1` 注入。
 
 ## 1. 交付目录
 
@@ -95,7 +95,7 @@ packaging/store/
 | Developed by / 开发者 | §开发者 | §開発者 | §Developed by | `zdxiaoda` |
 | Screenshots and captions | §截图说明 + 对应 PNG | §スクリーンショットのキャプション + 对应 PNG | §Screenshot captions + 对应 PNG | 每语言 4 张，顺序见第 3 节 |
 | What's new / 更新说明 | §更新说明 | §更新情報 | §What's new | 首次提交可留空；备用文本见 listing |
-| Additional system requirements | §附加系统要求 | §追加のシステム要件 | §Additional system requirements | Windows 10 2004+ x64；Store 包已包含运行组件 |
+| Additional system requirements | §附加系统要求 | §追加のシステム要件 | §Additional system requirements | Windows 10 2004+ x64/arm64；Store 包已包含运行组件 |
 | Support URL / 支持 URL | §支持 URL | §サポート URL | §Support URL | https://github.com/zdxiaoda/Melotag/issues |
 | Website / 网站 | §网站 | §ウェブサイト | §Website | https://github.com/zdxiaoda/Melotag |
 | Store logo（300×300） | `images/logo/app-tile-300x300.png` | 同一张 | 同一张 | 通用图标，可复用到三语 listing |
@@ -218,10 +218,10 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 ## 6. 上传顺序建议
 
 1. 在 Partner Center 预留或确认产品名称，创建 Windows PC 应用，记录三个产品标识。
-2. 填写 Properties：Free、Music、Windows 10 2004+ x64、支持 URL、网站、版权和开发者信息。
+2. 填写 Properties：Free、Music、Windows 10 2004+ x64/arm64、支持 URL、网站、版权和开发者信息。
 3. 将 `packaging/store/privacy/` 推送到公开仓库的 `main` 分支，验证三个隐私政策 URL 可公开访问后，再填入 Partner Center。
 4. 完成 IARC 问卷并取得评级结果；在证书签发前不要填写或宣称评级。
-5. 生成并上传 MSIX，确认包版本为 `1.2.1.0` 且包标识与 Partner Center 一致。
+5. 生成并上传 `.msixbundle`，确认包版本为 `1.4.0.0` 且包标识与 Partner Center 一致。
 6. 按 zh-CN、ja-JP、en-US 分别填写 listing，上传对应 4 张截图和 caption，以及 300×300 商店图标。
 7. 如需美化 PC 商店页面，再上传可选的 poster、box art 和 hero art。
 8. 在 Notes for certification 中粘贴英文认证备注，完成冒烟测试后提交认证。
@@ -258,8 +258,8 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 
 ## 10. 发布前提醒
 
-- 应用版本为 `1.2.1`，MSIX 包版本为 `1.2.1.0`；最终以 `AppxManifest.xml` 的 `Identity/@Version` 为准。
-- 商店价格为免费，类别为 Music；系统要求为 Windows 10 2004（10.0.19041）或更高、x64。
+- 应用版本为 `1.4.0`，MSIX 包版本为 `1.4.0.0`；最终以 `AppxManifest.xml` 的 `Identity/@Version` 为准。
+- 商店价格为免费，类别为 Music；系统要求为 Windows 10 2004（10.0.19041）或更高、x64/arm64；商店包为包含两个架构的 `.msixbundle`。
 - 支持 URL 和网站分别为 `https://github.com/zdxiaoda/Melotag/issues` 与 `https://github.com/zdxiaoda/Melotag`。
 - 隐私政策 URL 只有在推送并验证后才有效；IARC 评级只有在证书签发后才可引用。
 - 本文档和 `submission/` 中的任何内容都不代表应用已经提交、通过认证、上架或获得评级。

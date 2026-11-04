@@ -1,29 +1,36 @@
-# 构建 Microsoft Store 用的 MSIX。
+# 构建 Microsoft Store 用的 MSIX（单个架构）。
 # 用法：
 #   ./packaging/windows/msix/build-msix.ps1 `
 #     -Version 1.2.1.0 `
-#     -IdentityName "PartnerCenter 的 Package/Identity/Name" `
-#     -Publisher "PartnerCenter 的 Package/Identity/Publisher" `
-#     -PublisherDisplayName "PartnerCenter 的 PublisherDisplayName"
+#     -Architecture x64 `
+#     -IdentityName "Partner Center 的 Package/Identity/Name" `
+#     -Publisher "Partner Center 的 Package/Identity/Publisher" `
+#     -PublisherDisplayName "Partner Center 的 PublisherDisplayName"
+#
+# 两个架构的包由 build-msix-bundle.ps1 合并成 .msixbundle 后上传商店。
 param(
   [Parameter(Mandatory = $true)] [string] $Version,
   [Parameter(Mandatory = $true)] [string] $IdentityName,
   [Parameter(Mandatory = $true)] [string] $Publisher,
   [Parameter(Mandatory = $true)] [string] $PublisherDisplayName,
-  [string] $SourceDir = "dist/win-x64-msix",
+  [ValidateSet('x64', 'arm64')] [string] $Architecture = 'x64',
+  [string] $SourceDir = "",
   [string] $Output = ""
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+if ([string]::IsNullOrWhiteSpace($SourceDir)) {
+  $SourceDir = "dist/win-$Architecture-msix"
+}
 $source = if ([System.IO.Path]::IsPathRooted($SourceDir)) { $SourceDir } else { Join-Path $repo $SourceDir }
 if (!(Test-Path $source)) {
-  throw "找不到 MSIX 源目录：$source。请先执行 dotnet publish（--self-contained true，PublishSingleFile=false）。"
+  throw "找不到 MSIX 源目录：$source。请先执行 dotnet publish（--self-contained true，PublishSingleFile=false，-r win-$Architecture）。"
 }
 
 if ([string]::IsNullOrWhiteSpace($Output)) {
-  $Output = Join-Path $repo "dist\installer-win-x64\Melotag-$Version.msix"
+  $Output = Join-Path $repo "dist\installer-win-$Architecture\Melotag-$Version-win-$Architecture.msix"
 } elseif (![System.IO.Path]::IsPathRooted($Output)) {
   $Output = Join-Path $repo $Output
 }
@@ -42,12 +49,20 @@ $manifest = $manifest.Replace('__IDENTITY_NAME__', [System.Security.SecurityElem
 $manifest = $manifest.Replace('__PUBLISHER__', [System.Security.SecurityElement]::Escape($Publisher))
 $manifest = $manifest.Replace('__PUBLISHER_DISPLAY_NAME__', [System.Security.SecurityElement]::Escape($PublisherDisplayName))
 $manifest = $manifest.Replace('__VERSION__', $Version)
+$manifest = $manifest.Replace('__ARCH__', $Architecture)
 Set-Content -Path (Join-Path $stage 'AppxManifest.xml') -Value $manifest -Encoding UTF8
 
+# 在 ARM64 主机上找 arm64 版的 SDK 工具，x64 主机上仍用 x64。
+$hostArch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
 $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter makeappx.exe -ErrorAction SilentlyContinue |
-  Where-Object { $_.FullName -like '*\x64\makeappx.exe' } |
+  Where-Object { $_.FullName -like "*\$hostArch\makeappx.exe" } |
   Sort-Object FullName -Descending |
   Select-Object -First 1 -ExpandProperty FullName
+if (-not $makeappx) {
+  $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter makeappx.exe -ErrorAction SilentlyContinue |
+    Sort-Object FullName -Descending |
+    Select-Object -First 1 -ExpandProperty FullName
+}
 if (-not $makeappx) {
   throw '未找到 makeappx.exe，请安装 Windows 10/11 SDK。'
 }

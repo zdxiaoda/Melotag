@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.4.0
+
+### 新增
+
+- Windows 安装包、便携包与 Microsoft Store 包支持 arm64：发布页新增 `win-arm64` 的 zip 与安装包，商店改为包含 x64 / arm64 的单个 `Melotag-<版本>.msixbundle`。
+- 升级或首次安装后展示当前版本的更新内容，关闭后同一版本不再重复弹出。
+
+### 改进
+
+- 「检查更新」改为读取仓库 `CHANGELOG.md` 中对应版本的段落，不再依赖自动生成且通常为空的 Release 说明。
+- 更新内容支持三种界面语言（简中 / 日文 / 英文）的标题与关闭按钮。
+
+### 工程
+
+- 新增 `Changelog`：按版本截取 Markdown 段落，`CHANGELOG.md` 作为嵌入资源随应用分发。
+- Inno Setup 安装包与 MSIX 清单按 RID / 架构参数化；新增 `build-msix-bundle.ps1` 与独立 `msix` 发布作业。
+- 单元测试增加到 71 个；版本号升级到 `1.4.0`，Android versionCode 递增到 9。
+
 ## 1.3.2
 
 ### 修复

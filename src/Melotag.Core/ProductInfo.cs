@@ -12,9 +12,13 @@ public static class ProductInfo
     public const string RepositoryUrl = "https://github.com/zdxiaoda/Melotag";
     public const string ReleasesApi = "https://api.github.com/repos/zdxiaoda/Melotag/releases/latest";
 
+    /// <summary>按 tag 读取 CHANGELOG.md 原文；与 ReleasesApi 同主机，网络策略一致。</summary>
+    public static string ChangelogApi(string tag) =>
+        $"https://api.github.com/repos/zdxiaoda/Melotag/contents/CHANGELOG.md?ref={Uri.EscapeDataString(tag)}";
+
     public static string Version { get; } = ReadVersion();
 
-    /// <summary>形如 <c>Melotag/1.3.2 (+https://github.com/zdxiaoda/Melotag)</c>，随版本自动变化。</summary>
+    /// <summary>形如 <c>Melotag/1.4.0 (+https://github.com/zdxiaoda/Melotag)</c>，随版本自动变化。</summary>
     public static string UserAgent { get; } = $"Melotag/{Version} (+{RepositoryUrl})";
 
     private static string ReadVersion()

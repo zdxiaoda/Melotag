@@ -1,9 +1,19 @@
-; 音签 Melotag Windows 安装包（Inno Setup 6）
+; 音签 Melotag Windows 安装包（Inno Setup 6.3+）
 ; 由 .github/workflows/release.yml 在 windows-latest 上调用：
-;   ISCC.exe /DMyAppVersion=1.3.2 packaging\windows\melotag.iss
+;   ISCC.exe /DMyAppVersion=1.4.0 /DMyAppRid=win-x64 /DMyAppArch=x64 packaging\windows\melotag.iss
+;   ISCC.exe /DMyAppVersion=1.4.0 /DMyAppRid=win-arm64 /DMyAppArch=arm64 packaging\windows\melotag.iss
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.3.2"
+  #define MyAppVersion "1.4.0"
+#endif
+
+; 目标 RID 与 Inno 的架构标识；arm64 需要 Inno Setup 6.3 或更高版本。
+#ifndef MyAppRid
+  #define MyAppRid "win-x64"
+#endif
+
+#ifndef MyAppArch
+  #define MyAppArch "x64"
 #endif
 
 #define MyAppName "音签 Melotag"
@@ -25,15 +35,15 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputDir=..\..\dist\installer-win-x64
-OutputBaseFilename=Melotag-{#MyAppVersion}-win-x64-setup
+OutputDir=..\..\dist\{#MyAppRid}-installer
+OutputBaseFilename=Melotag-{#MyAppVersion}-{#MyAppRid}-setup
 SetupIconFile=..\..\src\Melotag.UI\Assets\Melotag.ico
 LicenseFile=..\..\LICENSE
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed={#MyAppArch}
+ArchitecturesInstallIn64BitMode={#MyAppArch}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ShowLanguageDialog=auto
 
@@ -46,7 +56,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\..\dist\win-x64-installer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\{#MyAppRid}-payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "README.txt"; DestDir: "{app}"; DestName: "README.txt"; Flags: ignoreversion
 
