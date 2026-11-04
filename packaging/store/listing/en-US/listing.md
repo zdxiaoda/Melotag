@@ -12,36 +12,34 @@ Melotag
 
 ## Short description (270 characters max)
 
-Fix up the music you downloaded: edit tags, fill in covers, find lyrics, and batch-rename files in one window. Works with MP3, FLAC, M4A and more. Edits and saves stay on your PC; online lookups happen only when you ask. Free, no account, no ads.
+Local music tag editor. Tags, covers, lyrics, and filenames in one window; online lookups when you need them; batch changes never upload your audio; and the history panel can undo a bad edit. No account required.
 
 ## Description
 
-Your music library probably has a few of these: a title that looks like random characters, a blank album cover, “Unknown Artist” in every player, and lyrics that never line up. Melotag is for cleaning up exactly that mess.
+Melotag is a local music tag editor for Windows, Linux, and Android, built for tidying downloaded tracks, filling in album details, and keeping cover art and lyrics consistent across a library. Drag in files or folders, then edit title, artist, album, album artist, year, track, disc, genre, comment, composer, lyrics, and cover art one track at a time. The editor also shows format, duration, bitrate, sample rate, channels, and file size. When saving, you can choose ID3v2.3 or 2.4 for MP3, preserve the original file timestamp, write lyrics into the tag, and replace or clear embedded artwork.
 
-Drag in files or folders and you get a track list on the left, tag editing on the right. Change the title, artist, album, album artist, year, track, disc, genre, comment, composer, lyrics, or cover. You can also pick the ID3 version for MP3 and keep the file's original timestamp. Saving writes back to the audio file itself, not to a separate database. The Store package includes both Windows x64 and arm64; Linux and Android builds are on the project's Releases page.
+Melotag is built with .NET 10, C#, and Avalonia 12. The Windows, Linux, and Android builds share one tag-processing core and one UI codebase, so the file list, editing flow, and settings stay consistent across platforms. The app does not use an Electron or Chromium shell: Avalonia draws the interface, and the logic runs in the same .NET process. Tags are read and written locally through TagLib#, and batch matching, renaming, and saving do not upload audio files, so batch work on a library does not wait on uploads. Online matching queries metadata, cover art, or lyrics only when you request it. The Microsoft Store package includes the Windows x64 and arm64 builds; Linux and Android builds are available from the project's Releases page.
 
-If you don't want to fill in every track by hand, let it search online. It can query several music sources at once and show tag, cover, and lyric candidates side by side. Or decide which fields to import, which sources to use, and whether to overwrite, then run it across a batch. The lyrics tools can search for LRC, clean up multiple timestamps, remove time tags and blank lines, apply an offset, and import or export in UTF-8, GB18030, Big5, and other encodings.
+Online matching can query several music databases at once and present candidate tags, covers, and lyrics in one place. Apply a result to a single track, or use batch auto-match to choose the fields to import, the sources to use, and the overwrite behavior before processing each file. The lyrics panel searches for lyrics and can reflow multiple timestamps, remove time tags, delete blank lines and header tags, apply an offset, and import or export with UTF-8, UTF-16, GB18030, Big5, and other encodings. Cover tools can search online or use a local image, then resize automatically to fit size, width, height, and format limits.
 
-Filenames can be cleaned up too: use an “Artist - Title” template or a regular expression, preview the new names live, and let duplicate names get numbered automatically. Matching .lrc and cover files can be renamed along with the audio. Simplified/Traditional Chinese conversion covers tags and filenames, with a preview before anything changes.
+Renaming supports @0–@8 field templates, the default Artist - Title pattern, and regular-expression capture groups, with a live preview and automatic numbering for duplicate names. Matching .lrc and cover files can be renamed alongside the audio file, and reverse mode writes filename information back into tags. Simplified/Traditional Chinese conversion covers both tags and filenames, including matching .lrc and cover files. Before each save or rename, a snapshot of the previous tags is stored in a local history database, which you can review, restore, or clear from the History panel.
 
-And it stays out of your way: audio files are never uploaded, there's no account to create, no ads, and no background tracking of what you listen to. It only goes online when you click an online match or check for updates. Settings and history stay on your machine, and a tag snapshot is saved before each save or rename, so you can go back if something looks wrong.
+The interface is available in English, Simplified Chinese, and Japanese, follows the system language on first launch, and switches immediately from Settings. You can also adjust the theme, use compact rows, reorder online sources, and set the search region. A silent update check runs at startup by default; it can be turned off in Settings or run manually from the Help menu.
 
-A few notes: DSF/DFF files are recognized, but writing hasn't been fully tested with real DSD files. Files with multiple audio tracks are skipped. Online results depend on third-party services and may occasionally be incomplete or unavailable. Keep a backup before batch changes.
-
-The interface is available in English, Simplified Chinese, and Japanese, follows your system language on first launch, and can be changed anytime in Settings.
+Notes: DSF/DFF files are recognized, but writing has not yet been validated with real DSD samples. Files containing multiple audio tracks are skipped. Online matches, covers, and lyrics depend on the availability and responses of the third-party services you select, so results may be incomplete or temporarily unavailable. Keep backups of original files before batch changes.
 
 ## Product features (10 items)
 
-1. Tag editing: title, artist, album, album artist, year, track, disc, genre, comment, composer, lyrics, and cover; pick ID3v2.3/2.4 for MP3 and keep the original timestamp.
-2. Common formats: MP3, FLAC, APE, OGG, M4A, WAV, WMA, DSF, DFF, and more, with duration, bitrate, sample rate, channels, and file size.
-3. Online matching: query several music sources at once, compare tag, cover, and lyric candidates, apply one result or batch-process with chosen fields and overwrite rules.
-4. Lyrics tools: search LRC, tidy up timestamps, remove extra tags and blank lines, apply an offset, and import/export in common encodings.
-5. Cover art: search online or pick a local image, resize automatically, then write it back; export, remove, or extract covers in bulk.
-6. Template and regex renaming: preview new filenames live, auto-number duplicates, and rename matching .lrc and cover files too.
-7. Filename-to-tag: pull information out of filenames or regular expressions and write it back into tags.
-8. Simplified/Traditional Chinese conversion: convert tags and filenames in either direction, including matching lyrics and covers.
-9. History and restore: a snapshot is saved before each change, so you can review, restore, or clear it later.
-10. Three platforms, three languages: the same workflow on Windows, Linux, and Android; English, Chinese, and Japanese UI; free, no account, no ads.
+1. Tag editing: title, artist, album, album artist, year, track, disc, genre, comment, composer, lyrics, and cover art; for MP3, choose ID3v2.3/2.4 and keep the original file timestamp.
+2. Audio details and formats: recognizes MP3, FLAC, APE, WavPack, TTA, MPC, OGG, Opus, M4A, MP4, WAV, AIFF, WMA, DSF, and DFF; shows duration, bitrate, sample rate, channels, and file size.
+3. Multi-source online matching: query several music databases and compare tag, cover, and lyric candidates; apply one result or run batch auto-match with chosen fields, sources, and overwrite behavior.
+4. LRC lyric tools: search lyrics, reflow multiple timestamps, remove time tags, blank lines, and header tags, apply an offset, and import or export with UTF-8, UTF-16, GB18030, Big5, and more.
+5. Cover art management: search online, choose a local image, export, remove, or extract covers in bulk; images are resized to fit file-size, width, height, and format limits, then written back on save.
+6. Template and regex renaming: use @0–@8 fields, Artist - Title default, or regex capture groups, with live preview and automatic duplicate numbering; matching .lrc and cover files can be renamed too.
+7. Filename-to-tag reverse mode: extract information from filenames or regular expressions and write it back into tags, useful for libraries from mixed sources.
+8. Simplified/Traditional Chinese conversion: convert tags and filenames in either direction, including matching .lrc and cover files.
+9. History and restore: save a tag snapshot to a local database before each save or rename, then review, restore a selected version, or clear entries from the History panel.
+10. Cross-platform: Windows, Linux, and Android share .NET 10 and Avalonia 12 tag and UI code; the Store offers Windows x64/arm64, other platforms via Releases. Trilingual UI; settings and history stay local.
 
 ## Search keywords (7 items, 40 characters max each)
 
@@ -70,7 +68,9 @@ zdxiaoda
 
 ## What's new
 
-1.4.1: The editor now marks fields you've changed but not saved with “(edited)”; the mark clears after saving, so you can see what's still pending. The Store package includes both Windows x64 and arm64.
+First submission: this field can be left blank.
+
+Fallback update text (1.2.1 / 1.2.0): Melotag is now available on Microsoft Store. This release adds the English, Simplified Chinese, and Japanese interface; multi-select with batch removal from the list and copy; batch auto-match with selectable fields, sources, and overwrite behavior; lyrics returned with online tag matches; and version checks. It also improves the settings layout on narrow screens and the source-order list, and fixes dialog buttons, lyric result titles, the default rename pattern, numeric sorting, and source region selection.
 
 ## Additional system requirements
 
