@@ -19,6 +19,10 @@
 
 前往 [Releases](https://github.com/zdxiaoda/Melotag/releases) 下载适合你设备的版本。
 
+<a href="https://apps.microsoft.com/detail/9mz9zjfc75nm?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">
+  <img src="https://get.microsoft.com/images/en-us%20light.svg" width="200" alt="从 Microsoft Store 获取">
+</a>
+
 ## 功能
 
 ### 文件与列表
