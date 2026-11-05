@@ -45,20 +45,27 @@ public sealed class StorageProviderFilePicker : IFilePickerPlatform
             AllowMultiple = false,
         });
 
-        var result = new List<IFileHandle>();
-        var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
-        foreach (var folder in folders)
+        var paths = folders
+            .Select(f => f.TryGetLocalPath())
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p!)
+            .ToList();
+
+        // 大目录的递归枚举会卡住 UI 线程，放到后台执行。
+        return await Task.Run(() =>
         {
-            var path = folder.TryGetLocalPath();
-            if (string.IsNullOrWhiteSpace(path)) continue;
-
-            foreach (var file in Directory.EnumerateFiles(path, "*", options))
+            var result = new List<IFileHandle>();
+            var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
+            foreach (var path in paths)
             {
-                if (filter is not null && !filter(Path.GetExtension(file).ToLowerInvariant())) continue;
-                result.Add(new PhysicalFileHandle(file));
+                foreach (var file in Directory.EnumerateFiles(path, "*", options))
+                {
+                    if (filter is not null && !filter(Path.GetExtension(file).ToLowerInvariant())) continue;
+                    result.Add(new PhysicalFileHandle(file));
+                }
             }
-        }
 
-        return result;
+            return (IReadOnlyList<IFileHandle>)result;
+        });
     }
 }

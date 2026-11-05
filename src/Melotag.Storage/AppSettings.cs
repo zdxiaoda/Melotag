@@ -54,6 +54,9 @@ public sealed class LyricsSettings
 
 public sealed class PictureSettings
 {
+    /// <summary>插入封面时保留原始图片（不缩放、不重压缩）；关闭后才按下面的上限处理。</summary>
+    public bool KeepOriginal { get; set; } = true;
+
     public int MaxSizeKb { get; set; } = 1024;
     public int MaxWidth { get; set; } = 1200;
     public int MaxHeight { get; set; } = 1200;

@@ -307,6 +307,12 @@
   <data name="Status.LoadingFiles" xml:space="preserve">
     <value>正在读取 {0} 个文件…</value>
   </data>
+  <data name="Status.LoadingProgress" xml:space="preserve">
+    <value>正在读取 {0}/{1}…</value>
+  </data>
+  <data name="Status.LoadingCanceled" xml:space="preserve">
+    <value>已取消读取</value>
+  </data>
   <data name="Status.LoadedFiles" xml:space="preserve">
     <value>已读取 {0} 个，失败/跳过 {1} 个</value>
   </data>
@@ -942,6 +948,12 @@
   </data>
   <data name="Settings.LyricsSaving" xml:space="preserve">
     <value>保存</value>
+  </data>
+  <data name="Settings.KeepOriginalCover" xml:space="preserve">
+    <value>插入原始封面</value>
+  </data>
+  <data name="Settings.KeepOriginalCoverHint" xml:space="preserve">
+    <value>勾选后，从在线源或本地插入封面时不缩放、不重新压缩，直接写入原图；此时下方的尺寸与体积上限不生效。</value>
   </data>
   <data name="Settings.PictureLimits" xml:space="preserve">
     <value>尺寸与体积</value>

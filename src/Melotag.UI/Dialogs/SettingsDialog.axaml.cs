@@ -59,9 +59,11 @@ public partial class SettingsDialog : ModalView
         SaveDirBox.Text = settings.Lyrics.SaveDirectory;
         LrcNameBox.Text = settings.Lyrics.FileNameFormat;
 
+        OriginalCoverBox.IsChecked = settings.Pictures.KeepOriginal;
         PicSizeBox.Value = settings.Pictures.MaxSizeKb;
         PicWidthBox.Value = settings.Pictures.MaxWidth;
         PicHeightBox.Value = settings.Pictures.MaxHeight;
+        UpdatePictureLimitsEnabled();
 
         Id3Box.ItemsSource = new[] { "2.3", "2.4" };
         Id3Box.SelectedItem = settings.Writing.Id3v2Version;
@@ -120,6 +122,17 @@ public partial class SettingsDialog : ModalView
         !string.IsNullOrWhiteSpace(region.EnglishName) ? region.EnglishName :
         region.TwoLetterISORegionName;
 
+    private void OnOriginalCoverChanged(object? sender, RoutedEventArgs e) => UpdatePictureLimitsEnabled();
+
+    /// <summary>保留原图时，缩放/体积上限不生效。</summary>
+    private void UpdatePictureLimitsEnabled()
+    {
+        var enabled = OriginalCoverBox.IsChecked != true;
+        PicSizeBox.IsEnabled = enabled;
+        PicWidthBox.IsEnabled = enabled;
+        PicHeightBox.IsEnabled = enabled;
+    }
+
     private void OnSave(object? sender, RoutedEventArgs e)
     {
         _settings.Search.Threads = (int)(ThreadsBox.Value ?? 4);
@@ -145,6 +158,7 @@ public partial class SettingsDialog : ModalView
         _settings.Lyrics.SaveDirectory = SaveDirBox.Text?.Trim() ?? "";
         _settings.Lyrics.FileNameFormat = LrcNameBox.Text?.Trim() ?? "";
 
+        _settings.Pictures.KeepOriginal = OriginalCoverBox.IsChecked == true;
         _settings.Pictures.MaxSizeKb = (int)(PicSizeBox.Value ?? 1024);
         _settings.Pictures.MaxWidth = (int)(PicWidthBox.Value ?? 1200);
         _settings.Pictures.MaxHeight = (int)(PicHeightBox.Value ?? 1200);

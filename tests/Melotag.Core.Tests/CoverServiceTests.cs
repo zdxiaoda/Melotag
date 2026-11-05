@@ -61,4 +61,33 @@ public class CoverServiceTests
         var service = new CoverService();
         Assert.Null(service.Normalize([1, 2, 3, 4], 800, 800, 1024, ["jpg", "png"]));
     }
+
+    [Fact]
+    public void ValidateOriginal_KeepsBytesAndSize()
+    {
+        var service = new CoverService();
+        var source = CreateJpeg(2000, 1500);
+
+        var result = service.ValidateOriginal(source, ["jpg", "png"]);
+
+        Assert.NotNull(result);
+        Assert.Same(source, result!.Data);
+        Assert.Equal(2000, result.Width);
+        Assert.Equal(1500, result.Height);
+        Assert.Equal("image/jpeg", result.MimeType);
+    }
+
+    [Fact]
+    public void ValidateOriginal_RejectsDisallowedFormat()
+    {
+        var service = new CoverService();
+        Assert.Null(service.ValidateOriginal(CreateJpeg(200, 200), ["png"]));
+    }
+
+    [Fact]
+    public void ValidateOriginal_Garbage_ReturnsNull()
+    {
+        var service = new CoverService();
+        Assert.Null(service.ValidateOriginal([1, 2, 3, 4], ["jpg", "png"]));
+    }
 }

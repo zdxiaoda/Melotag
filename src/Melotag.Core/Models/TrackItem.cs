@@ -22,6 +22,9 @@ public sealed class TrackItem
     public TrackStatus Status { get; set; } = TrackStatus.Pending;
     public string? Error { get; set; }
 
+    /// <summary>文件是否带封面。批量导入时只记录该标记，不把图片字节留在内存里。</summary>
+    public bool HasCover { get; init; }
+
     /// <summary>读取该行时使用的句柄，保存 / 重新读取时复用（SAF 下无法从路径重建）。</summary>
     public IFileHandle? Source { get; set; }
 

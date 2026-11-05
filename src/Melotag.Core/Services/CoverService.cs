@@ -7,6 +7,56 @@ public sealed record CoverResult(byte[] Data, string MimeType, int Width, int He
 /// <summary>封面校验、缩放与重编码。全部在内存完成，不依赖 Windows 图形栈。</summary>
 public sealed class CoverService
 {
+    /// <summary>
+    /// 只校验格式与可解码性，原样返回图片字节（不缩放、不重编码、不受体积上限约束）。
+    /// 用于「插入原始封面」。
+    /// </summary>
+    public CoverResult? ValidateOriginal(byte[] data, IReadOnlyCollection<string> allowedFormats)
+    {
+        if (data.Length == 0) return null;
+
+        var allowed = new HashSet<string>(allowedFormats.Select(f => f.TrimStart('.').ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
+        if (allowed.Count == 0) allowed = ["jpg", "png"];
+
+        try
+        {
+            using var encoded = SKData.CreateCopy(data);
+            using var codec = SKCodec.Create(encoded);
+            if (codec is null) return null;
+
+            var family = FamilyOf(codec.EncodedFormat);
+            if (!allowed.Contains(family)) return null;
+
+            var info = codec.Info;
+            if (info.Width <= 0 || info.Height <= 0) return null;
+
+            return new CoverResult(data, MimeFor(family), info.Width, info.Height);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static string FamilyOf(SKEncodedImageFormat format) => format switch
+    {
+        SKEncodedImageFormat.Jpeg => "jpg",
+        SKEncodedImageFormat.Png => "png",
+        SKEncodedImageFormat.Bmp => "bmp",
+        SKEncodedImageFormat.Gif => "gif",
+        SKEncodedImageFormat.Webp => "webp",
+        _ => format.ToString().ToLowerInvariant(),
+    };
+
+    private static string MimeFor(string family) => family switch
+    {
+        "png" => "image/png",
+        "bmp" => "image/bmp",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        _ => "image/jpeg",
+    };
+
     public CoverResult? Normalize(byte[] data, int maxWidth, int maxHeight, int maxSizeKb, IReadOnlyCollection<string> allowedFormats)
     {
         if (data.Length == 0) return null;

@@ -16,7 +16,7 @@ public sealed class TagLibTagStore : ITagStore
 
     public bool CanHandle(string extension) => SupportedExtensions.Contains(extension);
 
-    public TrackItem Read(IFileHandle file)
+    public TrackItem Read(IFileHandle file, bool includePictures = true)
     {
         using var tl = TL.File.Create(new HandleAbstraction(file));
         var tag = tl.Tag;
@@ -39,20 +39,15 @@ public sealed class TagLibTagStore : ITagStore
             Lyrics = TrackTags.Normalize(tag.Lyrics),
         };
 
-        foreach (var picture in tag.Pictures)
-        {
-            if (picture.Data is null || picture.Data.Count == 0) continue;
-            tags.Pictures.Add(new TagPicture(
-                picture.Data.Data,
-                picture.MimeType ?? GuessMime(picture.Data.Data),
-                (PictureKind)(int)picture.Type,
-                picture.Description));
-        }
+        var pictures = tag.Pictures;
+        if (includePictures)
+            CopyPictures(pictures, tags.Pictures);
 
         return new TrackItem
         {
             Path = file.DisplayPath,
             DisplayName = file.FileName,
+            HasCover = pictures.Length > 0,
             Tags = tags,
             Info = new AudioInfo(
                 Format: tl.MimeType,
@@ -64,6 +59,27 @@ public sealed class TagLibTagStore : ITagStore
             Status = TrackStatus.Loaded,
             Source = file,
         };
+    }
+
+    public IReadOnlyList<TagPicture> ReadPictures(IFileHandle file)
+    {
+        using var tl = TL.File.Create(new HandleAbstraction(file));
+        var result = new List<TagPicture>();
+        CopyPictures(tl.Tag.Pictures, result);
+        return result;
+    }
+
+    private static void CopyPictures(IEnumerable<TL.IPicture> pictures, List<TagPicture> target)
+    {
+        foreach (var picture in pictures)
+        {
+            if (picture.Data is null || picture.Data.Count == 0) continue;
+            target.Add(new TagPicture(
+                picture.Data.Data,
+                picture.MimeType ?? GuessMime(picture.Data.Data),
+                (PictureKind)(int)picture.Type,
+                picture.Description));
+        }
     }
 
     public void Write(IFileHandle file, TrackTags tags, TagWriteOptions options)

@@ -323,6 +323,8 @@
         <TextBlock Grid.Column="0" Text="{Binding CountText}" Opacity="0.8" />
         <TextBlock Grid.Column="1" Text="{Binding StatusText}" Margin="16,0" TextTrimming="CharacterEllipsis" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Button Content="{loc:Tr Key=Button.Cancel}" Command="{Binding CancelLoadCommand}"
+                  IsVisible="{Binding IsLoading}" Padding="8,2" FontSize="11" />
           <Image Source="avares://Melotag.UI/Assets/melotag-logo.png" Width="14" Height="14"
                  VerticalAlignment="Center" />
           <TextBlock Text="{Binding AppVersionText}" Opacity="0.5" FontSize="11" VerticalAlignment="Center" />

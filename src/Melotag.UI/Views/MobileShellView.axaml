@@ -103,7 +103,7 @@
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,3">
               <Border Width="46" Height="46" CornerRadius="6" ClipToBounds="True"
                       Background="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}">
-                <Image Source="{Binding CoverPreview}" Stretch="UniformToFill" />
+                <Image Source="{Binding CoverThumbnail}" Stretch="UniformToFill" />
               </Border>
               <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                 <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -228,10 +228,12 @@
     <!-- 状态栏 -->
     <Border Grid.Row="3" Padding="12,4" BorderThickness="0,1,0,0"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-      <Grid ColumnDefinitions="Auto,*">
+      <Grid ColumnDefinitions="Auto,*,Auto">
         <TextBlock Text="{Binding CountText}" Opacity="0.8" FontSize="12" />
         <TextBlock Grid.Column="1" Text="{Binding StatusText}" Margin="12,0" FontSize="12"
                    TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="2" Content="{loc:Tr Key=Button.Cancel}" Command="{Binding CancelLoadCommand}"
+                IsVisible="{Binding IsLoading}" Padding="8,0" FontSize="11" />
       </Grid>
     </Border>
   </Grid>

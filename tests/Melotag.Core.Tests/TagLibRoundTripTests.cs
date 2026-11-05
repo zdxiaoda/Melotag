@@ -133,5 +133,42 @@ public class TagLibRoundTripTests
         Assert.Single(tags.Pictures);
         Assert.Equal("image/jpeg", tags.Pictures[0].MimeType);
         Assert.Equal(jpeg, tags.Pictures[0].Data);
+
+        var withoutPictures = store.Read(new PhysicalFileHandle(file), includePictures: false);
+        Assert.True(withoutPictures.HasCover);
+        Assert.Empty(withoutPictures.Tags.Pictures);
+
+        var pictures = store.ReadPictures(new PhysicalFileHandle(file));
+        Assert.Single(pictures);
+        Assert.Equal(jpeg, pictures[0].Data);
+    }
+
+    [Fact]
+    public void Write_WithoutReplacingPictures_KeepsExistingCover()
+    {
+        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
+        if (ffmpeg is null) return;
+
+        var dir = Directory.CreateTempSubdirectory("musictag-cover-keep-").FullName;
+        var file = Path.Combine(dir, "sample.mp3");
+        if (!TryCreateSample(ffmpeg, file, ".mp3")) return;
+
+        var jpeg = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9 };
+        var store = new TagLibTagStore();
+        store.Write(new PhysicalFileHandle(file), new TrackTags
+        {
+            Title = "before",
+            Pictures = [new TagPicture(jpeg, "image/jpeg", PictureKind.FrontCover, "front")],
+        }, new TagWriteOptions(ReplacePictures: true));
+
+        // 模拟「没改封面直接保存」：标签里不带图片，且 ReplacePictures = false。
+        var tags = new TrackTags { Title = "after" };
+        store.Write(new PhysicalFileHandle(file), tags, new TagWriteOptions(ReplacePictures: false));
+
+        var result = store.Read(new PhysicalFileHandle(file));
+        Assert.Equal("after", result.Tags.Title);
+        Assert.True(result.HasCover);
+        Assert.Single(result.Tags.Pictures);
+        Assert.Equal(jpeg, result.Tags.Pictures[0].Data);
     }
 }

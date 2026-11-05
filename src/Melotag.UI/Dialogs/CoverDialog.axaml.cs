@@ -35,9 +35,11 @@ public partial class CoverDialog : ModalView
         InitializeComponent();
 
         MaxSizeBox.Value = settings.Pictures.MaxSizeKb;
+        MaxSizeBox.IsEnabled = !settings.Pictures.KeepOriginal;
 
-        if (row.Pictures.Count > 0)
-            ShowPreview(row.Pictures[0].Data, row.Pictures[0].MimeType);
+        var pictures = row.LoadPictures();
+        if (pictures.Count > 0)
+            ShowPreview(pictures[0].Data, pictures[0].MimeType);
     }
 
     public byte[]? Result { get; private set; }
@@ -51,7 +53,9 @@ public partial class CoverDialog : ModalView
         try
         {
             using var ms = new MemoryStream(data);
-            Preview.Source = new Bitmap(ms);
+            var bitmap = new Bitmap(ms);
+            (Preview.Source as Bitmap)?.Dispose();
+            Preview.Source = bitmap;
             Placeholder.IsVisible = false;
             _current = data;
             _mime = mime;
@@ -148,12 +152,14 @@ public partial class CoverDialog : ModalView
     {
         if (_settings is null) return;
 
-        var normalized = _coverService.Normalize(
-            bytes,
-            _settings.Pictures.MaxWidth,
-            _settings.Pictures.MaxHeight,
-            (int)(MaxSizeBox.Value ?? _settings.Pictures.MaxSizeKb),
-            _settings.Pictures.AllowedFormats);
+        var normalized = _settings.Pictures.KeepOriginal
+            ? _coverService.ValidateOriginal(bytes, _settings.Pictures.AllowedFormats)
+            : _coverService.Normalize(
+                bytes,
+                _settings.Pictures.MaxWidth,
+                _settings.Pictures.MaxHeight,
+                (int)(MaxSizeBox.Value ?? _settings.Pictures.MaxSizeKb),
+                _settings.Pictures.AllowedFormats);
 
         if (normalized is null)
         {

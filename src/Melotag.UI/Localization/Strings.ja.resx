@@ -307,6 +307,12 @@
   <data name="Status.LoadingFiles" xml:space="preserve">
     <value>{0} 件のファイルを読み込み中…</value>
   </data>
+  <data name="Status.LoadingProgress" xml:space="preserve">
+    <value>読み込み中 {0}/{1}…</value>
+  </data>
+  <data name="Status.LoadingCanceled" xml:space="preserve">
+    <value>読み込みをキャンセルしました</value>
+  </data>
   <data name="Status.LoadedFiles" xml:space="preserve">
     <value>{0} 件読み込み、失敗/スキップ {1} 件</value>
   </data>
@@ -942,6 +948,12 @@
   </data>
   <data name="Settings.LyricsSaving" xml:space="preserve">
     <value>保存</value>
+  </data>
+  <data name="Settings.KeepOriginalCover" xml:space="preserve">
+    <value>元のカバー画像をそのまま使用</value>
+  </data>
+  <data name="Settings.KeepOriginalCoverHint" xml:space="preserve">
+    <value>オンラインまたはローカルからカバーを挿入するとき、縮小や再圧縮を行わず元の画像をそのまま書き込みます。この場合、下のサイズと容量の上限は適用されません。</value>
   </data>
   <data name="Settings.PictureLimits" xml:space="preserve">
     <value>サイズと容量</value>

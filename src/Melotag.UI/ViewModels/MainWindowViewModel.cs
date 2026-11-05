@@ -23,6 +23,11 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IPlatformHost _host;
     private readonly List<TrackRowViewModel> _all = [];
 
+    /// <summary>分批读取，边读边显示；每批之间让出 UI 线程。</summary>
+    private const int LoadBatchSize = 40;
+
+    private CancellationTokenSource? _loadCts;
+
     public MainWindowViewModel(
         ITagStore tagStore,
         TagSearchService search,
@@ -77,27 +82,45 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private string statusText = "";
     [ObservableProperty] private string countText = "";
     [ObservableProperty] private string filterText = "";
+    [ObservableProperty] private bool isLoading;
 
     partial void OnFilterTextChanged(string value) => ApplyFilter();
 
-    /// <summary>桌面入口：把路径展开成文件句柄（目录递归枚举），再走 <see cref="AddFilesAsync"/>。</summary>
-    public Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
+    partial void OnSelectedTrackChanged(TrackRowViewModel? oldValue, TrackRowViewModel? newValue)
     {
-        var candidates = new List<IFileHandle>();
-        foreach (var path in paths)
-        {
-            if (Directory.Exists(path))
-            {
-                foreach (var file in EnumerateAudioFiles(path, recursive))
-                    candidates.Add(new PhysicalFileHandle(file));
-            }
-            else if (File.Exists(path))
-            {
-                candidates.Add(new PhysicalFileHandle(path));
-            }
-        }
+        oldValue?.ReleaseCoverPreview();
+        newValue?.RequestCoverPreview();
+    }
 
-        return AddFilesAsync(candidates);
+    [RelayCommand]
+    private void CancelLoad() => _loadCts?.Cancel();
+
+    /// <summary>桌面入口：把路径展开成文件句柄（目录递归枚举），再走 <see cref="AddFilesAsync"/>。</summary>
+    public async Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
+    {
+        var list = paths.ToList();
+
+        StatusText = Localizer.T("Status.FolderScanning");
+        var candidates = await Task.Run(() =>
+        {
+            var result = new List<IFileHandle>();
+            foreach (var path in list)
+            {
+                if (Directory.Exists(path))
+                {
+                    foreach (var file in EnumerateAudioFiles(path, recursive))
+                        result.Add(new PhysicalFileHandle(file));
+                }
+                else if (File.Exists(path))
+                {
+                    result.Add(new PhysicalFileHandle(path));
+                }
+            }
+
+            return result;
+        });
+
+        await AddFilesAsync(candidates);
     }
 
     /// <summary>平台无关入口：接收已经展开好的文件句柄（Android SAF 用这个）。</summary>
@@ -120,17 +143,78 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        StatusText = Localizer.F("Status.LoadingFiles", todo.Count);
-        var results = await Task.Run(() => todo.Select(SafeRead).ToList());
+        await LoadInBatchesAsync(todo);
+    }
 
-        foreach (var item in results)
-            _all.Add(new TrackRowViewModel(item, Remove));
+    /// <summary>分批读取并在每批后刷新列表，支持中途取消（已读入的行保留）。</summary>
+    private async Task LoadInBatchesAsync(IReadOnlyList<IFileHandle> todo)
+    {
+        _loadCts?.Cancel();
+        using var cts = new CancellationTokenSource();
+        _loadCts = cts;
+        var token = cts.Token;
+
+        IsLoading = true;
+        var loaded = 0;
+        var failed = 0;
+        var canceled = false;
+        var current = true;
+
+        try
+        {
+            StatusText = Localizer.F("Status.LoadingFiles", todo.Count);
+
+            for (var offset = 0; offset < todo.Count; offset += LoadBatchSize)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    canceled = true;
+                    break;
+                }
+
+                var slice = new List<IFileHandle>(Math.Min(LoadBatchSize, todo.Count - offset));
+                for (var i = offset; i < todo.Count && i < offset + LoadBatchSize; i++)
+                    slice.Add(todo[i]);
+
+                var results = await Task.Run(() => slice.Select(h => SafeRead(h, token)).ToList(), token);
+
+                foreach (var item in results)
+                {
+                    var row = new TrackRowViewModel(item, Remove, _tagStore.ReadPictures);
+                    _all.Add(row);
+                    if (MatchesFilter(row)) Tracks.Add(row);
+
+                    if (item.Status == TrackStatus.Loaded) loaded++;
+                    else if (item.Status is TrackStatus.Failed or TrackStatus.Skipped) failed++;
+                }
+
+                UpdateCounts();
+                StatusText = Localizer.F("Status.LoadingProgress", offset + slice.Count, todo.Count);
+                await Task.Yield();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            canceled = true;
+        }
+        finally
+        {
+            // 已被新一次导入取代时不要覆盖它的状态。
+            current = ReferenceEquals(_loadCts, cts);
+            if (current)
+            {
+                IsLoading = false;
+                _loadCts = null;
+            }
+        }
+
+        if (!current) return;
 
         ApplyFilter();
-        StatusText = Localizer.F(
-            "Status.LoadedFiles",
-            results.Count(r => r.Status == TrackStatus.Loaded),
-            results.Count(r => r.Status is TrackStatus.Failed or TrackStatus.Skipped));
+
+        StatusText = canceled
+            ? Localizer.T("Status.LoadingCanceled")
+            : Localizer.F("Status.LoadedFiles", loaded, failed);
     }
 
     [RelayCommand]
@@ -138,19 +222,60 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (_all.Count == 0) return;
 
-        StatusText = Localizer.T("Status.Reloading");
+        _loadCts?.Cancel();
+        using var cts = new CancellationTokenSource();
+        _loadCts = cts;
+        var token = cts.Token;
+
         var pairs = _all
             .Select(row => (Row: row, Handle: row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path)))
             .ToList();
-        var results = await Task.Run(() => pairs.Select(p => SafeRead(p.Handle)).ToList());
 
-        for (var i = 0; i < results.Count; i++)
+        IsLoading = true;
+        var canceled = false;
+        var current = true;
+        try
         {
-            var row = pairs[i].Row;
-            if (_all.Contains(row)) row.ApplyFrom(results[i]);
+            StatusText = Localizer.T("Status.Reloading");
+
+            for (var offset = 0; offset < pairs.Count; offset += LoadBatchSize)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    canceled = true;
+                    break;
+                }
+
+                var slice = pairs.Skip(offset).Take(LoadBatchSize).ToList();
+                var results = await Task.Run(() => slice.Select(p => SafeRead(p.Handle, token)).ToList(), token);
+
+                for (var i = 0; i < results.Count; i++)
+                {
+                    var row = slice[i].Row;
+                    if (_all.Contains(row)) row.ApplyFrom(results[i]);
+                }
+
+                StatusText = Localizer.F("Status.LoadingProgress", offset + slice.Count, pairs.Count);
+                await Task.Yield();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            canceled = true;
+        }
+        finally
+        {
+            current = ReferenceEquals(_loadCts, cts);
+            if (current)
+            {
+                IsLoading = false;
+                _loadCts = null;
+            }
         }
 
-        StatusText = Localizer.T("Status.Reloaded");
+        if (!current) return;
+
+        StatusText = canceled ? Localizer.T("Status.LoadingCanceled") : Localizer.T("Status.Reloaded");
     }
 
     [RelayCommand]
@@ -200,7 +325,7 @@ public partial class MainWindowViewModel : ObservableObject
 
                 var previous = await Task.Run(() =>
                 {
-                    try { return _tagStore.Read(handle).Tags; }
+                    try { return _tagStore.Read(handle, includePictures: false).Tags; }
                     catch { return null; }
                 });
 
@@ -212,6 +337,7 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     Path = row.Path,
                     DisplayName = row.FileName,
+                    HasCover = row.HasCover || tags.Pictures.Count > 0,
                     Tags = tags,
                     Info = row.Info,
                     Status = TrackStatus.Saved,
@@ -252,6 +378,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         _all.Remove(row);
         Tracks.Remove(row);
+        row.Dispose();
 
         if (wasSelected) SelectedTrack = null;
 
@@ -269,6 +396,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             _all.Remove(row);
             Tracks.Remove(row);
+            row.Dispose();
         }
 
         if (SelectedTrack is not null && list.Contains(SelectedTrack))
@@ -305,12 +433,14 @@ public partial class MainWindowViewModel : ObservableObject
                 var bytes = await source.DownloadCoverAsync(candidate.CoverUrl, CancellationToken.None);
                 if (bytes is not null)
                 {
-                    var normalized = _covers.Normalize(
-                        bytes,
-                        Settings.Pictures.MaxWidth,
-                        Settings.Pictures.MaxHeight,
-                        Settings.Pictures.MaxSizeKb,
-                        Settings.Pictures.AllowedFormats);
+                    var normalized = Settings.Pictures.KeepOriginal
+                        ? _covers.ValidateOriginal(bytes, Settings.Pictures.AllowedFormats)
+                        : _covers.Normalize(
+                            bytes,
+                            Settings.Pictures.MaxWidth,
+                            Settings.Pictures.MaxHeight,
+                            Settings.Pictures.MaxSizeKb,
+                            Settings.Pictures.AllowedFormats);
 
                     if (normalized is not null)
                         row.SetCover(normalized.Data, normalized.MimeType);
@@ -390,7 +520,7 @@ public partial class MainWindowViewModel : ObservableObject
     /// <summary>把已有封面导出到音频同目录，命名为 "文件名-cover.jpg/png"。</summary>
     public async Task ExtractCoversAsync()
     {
-        var rows = _all.Where(r => r.Pictures.Count > 0).ToList();
+        var rows = _all.Where(r => r.HasCover).ToList();
         if (rows.Count == 0)
         {
             StatusText = Localizer.T("Status.NoCovers");
@@ -401,7 +531,14 @@ public partial class MainWindowViewModel : ObservableObject
         var failed = 0;
         foreach (var row in rows)
         {
-            var picture = row.Pictures[0];
+            var pictures = await Task.Run(row.LoadPictures);
+            if (pictures.Count == 0)
+            {
+                failed++;
+                continue;
+            }
+
+            var picture = pictures[0];
             var extension = picture.MimeType.Contains("png", StringComparison.OrdinalIgnoreCase) ? ".png" : ".jpg";
             var handle = row.Source ?? (IFileHandle)new PhysicalFileHandle(row.Path);
 
@@ -516,7 +653,7 @@ public partial class MainWindowViewModel : ObservableObject
                 entry.Tags,
                 new TagWriteOptions(Settings.Writing.Id3v2Version, Settings.Writing.KeepModifiedTime, Settings.Writing.WriteLyricsToTag)));
 
-            var item = await Task.Run(() => _tagStore.Read(handle));
+            var item = await Task.Run(() => _tagStore.Read(handle, includePictures: false));
             row.ApplyFrom(item);
             row.Status = TrackStatus.Saved;
             StatusText = Localizer.F("Status.Restored", entry.CreatedAt.ToString("HH:mm:ss"));
@@ -532,18 +669,23 @@ public partial class MainWindowViewModel : ObservableObject
     private void ApplyFilter()
     {
         var selectedKey = SelectedTrack?.Key;
-        var filter = FilterText?.Trim();
 
         Tracks.Clear();
         foreach (var track in _all)
         {
-            if (string.IsNullOrEmpty(filter) || Matches(track, filter))
+            if (MatchesFilter(track))
                 Tracks.Add(track);
         }
 
         SelectedTrack = Tracks.FirstOrDefault(t => t.Key == selectedKey)
                         ?? Tracks.FirstOrDefault();
         UpdateCounts();
+    }
+
+    private bool MatchesFilter(TrackRowViewModel row)
+    {
+        var filter = FilterText?.Trim();
+        return string.IsNullOrEmpty(filter) || Matches(row, filter);
     }
 
     private static bool Matches(TrackRowViewModel row, string filter) =>
@@ -563,8 +705,10 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private TrackItem SafeRead(IFileHandle handle)
+    private TrackItem SafeRead(IFileHandle handle, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+
         try
         {
             if (!_tagStore.CanHandle(handle.Extension))
@@ -579,7 +723,7 @@ public partial class MainWindowViewModel : ObservableObject
                 };
             }
 
-            return _tagStore.Read(handle);
+            return _tagStore.Read(handle, includePictures: false);
         }
         catch (Exception ex)
         {

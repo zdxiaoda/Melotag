@@ -307,6 +307,12 @@
   <data name="Status.LoadingFiles" xml:space="preserve">
     <value>Reading {0} files…</value>
   </data>
+  <data name="Status.LoadingProgress" xml:space="preserve">
+    <value>Reading {0}/{1}…</value>
+  </data>
+  <data name="Status.LoadingCanceled" xml:space="preserve">
+    <value>Loading cancelled</value>
+  </data>
   <data name="Status.LoadedFiles" xml:space="preserve">
     <value>Loaded {0}, failed/skipped {1}</value>
   </data>
@@ -942,6 +948,12 @@
   </data>
   <data name="Settings.LyricsSaving" xml:space="preserve">
     <value>Saving</value>
+  </data>
+  <data name="Settings.KeepOriginalCover" xml:space="preserve">
+    <value>Insert original cover</value>
+  </data>
+  <data name="Settings.KeepOriginalCoverHint" xml:space="preserve">
+    <value>When checked, covers from online sources or local files are written as-is, without resizing or re-encoding; the size limits below are ignored.</value>
   </data>
   <data name="Settings.PictureLimits" xml:space="preserve">
     <value>Size limits</value>
