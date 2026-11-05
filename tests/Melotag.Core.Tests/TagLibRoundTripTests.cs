@@ -137,6 +137,7 @@ public class TagLibRoundTripTests
         var withoutPictures = store.Read(new PhysicalFileHandle(file), includePictures: false);
         Assert.True(withoutPictures.HasCover);
         Assert.Empty(withoutPictures.Tags.Pictures);
+        Assert.NotNull(withoutPictures.ModifiedUtc);
 
         var pictures = store.ReadPictures(new PhysicalFileHandle(file));
         Assert.Single(pictures);

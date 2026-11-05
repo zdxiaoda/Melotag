@@ -14,6 +14,9 @@ public interface IFileHandle
     long Length { get; }
     DateTime LastWriteTimeUtc { get; }
 
+    /// <summary>创建时间；平台不提供时为 null（Android SAF 没有该字段）。</summary>
+    DateTime? CreationTimeUtc { get; }
+
     /// <summary>稳定标识（历史记录 / 去重键）。桌面为完整路径，SAF 为 content:// URI。</summary>
     string Key { get; }
 

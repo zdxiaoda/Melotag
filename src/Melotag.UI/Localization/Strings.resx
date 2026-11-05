@@ -193,6 +193,42 @@
   <data name="Column.Status" xml:space="preserve">
     <value>状态</value>
   </data>
+  <data name="Column.AlbumArtist" xml:space="preserve">
+    <value>专辑艺术家</value>
+  </data>
+  <data name="Column.Disc" xml:space="preserve">
+    <value>碟号</value>
+  </data>
+  <data name="Column.Genre" xml:space="preserve">
+    <value>流派</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Column.Bitrate" xml:space="preserve">
+    <value>比特率</value>
+  </data>
+  <data name="Column.SampleRate" xml:space="preserve">
+    <value>采样率</value>
+  </data>
+  <data name="Column.Channels" xml:space="preserve">
+    <value>声道</value>
+  </data>
+  <data name="Column.Modified" xml:space="preserve">
+    <value>修改日期</value>
+  </data>
+  <data name="Column.Created" xml:space="preserve">
+    <value>创建日期</value>
+  </data>
+  <data name="Column.ResetLayout" xml:space="preserve">
+    <value>恢复默认列</value>
+  </data>
+  <data name="Sort.Title" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>降序</value>
+  </data>
   <data name="Field.Title" xml:space="preserve">
     <value>标题</value>
   </data>

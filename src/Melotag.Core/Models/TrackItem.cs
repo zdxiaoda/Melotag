@@ -25,6 +25,12 @@ public sealed class TrackItem
     /// <summary>文件是否带封面。批量导入时只记录该标记，不把图片字节留在内存里。</summary>
     public bool HasCover { get; init; }
 
+    /// <summary>文件修改时间；不可用时为 null。</summary>
+    public DateTime? ModifiedUtc { get; init; }
+
+    /// <summary>文件创建时间；平台不提供时为 null（Android SAF）。</summary>
+    public DateTime? CreatedUtc { get; init; }
+
     /// <summary>读取该行时使用的句柄，保存 / 重新读取时复用（SAF 下无法从路径重建）。</summary>
     public IFileHandle? Source { get; set; }
 

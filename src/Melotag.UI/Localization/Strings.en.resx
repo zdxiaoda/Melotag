@@ -193,6 +193,42 @@
   <data name="Column.Status" xml:space="preserve">
     <value>Status</value>
   </data>
+  <data name="Column.AlbumArtist" xml:space="preserve">
+    <value>Album Artist</value>
+  </data>
+  <data name="Column.Disc" xml:space="preserve">
+    <value>Disc</value>
+  </data>
+  <data name="Column.Genre" xml:space="preserve">
+    <value>Genre</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Column.Bitrate" xml:space="preserve">
+    <value>Bitrate</value>
+  </data>
+  <data name="Column.SampleRate" xml:space="preserve">
+    <value>Sample Rate</value>
+  </data>
+  <data name="Column.Channels" xml:space="preserve">
+    <value>Channels</value>
+  </data>
+  <data name="Column.Modified" xml:space="preserve">
+    <value>Date Modified</value>
+  </data>
+  <data name="Column.Created" xml:space="preserve">
+    <value>Date Created</value>
+  </data>
+  <data name="Column.ResetLayout" xml:space="preserve">
+    <value>Reset columns</value>
+  </data>
+  <data name="Sort.Title" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>Descending</value>
+  </data>
   <data name="Field.Title" xml:space="preserve">
     <value>Title</value>
   </data>

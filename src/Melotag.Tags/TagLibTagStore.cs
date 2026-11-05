@@ -48,6 +48,8 @@ public sealed class TagLibTagStore : ITagStore
             Path = file.DisplayPath,
             DisplayName = file.FileName,
             HasCover = pictures.Length > 0,
+            ModifiedUtc = file.LastWriteTimeUtc > DateTime.UnixEpoch ? file.LastWriteTimeUtc : null,
+            CreatedUtc = file.CreationTimeUtc,
             Tags = tags,
             Info = new AudioInfo(
                 Format: tl.MimeType,

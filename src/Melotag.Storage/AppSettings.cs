@@ -84,6 +84,14 @@ public sealed class UiSettings
 
     /// <summary>已提示过更新日志的版本；与当前版本不同（或为空）时启动后弹一次更新内容。</summary>
     public string LastSeenVersion { get; set; } = "";
+
+    /// <summary>桌面列表可见列（含顺序）；空表示使用内置默认列。</summary>
+    public List<string> VisibleColumns { get; set; } = [];
+
+    /// <summary>列表排序字段（列 id）；空表示不排序，保持导入顺序。</summary>
+    public string SortColumn { get; set; } = "";
+
+    public bool SortDescending { get; set; }
 }
 
 public sealed class AppSettings

@@ -18,6 +18,8 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     private readonly List<TagPicture> _pictures = [];
     private readonly Func<IFileHandle, IReadOnlyList<TagPicture>>? _pictureLoader;
     private AudioInfo? _info;
+    private DateTime? _modifiedUtc;
+    private DateTime? _createdUtc;
 
     private Bitmap? _thumbnail;
     private bool _thumbnailRequested;
@@ -138,6 +140,22 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     public uint? YearNumber => ParseUInt(YearText);
     public double DurationSeconds => _info is null ? 0 : _info.Duration.TotalSeconds;
 
+    public long SizeBytes => _info?.SizeBytes ?? Source?.Length ?? 0;
+    public int? BitrateKbps => _info?.BitrateKbps;
+    public int? SampleRateHz => _info?.SampleRateHz;
+    public int? Channels => _info?.Channels;
+    public DateTime? ModifiedUtc => _modifiedUtc;
+    public DateTime? CreatedUtc => _createdUtc;
+
+    public string BitrateText => _info?.BitrateText ?? "";
+    public string SampleRateText => _info?.SampleRateText ?? "";
+    public string ChannelsText => _info?.ChannelsText ?? "";
+    public string ModifiedText => FormatTime(_modifiedUtc);
+    public string CreatedText => FormatTime(_createdUtc);
+
+    private static string FormatTime(DateTime? utc) =>
+        utc is null ? "" : utc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
     partial void OnStatusChanged(TrackStatus value) => OnPropertyChanged(nameof(StatusText));
 
     public void RefreshLocalizedText()
@@ -180,7 +198,20 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         Lyrics = item.Tags.Lyrics;
 
         _info = item.Info;
+        _modifiedUtc = item.ModifiedUtc;
+        _createdUtc = item.CreatedUtc;
         OnPropertyChanged(nameof(DurationSeconds));
+        OnPropertyChanged(nameof(SizeBytes));
+        OnPropertyChanged(nameof(BitrateKbps));
+        OnPropertyChanged(nameof(SampleRateHz));
+        OnPropertyChanged(nameof(Channels));
+        OnPropertyChanged(nameof(BitrateText));
+        OnPropertyChanged(nameof(SampleRateText));
+        OnPropertyChanged(nameof(ChannelsText));
+        OnPropertyChanged(nameof(ModifiedUtc));
+        OnPropertyChanged(nameof(CreatedUtc));
+        OnPropertyChanged(nameof(ModifiedText));
+        OnPropertyChanged(nameof(CreatedText));
         DurationText = item.Info?.DurationText ?? "";
         FormatText = item.Info?.Format ?? "";
         SizeText = item.Info?.SizeText ?? "";

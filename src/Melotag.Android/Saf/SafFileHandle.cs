@@ -30,6 +30,8 @@ public sealed class SafFileHandle : IFileHandle
             ? DateTimeOffset.FromUnixTimeMilliseconds(document.LastModifiedMs).UtcDateTime
             : DateTime.UnixEpoch;
 
+        // SAF 的 DocumentsContract 只提供 LAST_MODIFIED，没有创建时间。
+
         _cachePath = SafCache.PathFor(context, document.Uri, document.DisplayName);
         _cacheReady = File.Exists(_cachePath);
     }
@@ -48,6 +50,7 @@ public sealed class SafFileHandle : IFileHandle
     public long Length { get; }
 
     public DateTime LastWriteTimeUtc { get; }
+    public DateTime? CreationTimeUtc => null;
 
     public string Key => Document.Uri.ToString()!;
 

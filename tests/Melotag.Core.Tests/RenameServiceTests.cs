@@ -182,6 +182,7 @@ public class RenameServiceTests : IDisposable
         public string Extension => Path.GetExtension(FileName).ToLowerInvariant();
         public long Length => 0;
         public DateTime LastWriteTimeUtc => DateTime.UnixEpoch;
+        public DateTime? CreationTimeUtc => null;
         public string Key => FileName;
         public bool IsWritable => true;
         public bool CanRename => _canRename;

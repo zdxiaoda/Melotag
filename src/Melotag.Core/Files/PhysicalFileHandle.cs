@@ -15,6 +15,9 @@ public sealed class PhysicalFileHandle : IFileHandle
         var info = new FileInfo(full);
         Length = info.Exists ? info.Length : 0;
         LastWriteTimeUtc = info.Exists ? info.LastWriteTimeUtc : DateTime.UnixEpoch;
+        CreationTimeUtc = info.Exists && info.CreationTimeUtc > DateTime.UnixEpoch
+            ? info.CreationTimeUtc
+            : null;
     }
 
     public string DisplayPath { get; }
@@ -23,6 +26,7 @@ public sealed class PhysicalFileHandle : IFileHandle
     public string Extension { get; }
     public long Length { get; }
     public DateTime LastWriteTimeUtc { get; }
+    public DateTime? CreationTimeUtc { get; }
     public string Key => DisplayPath;
     public bool IsWritable => true;
     public bool CanRename => true;

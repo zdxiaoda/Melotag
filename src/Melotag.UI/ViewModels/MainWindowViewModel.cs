@@ -27,6 +27,7 @@ public partial class MainWindowViewModel : ObservableObject
     private const int LoadBatchSize = 40;
 
     private CancellationTokenSource? _loadCts;
+    private TrackSortField? _sortField;
 
     public MainWindowViewModel(
         ITagStore tagStore,
@@ -49,6 +50,9 @@ public partial class MainWindowViewModel : ObservableObject
             ? Http.UserAgent
             : settings.Sources.UserAgent;
 
+        _sortField = ParseSortField(settings.Ui.SortColumn);
+        SortOptions = BuildSortOptions();
+
         Localizer.Instance.LanguageChanged += OnLanguageChanged;
         StatusText = Localizer.T("Status.Ready");
         UpdateCounts();
@@ -59,10 +63,24 @@ public partial class MainWindowViewModel : ObservableObject
         foreach (var row in _all)
             row.RefreshLocalizedText();
 
+        SortOptions = BuildSortOptions();
+        OnPropertyChanged(nameof(SortOptions));
         UpdateCounts();
         OnPropertyChanged(nameof(AppVersionText));
         StatusText = Localizer.T("Status.Ready");
     }
+
+    private static TrackSortField? ParseSortField(string? id) =>
+        TrackColumns.IsKnown(id) && Enum.TryParse<TrackSortField>(id, ignoreCase: true, out var field)
+            ? field
+            : null;
+
+    private static IReadOnlyList<SortOption> BuildSortOptions() =>
+        TrackColumns.All
+            .Select(id => new SortOption(
+                Enum.Parse<TrackSortField>(id),
+                Localizer.T(TrackColumns.LabelKey(id))))
+            .ToList();
 
     public AppSettings Settings { get; }
     public TagSearchService Search => _search;
@@ -77,6 +95,25 @@ public partial class MainWindowViewModel : ObservableObject
 
     /// <summary>状态栏版本号，避免在 XAML 里硬编码。</summary>
     public string AppVersionText => UI.AppInfo.VersionLine();
+
+    /// <summary>移动端排序面板的字段列表（标签随语言刷新）。</summary>
+    public IReadOnlyList<SortOption> SortOptions { get; private set; } = [];
+
+    public TrackSortField? SortField => _sortField;
+
+    public bool SortDescending => Settings.Ui.SortDescending;
+
+    /// <summary>设置排序字段并立即重排列表；null 表示恢复导入顺序。</summary>
+    public void SetSort(TrackSortField? field, bool descending)
+    {
+        _sortField = field;
+        Settings.Ui.SortColumn = field?.ToString() ?? "";
+        Settings.Ui.SortDescending = descending;
+        OnPropertyChanged(nameof(SortField));
+        OnPropertyChanged(nameof(SortDescending));
+        ApplyFilter();
+        SaveSettings();
+    }
 
     [ObservableProperty] private TrackRowViewModel? selectedTrack;
     [ObservableProperty] private string statusText = "";
@@ -178,17 +215,28 @@ public partial class MainWindowViewModel : ObservableObject
 
                 var results = await Task.Run(() => slice.Select(h => SafeRead(h, token)).ToList(), token);
 
+                var added = new List<TrackRowViewModel>(results.Count);
                 foreach (var item in results)
                 {
                     var row = new TrackRowViewModel(item, Remove, _tagStore.ReadPictures);
                     _all.Add(row);
-                    if (MatchesFilter(row)) Tracks.Add(row);
+                    added.Add(row);
 
                     if (item.Status == TrackStatus.Loaded) loaded++;
                     else if (item.Status is TrackStatus.Failed or TrackStatus.Skipped) failed++;
                 }
 
-                UpdateCounts();
+                if (_sortField is not null)
+                {
+                    ApplyFilter();
+                }
+                else
+                {
+                    foreach (var row in added)
+                        if (MatchesFilter(row)) Tracks.Add(row);
+
+                    UpdateCounts();
+                }
                 StatusText = Localizer.F("Status.LoadingProgress", offset + slice.Count, todo.Count);
                 await Task.Yield();
             }
@@ -338,6 +386,8 @@ public partial class MainWindowViewModel : ObservableObject
                     Path = row.Path,
                     DisplayName = row.FileName,
                     HasCover = row.HasCover || tags.Pictures.Count > 0,
+                    ModifiedUtc = row.ModifiedUtc,
+                    CreatedUtc = row.CreatedUtc,
                     Tags = tags,
                     Info = row.Info,
                     Status = TrackStatus.Saved,
@@ -669,13 +719,11 @@ public partial class MainWindowViewModel : ObservableObject
     private void ApplyFilter()
     {
         var selectedKey = SelectedTrack?.Key;
+        var rows = TrackSorter.Sort(_all.Where(MatchesFilter), _sortField, SortDescending);
 
         Tracks.Clear();
-        foreach (var track in _all)
-        {
-            if (MatchesFilter(track))
-                Tracks.Add(track);
-        }
+        foreach (var track in rows)
+            Tracks.Add(track);
 
         SelectedTrack = Tracks.FirstOrDefault(t => t.Key == selectedKey)
                         ?? Tracks.FirstOrDefault();

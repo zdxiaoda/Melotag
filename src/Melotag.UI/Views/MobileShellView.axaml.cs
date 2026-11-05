@@ -45,6 +45,46 @@ public partial class MobileShellView : UserControl
         if (Vm is not null) Vm.FilterText = FilterBox.Text ?? "";
     }
 
+    private bool _syncingSort;
+
+    private void OnSortFlyoutOpened(object? sender, EventArgs e)
+    {
+        if (Vm is null) return;
+
+        var options = Vm.SortOptions.ToList();
+        _syncingSort = true;
+        try
+        {
+            SortFieldList.ItemsSource = options.Select(o => o.Label).ToList();
+            SortFieldList.SelectedIndex = Vm.SortField is { } field
+                ? options.FindIndex(o => o.Field == field)
+                : -1;
+            SortDescendingBox.IsChecked = Vm.SortDescending;
+        }
+        finally
+        {
+            _syncingSort = false;
+        }
+    }
+
+    private void OnSortFieldChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingSort || Vm is null) return;
+
+        var index = SortFieldList.SelectedIndex;
+        if (index < 0 || index >= Vm.SortOptions.Count) return;
+
+        Vm.SetSort(Vm.SortOptions[index].Field, SortDescendingBox.IsChecked == true);
+    }
+
+    private void OnSortDescendingChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_syncingSort || Vm is null) return;
+        if (Vm.SortField is not { } field) return;
+
+        Vm.SetSort(field, SortDescendingBox.IsChecked == true);
+    }
+
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         // 选中项被移除（或过滤掉）时退回列表；打开详情只由用户点击触发。

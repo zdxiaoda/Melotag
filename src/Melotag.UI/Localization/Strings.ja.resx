@@ -193,6 +193,42 @@
   <data name="Column.Status" xml:space="preserve">
     <value>状態</value>
   </data>
+  <data name="Column.AlbumArtist" xml:space="preserve">
+    <value>アルバムアーティスト</value>
+  </data>
+  <data name="Column.Disc" xml:space="preserve">
+    <value>ディスク番号</value>
+  </data>
+  <data name="Column.Genre" xml:space="preserve">
+    <value>ジャンル</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>サイズ</value>
+  </data>
+  <data name="Column.Bitrate" xml:space="preserve">
+    <value>ビットレート</value>
+  </data>
+  <data name="Column.SampleRate" xml:space="preserve">
+    <value>サンプルレート</value>
+  </data>
+  <data name="Column.Channels" xml:space="preserve">
+    <value>チャンネル</value>
+  </data>
+  <data name="Column.Modified" xml:space="preserve">
+    <value>更新日時</value>
+  </data>
+  <data name="Column.Created" xml:space="preserve">
+    <value>作成日時</value>
+  </data>
+  <data name="Column.ResetLayout" xml:space="preserve">
+    <value>既定の列に戻す</value>
+  </data>
+  <data name="Sort.Title" xml:space="preserve">
+    <value>並べ替え</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>降順</value>
+  </data>
   <data name="Field.Title" xml:space="preserve">
     <value>タイトル</value>
   </data>

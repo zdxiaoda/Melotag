@@ -1,5 +1,6 @@
 namespace Melotag.UI.Views;
 
+using System.ComponentModel;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
@@ -8,6 +9,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Melotag.Core.Merge;
 using Melotag.Core.Rename;
 using Melotag.UI.Dialogs;
@@ -17,6 +19,11 @@ using Melotag.UI.ViewModels;
 public partial class MainWindow : Window
 {
     private readonly UpdateUi _updates = new();
+    private bool _applyingLayout;
+
+    /// <summary>程序化恢复排序时挂起，用来吞掉随之而来的 Sorting 事件（该事件是异步派发的）。</summary>
+    private DataGridColumn? _pendingRestoreColumn;
+    private DispatcherTimer? _pendingRestoreTimer;
 
     public MainWindow()
     {
@@ -28,22 +35,204 @@ public partial class MainWindow : Window
 
         LocalizeColumns();
         Localizer.Instance.LanguageChanged += LocalizeColumns;
+
+        foreach (var column in TracksGrid.Columns)
+            column.HeaderPointerPressed += (_, e) => OnColumnHeaderPointerPressed(e);
+
+        TracksGrid.Sorting += OnGridSorting;
+        TracksGrid.ColumnReordered += (_, _) => OnColumnReordered();
+    }
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        ApplyColumnLayout();
+        RestoreSort();
     }
 
     private void LocalizeColumns()
     {
-        var columns = TracksGrid.Columns;
-        if (columns.Count < 9) return;
+        foreach (var column in TracksGrid.Columns)
+        {
+            if (column.Tag is string id)
+                column.Header = Localizer.T(TrackColumns.LabelKey(id));
+        }
+    }
 
-        columns[0].Header = Localizer.T("Column.FileName");
-        columns[1].Header = Localizer.T("Column.Title");
-        columns[2].Header = Localizer.T("Column.Artist");
-        columns[3].Header = Localizer.T("Column.Album");
-        columns[4].Header = Localizer.T("Column.Year");
-        columns[5].Header = Localizer.T("Column.Track");
-        columns[6].Header = Localizer.T("Column.Duration");
-        columns[7].Header = Localizer.T("Column.Format");
-        columns[8].Header = Localizer.T("Column.Status");
+    /// <summary>按列目录顺序给表头右键菜单提供勾选项；右键任意表头即可打开。</summary>
+    private void OnColumnHeaderPointerPressed(PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(TracksGrid).Properties.IsRightButtonPressed) return;
+
+        e.Handled = true;
+
+        var items = new List<object>();
+        foreach (var entry in TracksGrid.Columns.OrderBy(c => c.DisplayIndex))
+        {
+            if (entry.Tag is not string id) continue;
+
+            var item = new MenuItem
+            {
+                Header = Localizer.T(TrackColumns.LabelKey(id)),
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = entry.IsVisible,
+                StaysOpenOnClick = true,
+                // 文件名是列表的锚点，不允许隐藏。
+                IsEnabled = id != TrackColumns.FileName,
+            };
+            item.Click += (_, _) => ToggleColumn(entry, item);
+            items.Add(item);
+        }
+
+        items.Add(new Separator());
+
+        var reset = new MenuItem { Header = Localizer.T("Column.ResetLayout") };
+        reset.Click += (_, _) => ResetColumnLayout();
+        items.Add(reset);
+
+        var flyout = new MenuFlyout
+        {
+            ItemsSource = items,
+            Placement = PlacementMode.Pointer,
+        };
+        flyout.ShowAt(TracksGrid);
+    }
+
+    private void ToggleColumn(DataGridColumn column, MenuItem item)
+    {
+        var id = column.Tag as string;
+        if (id == TrackColumns.FileName && item.IsChecked != true)
+        {
+            item.IsChecked = true;
+            return;
+        }
+
+        column.IsVisible = item.IsChecked == true;
+        SaveColumnLayout();
+        Vm?.SaveSettings();
+    }
+
+    private void ApplyColumnLayout()
+    {
+        if (Vm is null) return;
+
+        var saved = Vm.Settings.Ui.VisibleColumns;
+        var visible = saved.Count > 0
+            ? saved.Where(TrackColumns.IsKnown).Distinct(StringComparer.Ordinal).ToList()
+            : TrackColumns.DefaultVisible.ToList();
+
+        if (!visible.Contains(TrackColumns.FileName))
+            visible.Insert(0, TrackColumns.FileName);
+
+        var byId = TracksGrid.Columns
+            .Where(c => c.Tag is string)
+            .ToDictionary(c => (string)c.Tag!, c => c);
+
+        var visibleSet = visible.ToHashSet(StringComparer.Ordinal);
+
+        _applyingLayout = true;
+        try
+        {
+            // 先统一切换可见性，再排 DisplayIndex；穿插执行会被 IsVisible 的重新索引覆盖。
+            foreach (var (id, column) in byId)
+                column.IsVisible = visibleSet.Contains(id);
+
+            var index = 0;
+            foreach (var id in visible)
+            {
+                if (byId.TryGetValue(id, out var column))
+                    column.DisplayIndex = index++;
+            }
+
+            foreach (var id in TrackColumns.All)
+            {
+                if (visibleSet.Contains(id)) continue;
+                if (byId.TryGetValue(id, out var column))
+                    column.DisplayIndex = index++;
+            }
+        }
+        finally
+        {
+            _applyingLayout = false;
+        }
+    }
+
+    private void ResetColumnLayout()
+    {
+        if (Vm is null) return;
+
+        Vm.Settings.Ui.VisibleColumns = [];
+        ApplyColumnLayout();
+        Vm.SaveSettings();
+    }
+
+    private void SaveColumnLayout()
+    {
+        if (Vm is null || TracksGrid.Columns.Count == 0) return;
+
+        var visible = TracksGrid.Columns
+            .OrderBy(c => c.DisplayIndex)
+            .Where(c => c.IsVisible && c.Tag is string)
+            .Select(c => (string)c.Tag!)
+            .ToList();
+
+        // 布局尚未就绪时不要把配置写成空列表。
+        if (visible.Count > 0)
+            Vm.Settings.Ui.VisibleColumns = visible;
+    }
+
+    private void OnColumnReordered()
+    {
+        if (_applyingLayout || Vm is null) return;
+
+        SaveColumnLayout();
+        Vm.SaveSettings();
+    }
+
+    private void OnGridSorting(object? sender, DataGridColumnEventArgs e)
+    {
+        if (ReferenceEquals(_pendingRestoreColumn, e.Column))
+        {
+            ClearPendingRestore();
+            return;
+        }
+
+        if (Vm is null) return;
+        if (e.Column.Tag is not string id) return;
+
+        var same = string.Equals(Vm.Settings.Ui.SortColumn, id, StringComparison.Ordinal);
+        Vm.Settings.Ui.SortColumn = id;
+        Vm.Settings.Ui.SortDescending = same && !Vm.Settings.Ui.SortDescending;
+        Vm.SaveSettings();
+    }
+
+    private void RestoreSort()
+    {
+        if (Vm is null) return;
+        if (!TrackColumns.IsKnown(Vm.Settings.Ui.SortColumn)) return;
+
+        var column = TracksGrid.Columns
+            .FirstOrDefault(c => string.Equals(c.Tag as string, Vm.Settings.Ui.SortColumn, StringComparison.Ordinal));
+        if (column is null) return;
+
+        _pendingRestoreColumn = column;
+        _pendingRestoreTimer?.Stop();
+
+        // Sorting 事件是异步派发的；如果平台没有派发，最多挂起 1.5 秒。
+        _pendingRestoreTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1500), DispatcherPriority.Normal,
+            (_, _) => ClearPendingRestore());
+        _pendingRestoreTimer.Start();
+
+        column.Sort(Vm.Settings.Ui.SortDescending
+            ? ListSortDirection.Descending
+            : ListSortDirection.Ascending);
+    }
+
+    private void ClearPendingRestore()
+    {
+        _pendingRestoreColumn = null;
+        _pendingRestoreTimer?.Stop();
+        _pendingRestoreTimer = null;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -98,43 +287,51 @@ public partial class MainWindow : Window
         }
     }
 
-    private static string BuildTsv(IEnumerable<TrackRowViewModel> rows)
+    /// <summary>复制为 TSV，列集合跟随当前可见列。</summary>
+    private string BuildTsv(IEnumerable<TrackRowViewModel> rows)
     {
         static string Clean(string? value) =>
             (value ?? "").Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
 
+        var ids = TracksGrid.Columns
+            .OrderBy(c => c.DisplayIndex)
+            .Where(c => c.IsVisible && c.Tag is string)
+            .Select(c => (string)c.Tag!)
+            .ToList();
+
         var builder = new StringBuilder();
-        builder.AppendLine(string.Join('\t',
-        [
-            Localizer.T("Column.FileName"),
-            Localizer.T("Column.Title"),
-            Localizer.T("Column.Artist"),
-            Localizer.T("Column.Album"),
-            Localizer.T("Column.Year"),
-            Localizer.T("Column.Track"),
-            Localizer.T("Column.Duration"),
-            Localizer.T("Column.Format"),
-            Localizer.T("Column.Status"),
-        ]));
+        builder.AppendLine(string.Join('\t', ids.Select(id => Localizer.T(TrackColumns.LabelKey(id)))));
 
         foreach (var row in rows)
         {
-            builder.AppendLine(string.Join('\t',
-            [
-                Clean(row.FileName),
-                Clean(row.Title),
-                Clean(row.Artist),
-                Clean(row.Album),
-                Clean(row.YearText),
-                Clean(row.TrackText),
-                Clean(row.DurationText),
-                Clean(row.FormatText),
-                Clean(row.StatusText),
-            ]));
+            builder.AppendLine(string.Join('\t', ids.Select(id => Clean(CellValue(row, id)))));
         }
 
         return builder.ToString();
     }
+
+    private static string CellValue(TrackRowViewModel row, string id) => id switch
+    {
+        TrackColumns.FileName => row.FileName,
+        TrackColumns.Title => row.Title ?? "",
+        TrackColumns.Artist => row.Artist ?? "",
+        TrackColumns.Album => row.Album ?? "",
+        TrackColumns.AlbumArtist => row.AlbumArtist ?? "",
+        TrackColumns.Year => row.YearText ?? "",
+        TrackColumns.Track => row.TrackText ?? "",
+        TrackColumns.Disc => row.DiscText ?? "",
+        TrackColumns.Genre => row.Genre ?? "",
+        TrackColumns.Duration => row.DurationText,
+        TrackColumns.Size => row.SizeText,
+        TrackColumns.Format => row.FormatText,
+        TrackColumns.Bitrate => row.BitrateText,
+        TrackColumns.SampleRate => row.SampleRateText,
+        TrackColumns.Channels => row.ChannelsText,
+        TrackColumns.Modified => row.ModifiedText,
+        TrackColumns.Created => row.CreatedText,
+        TrackColumns.Status => row.StatusText,
+        _ => "",
+    };
 
     private MainWindowViewModel? Vm => DataContext as MainWindowViewModel;
 

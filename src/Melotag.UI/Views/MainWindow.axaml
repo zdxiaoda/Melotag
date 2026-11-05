@@ -225,15 +225,42 @@
                 RowHeight="32"
                 Margin="0">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="{loc:Tr Key=Column.FileName}" Binding="{Binding FileName}" Width="190" MinWidth="120" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Title}" Binding="{Binding Title}" Width="2*" MinWidth="120" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Artist}" Binding="{Binding Artist}" Width="1.5*" MinWidth="100" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Album}" Binding="{Binding Album}" Width="1.5*" MinWidth="100" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Year}" Binding="{Binding YearText}" SortMemberPath="YearNumber" Width="76" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Track}" Binding="{Binding TrackText}" SortMemberPath="TrackNumber" Width="76" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Duration}" Binding="{Binding DurationText}" SortMemberPath="DurationSeconds" Width="80" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Format}" Binding="{Binding FormatText}" Width="100" />
-          <DataGridTextColumn Header="{loc:Tr Key=Column.Status}" Binding="{Binding StatusText}" Width="88" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.FileName}" Tag="FileName"
+                              Binding="{Binding FileName}" SortMemberPath="FileName" Width="190" MinWidth="120" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Title}" Tag="Title"
+                              Binding="{Binding Title}" SortMemberPath="Title" Width="2*" MinWidth="120" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Artist}" Tag="Artist"
+                              Binding="{Binding Artist}" SortMemberPath="Artist" Width="1.5*" MinWidth="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Album}" Tag="Album"
+                              Binding="{Binding Album}" SortMemberPath="Album" Width="1.5*" MinWidth="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.AlbumArtist}" Tag="AlbumArtist" IsVisible="False"
+                              Binding="{Binding AlbumArtist}" SortMemberPath="AlbumArtist" Width="120" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Year}" Tag="Year"
+                              Binding="{Binding YearText}" SortMemberPath="YearNumber" Width="76" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Track}" Tag="Track"
+                              Binding="{Binding TrackText}" SortMemberPath="TrackNumber" Width="76" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Disc}" Tag="Disc" IsVisible="False"
+                              Binding="{Binding DiscText}" SortMemberPath="DiscNumber" Width="60" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Genre}" Tag="Genre" IsVisible="False"
+                              Binding="{Binding Genre}" SortMemberPath="Genre" Width="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Duration}" Tag="Duration"
+                              Binding="{Binding DurationText}" SortMemberPath="DurationSeconds" Width="80" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Size}" Tag="Size" IsVisible="False"
+                              Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="90" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Format}" Tag="Format"
+                              Binding="{Binding FormatText}" SortMemberPath="FormatText" Width="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Bitrate}" Tag="Bitrate" IsVisible="False"
+                              Binding="{Binding BitrateText}" SortMemberPath="BitrateKbps" Width="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.SampleRate}" Tag="SampleRate" IsVisible="False"
+                              Binding="{Binding SampleRateText}" SortMemberPath="SampleRateHz" Width="100" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Channels}" Tag="Channels" IsVisible="False"
+                              Binding="{Binding ChannelsText}" SortMemberPath="Channels" Width="70" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Modified}" Tag="Modified" IsVisible="False"
+                              Binding="{Binding ModifiedText}" SortMemberPath="ModifiedUtc" Width="130" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Created}" Tag="Created" IsVisible="False"
+                              Binding="{Binding CreatedText}" SortMemberPath="CreatedUtc" Width="130" />
+          <DataGridTextColumn Header="{loc:Tr Key=Column.Status}" Tag="Status"
+                              Binding="{Binding StatusText}" SortMemberPath="Status" Width="88" />
         </DataGrid.Columns>
       </DataGrid>
 

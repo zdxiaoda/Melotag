@@ -86,9 +86,25 @@
       </Grid>
     </Border>
 
-    <!-- 过滤 -->
-    <TextBox Grid.Row="1" x:Name="FilterBox" Margin="12,8" PlaceholderText="{loc:Tr Key=Filter.Placeholder}"
-             TextChanged="OnFilterChanged" />
+    <!-- 过滤 + 排序 -->
+    <Grid Grid.Row="1" Margin="12,8" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Grid.Column="0" x:Name="FilterBox" PlaceholderText="{loc:Tr Key=Filter.Placeholder}"
+               TextChanged="OnFilterChanged" />
+      <Button Grid.Column="1" Classes="icon" AutomationProperties.Name="{loc:Tr Key=Sort.Title}"
+              ToolTip.Tip="{loc:Tr Key=Sort.Title}">
+        <TextBlock Text="⇅" FontSize="18" />
+        <Button.Flyout>
+          <Flyout Placement="BottomEdgeAlignedRight" Opened="OnSortFlyoutOpened">
+            <StackPanel Width="220" Spacing="8" Margin="4">
+              <TextBlock Text="{loc:Tr Key=Sort.Title}" FontWeight="SemiBold" />
+              <ListBox x:Name="SortFieldList" MaxHeight="260" SelectionChanged="OnSortFieldChanged" />
+              <CheckBox x:Name="SortDescendingBox" Content="{loc:Tr Key=Sort.Descending}"
+                        IsCheckedChanged="OnSortDescendingChanged" />
+            </StackPanel>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
+    </Grid>
 
     <!-- 列表页 -->
     <Grid Grid.Row="2" x:Name="ListPage">
