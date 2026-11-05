@@ -1,7 +1,7 @@
 # 把多个架构的 MSIX 合并为一个 .msixbundle（Microsoft Store 上传用）。
 # 用法：
 #   ./packaging/windows/msix/build-msix-bundle.ps1 `
-#     -Version 1.4.1 `
+#     -Version 1.5.0 `
 #     -PackageDir "dist/msix/win-x64", "dist/msix/win-arm64"
 # -Version 会补齐为四段数字并作为 bundle 版本（makeappx /bv）。
 param(

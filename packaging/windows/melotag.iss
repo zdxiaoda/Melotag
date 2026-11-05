@@ -1,10 +1,10 @@
 ; 音签 Melotag Windows 安装包（Inno Setup 6.3+）
 ; 由 .github/workflows/release.yml 在 windows-latest 上调用：
-;   ISCC.exe /DMyAppVersion=1.4.1 /DMyAppRid=win-x64 /DMyAppArch=x64 packaging\windows\melotag.iss
-;   ISCC.exe /DMyAppVersion=1.4.1 /DMyAppRid=win-arm64 /DMyAppArch=arm64 packaging\windows\melotag.iss
+;   ISCC.exe /DMyAppVersion=1.5.0 /DMyAppRid=win-x64 /DMyAppArch=x64 packaging\windows\melotag.iss
+;   ISCC.exe /DMyAppVersion=1.5.0 /DMyAppRid=win-arm64 /DMyAppArch=arm64 packaging\windows\melotag.iss
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.4.1"
+  #define MyAppVersion "1.5.0"
 #endif
 
 ; 目标 RID 与 Inno 的架构标识；arm64 需要 Inno Setup 6.3 或更高版本。
