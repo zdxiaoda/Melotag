@@ -145,6 +145,28 @@ public class TagLibRoundTripTests
     }
 
     [Fact]
+    public void Read_EmptyPictureFrame_DoesNotReportCover()
+    {
+        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
+        if (ffmpeg is null) return;
+
+        var dir = Directory.CreateTempSubdirectory("musictag-cover-empty-").FullName;
+        var file = Path.Combine(dir, "sample.mp3");
+        if (!TryCreateSample(ffmpeg, file, ".mp3")) return;
+
+        var store = new TagLibTagStore();
+        store.Write(new PhysicalFileHandle(file), new TrackTags
+        {
+            Pictures = [new TagPicture([], "image/jpeg")],
+        }, new TagWriteOptions(ReplacePictures: true));
+
+        var result = store.Read(new PhysicalFileHandle(file), includePictures: false);
+
+        Assert.False(result.HasCover);
+        Assert.Empty(store.ReadPictures(new PhysicalFileHandle(file)));
+    }
+
+    [Fact]
     public void Write_WithoutReplacingPictures_KeepsExistingCover()
     {
         var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");

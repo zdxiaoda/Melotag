@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\Melotag.Core\Melotag.Core.csproj" />
     <ProjectReference Include="..\..\src\Melotag.Tags\Melotag.Tags.csproj" />
     <ProjectReference Include="..\..\src\Melotag.Storage\Melotag.Storage.csproj" />
+    <ProjectReference Include="..\..\src\Melotag.UI\Melotag.UI.csproj" />
   </ItemGroup>
 
 </Project>

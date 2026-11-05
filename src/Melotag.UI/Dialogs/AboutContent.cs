@@ -15,14 +15,19 @@ public static class AboutContent
         "netease", "qq", "kugou", "kuwo", "musicbrainz", "coverart", "itunes", "lastfm", "lrclib",
     ];
 
+    private static readonly Lazy<Avalonia.Media.Imaging.Bitmap> Logo = new(() =>
+    {
+        using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://Melotag.UI/Assets/melotag-logo.png"));
+        return new Avalonia.Media.Imaging.Bitmap(stream);
+    });
+
     public static Control Create(TopLevel? owner, bool android = false)
     {
         var stack = new StackPanel { Spacing = 10 };
 
         stack.Children.Add(new Image
         {
-            Source = new Avalonia.Media.Imaging.Bitmap(
-                Avalonia.Platform.AssetLoader.Open(new Uri("avares://Melotag.UI/Assets/melotag-logo.png"))),
+            Source = Logo.Value,
             Width = 64,
             Height = 64,
             HorizontalAlignment = HorizontalAlignment.Left,

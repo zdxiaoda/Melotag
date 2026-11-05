@@ -16,6 +16,12 @@ public sealed class SafFileHandle : IFileHandle
     private readonly string _cachePath;
     private bool _cacheReady;
 
+    private static readonly string[] MetadataProjection =
+    [
+        DocumentsContract.Document.ColumnSize,
+        DocumentsContract.Document.ColumnLastModified,
+    ];
+
     internal SafFileHandle(Context context, ContentResolver resolver, SafDocument document)
     {
         _context = context;
@@ -47,9 +53,9 @@ public sealed class SafFileHandle : IFileHandle
 
     public string Extension { get; }
 
-    public long Length { get; }
+    public long Length { get; private set; }
 
-    public DateTime LastWriteTimeUtc { get; }
+    public DateTime LastWriteTimeUtc { get; private set; }
     public DateTime? CreationTimeUtc => null;
 
     public string Key => Document.Uri.ToString()!;
@@ -122,6 +128,33 @@ public sealed class SafFileHandle : IFileHandle
     /// <summary>SAF 不暴露修改时间写入接口，静默忽略。</summary>
     public void SetLastWriteTimeUtc(DateTime utc)
     {
+    }
+
+    /// <summary>重新查询 provider，刷新大小与修改时间（保存到云盘后元数据会变化）。</summary>
+    public void RefreshMetadata()
+    {
+        try
+        {
+            using var cursor = _resolver.Query(Document.Uri, MetadataProjection, null, null, null);
+            if (cursor is null || !cursor.MoveToFirst()) return;
+
+            var sizeIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnSize);
+            if (sizeIndex >= 0 && !cursor.IsNull(sizeIndex))
+                Length = cursor.GetLong(sizeIndex);
+
+            var modifiedIndex = cursor.GetColumnIndex(DocumentsContract.Document.ColumnLastModified);
+            if (modifiedIndex >= 0 && !cursor.IsNull(modifiedIndex))
+            {
+                var modified = cursor.GetLong(modifiedIndex);
+                LastWriteTimeUtc = modified > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(modified).UtcDateTime
+                    : DateTime.UnixEpoch;
+            }
+        }
+        catch
+        {
+            // 部分 provider 不支持查询这些列，保留旧值。
+        }
     }
 
     public override string ToString() => FileName;

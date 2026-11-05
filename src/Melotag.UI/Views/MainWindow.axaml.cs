@@ -21,10 +21,6 @@ public partial class MainWindow : Window
     private readonly UpdateUi _updates = new();
     private bool _applyingLayout;
 
-    /// <summary>程序化恢复排序时挂起，用来吞掉随之而来的 Sorting 事件（该事件是异步派发的）。</summary>
-    private DataGridColumn? _pendingRestoreColumn;
-    private DispatcherTimer? _pendingRestoreTimer;
-
     public MainWindow()
     {
         InitializeComponent();
@@ -46,6 +42,10 @@ public partial class MainWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+
+        if (Vm is { } vm)
+            vm.SortRefreshRequested += OnSortRefreshRequested;
+
         ApplyColumnLayout();
         RestoreSort();
     }
@@ -108,8 +108,38 @@ public partial class MainWindow : Window
         }
 
         column.IsVisible = item.IsChecked == true;
+
+        if (!column.IsVisible && Vm is { } vm && IsColumnSorted(column))
+        {
+            // 被隐藏的列如果正在参与排序，列表会变成“看不到排序键”的状态，直接清除排序。
+            TracksGrid.CollectionView?.SortDescriptions.Clear();
+            vm.SetSort(null, false);
+            RefreshNativeView(force: true);
+        }
+
         SaveColumnLayout();
         Vm?.SaveSettings();
+    }
+
+    private bool IsColumnSorted(DataGridColumn column)
+    {
+        if (Vm is null) return false;
+
+        if (column.Tag is string id &&
+            string.Equals(Vm.Settings.Ui.SortColumn, id, StringComparison.Ordinal))
+            return true;
+
+        var descriptions = TracksGrid.CollectionView?.SortDescriptions;
+        if (descriptions is null || string.IsNullOrEmpty(column.SortMemberPath))
+            return false;
+
+        foreach (var description in descriptions)
+        {
+            if (string.Equals(description.PropertyPath, column.SortMemberPath, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     private void ApplyColumnLayout()
@@ -155,6 +185,14 @@ public partial class MainWindow : Window
         {
             _applyingLayout = false;
         }
+
+        // 配置里保存的排序键被隐藏（或重置列时被隐藏）时，不要留下不可见的排序。
+        if (byId.Values.Any(column => !column.IsVisible && IsColumnSorted(column)))
+        {
+            TracksGrid.CollectionView?.SortDescriptions.Clear();
+            Vm.SetSort(null, false);
+            RefreshNativeView(force: true);
+        }
     }
 
     private void ResetColumnLayout()
@@ -191,48 +229,85 @@ public partial class MainWindow : Window
 
     private void OnGridSorting(object? sender, DataGridColumnEventArgs e)
     {
-        if (ReferenceEquals(_pendingRestoreColumn, e.Column))
+        if (Vm is null) return;
+        if (e.Column.Tag is not string) return;
+
+        // Sorting 在 DataGrid 真正修改 SortDescriptions 之前触发，推迟到下一轮读取实际状态，
+        // 才能正确区分升/降序、Ctrl/Cmd 清除排序和 Shift 多列排序；程序化恢复排序也能安全复用。
+        Dispatcher.UIThread.Post(SyncSortFromGrid);
+    }
+
+    private void SyncSortFromGrid()
+    {
+        if (Vm is null) return;
+
+        var descriptions = TracksGrid.CollectionView?.SortDescriptions;
+        if (descriptions is null) return;
+
+        if (descriptions.Count == 0)
         {
-            ClearPendingRestore();
+            Vm.SetSort(null, false);
+            // 清除排序后 DataGridCollectionView 已按旧源顺序刷新过一次，再按 VM 恢复的导入顺序重建。
+            RefreshNativeView(force: true);
             return;
         }
 
-        if (Vm is null) return;
-        if (e.Column.Tag is not string id) return;
+        var description = descriptions[0];
+        var column = TracksGrid.Columns.FirstOrDefault(c =>
+            string.Equals(c.SortMemberPath, description.PropertyPath, StringComparison.Ordinal));
 
-        var same = string.Equals(Vm.Settings.Ui.SortColumn, id, StringComparison.Ordinal);
-        Vm.Settings.Ui.SortColumn = id;
-        Vm.Settings.Ui.SortDescending = same && !Vm.Settings.Ui.SortDescending;
-        Vm.SaveSettings();
+        if (column?.Tag is not string id) return;
+        if (!TrackColumns.TryParseSortField(id, out var field)) return;
+
+        Vm.SetSort(field, description.Direction == ListSortDirection.Descending);
+    }
+
+    private void OnSortRefreshRequested()
+    {
+        // 保存/重读/重命名/自动匹配等修改了排序键，原生排序视图不会自动重排。
+        RefreshNativeView(force: Vm?.SortField is not null);
+    }
+
+    private void RefreshNativeView(bool force = false)
+    {
+        var view = TracksGrid.CollectionView;
+        if (view is null) return;
+        if (!force && view.SortDescriptions.Count == 0) return;
+
+        var selectedItems = TracksGrid.SelectedItems;
+        if (selectedItems is null) return;
+        var selected = selectedItems.Cast<object>().ToList();
+        var current = TracksGrid.SelectedItem as TrackRowViewModel ?? Vm?.SelectedTrack;
+        if (current is not null && !selected.Contains(current))
+            selected.Add(current);
+
+        view.Refresh();
+
+        if (selected.Count == 0) return;
+
+        selectedItems.Clear();
+        foreach (var item in selected)
+        {
+            if (item is TrackRowViewModel row && Vm?.Tracks.Contains(row) == true)
+                selectedItems.Add(row);
+        }
+
+        if (current is not null && Vm?.Tracks.Contains(current) == true)
+            TracksGrid.SelectedItem = current;
     }
 
     private void RestoreSort()
     {
         if (Vm is null) return;
-        if (!TrackColumns.IsKnown(Vm.Settings.Ui.SortColumn)) return;
+        if (!TrackColumns.TryParseSortField(Vm.Settings.Ui.SortColumn, out _)) return;
 
         var column = TracksGrid.Columns
             .FirstOrDefault(c => string.Equals(c.Tag as string, Vm.Settings.Ui.SortColumn, StringComparison.Ordinal));
         if (column is null) return;
 
-        _pendingRestoreColumn = column;
-        _pendingRestoreTimer?.Stop();
-
-        // Sorting 事件是异步派发的；如果平台没有派发，最多挂起 1.5 秒。
-        _pendingRestoreTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1500), DispatcherPriority.Normal,
-            (_, _) => ClearPendingRestore());
-        _pendingRestoreTimer.Start();
-
         column.Sort(Vm.Settings.Ui.SortDescending
             ? ListSortDirection.Descending
             : ListSortDirection.Ascending);
-    }
-
-    private void ClearPendingRestore()
-    {
-        _pendingRestoreColumn = null;
-        _pendingRestoreTimer?.Stop();
-        _pendingRestoreTimer = null;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -379,6 +454,7 @@ public partial class MainWindow : Window
 
         var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
         await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Rename"), 780, 640);
+        Vm.RefreshSort();
     }
 
     private async void OnAutoMatch(object? sender, RoutedEventArgs e)
@@ -535,7 +611,12 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         Localizer.Instance.LanguageChanged -= LocalizeColumns;
-        Vm?.SaveSettings();
+        if (Vm is { } vm)
+        {
+            vm.SortRefreshRequested -= OnSortRefreshRequested;
+            vm.SaveSettings();
+        }
+
         base.OnClosed(e);
     }
 }

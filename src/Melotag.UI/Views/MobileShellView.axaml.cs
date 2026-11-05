@@ -85,8 +85,29 @@ public partial class MobileShellView : UserControl
         Vm.SetSort(field, SortDescendingBox.IsChecked == true);
     }
 
+    private void OnClearSort(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is null) return;
+
+        _syncingSort = true;
+        try
+        {
+            SortFieldList.SelectedIndex = -1;
+            SortDescendingBox.IsChecked = false;
+        }
+        finally
+        {
+            _syncingSort = false;
+        }
+
+        Vm.SetSort(null, false);
+    }
+
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        // 排序/过滤正在增量移动行时，选中项可能短暂变为 null，不应关闭详情页。
+        if (Vm?.IsReordering == true) return;
+
         // 选中项被移除（或过滤掉）时退回列表；打开详情只由用户点击触发。
         if (TrackList.SelectedItem is null && DetailPage.IsVisible)
             ShowDetail(false);
@@ -205,6 +226,7 @@ public partial class MobileShellView : UserControl
 
         var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
         await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Rename"), 780, 640);
+        Vm.RefreshSort();
     }
 
     private async void OnTagSearch(object? sender, RoutedEventArgs e)

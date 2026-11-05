@@ -100,6 +100,8 @@
               <ListBox x:Name="SortFieldList" MaxHeight="260" SelectionChanged="OnSortFieldChanged" />
               <CheckBox x:Name="SortDescendingBox" Content="{loc:Tr Key=Sort.Descending}"
                         IsCheckedChanged="OnSortDescendingChanged" />
+              <Button Content="{loc:Tr Key=Button.ResetDefault}" Click="OnClearSort"
+                      HorizontalAlignment="Stretch" />
             </StackPanel>
           </Flyout>
         </Button.Flyout>

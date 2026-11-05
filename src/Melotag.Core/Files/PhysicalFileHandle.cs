@@ -12,21 +12,16 @@ public sealed class PhysicalFileHandle : IFileHandle
         FileName = Path.GetFileName(full);
         FileNameWithoutExtension = Path.GetFileNameWithoutExtension(full);
         Extension = Path.GetExtension(full).ToLowerInvariant();
-        var info = new FileInfo(full);
-        Length = info.Exists ? info.Length : 0;
-        LastWriteTimeUtc = info.Exists ? info.LastWriteTimeUtc : DateTime.UnixEpoch;
-        CreationTimeUtc = info.Exists && info.CreationTimeUtc > DateTime.UnixEpoch
-            ? info.CreationTimeUtc
-            : null;
+        RefreshMetadata();
     }
 
     public string DisplayPath { get; }
     public string FileName { get; }
     public string FileNameWithoutExtension { get; }
     public string Extension { get; }
-    public long Length { get; }
-    public DateTime LastWriteTimeUtc { get; }
-    public DateTime? CreationTimeUtc { get; }
+    public long Length { get; private set; }
+    public DateTime LastWriteTimeUtc { get; private set; }
+    public DateTime? CreationTimeUtc { get; private set; }
     public string Key => DisplayPath;
     public bool IsWritable => true;
     public bool CanRename => true;
@@ -64,6 +59,17 @@ public sealed class PhysicalFileHandle : IFileHandle
     {
         if (!File.Exists(DisplayPath)) return;
         File.SetLastWriteTimeUtc(DisplayPath, utc);
+        LastWriteTimeUtc = utc;
+    }
+
+    public void RefreshMetadata()
+    {
+        var info = new FileInfo(DisplayPath);
+        Length = info.Exists ? info.Length : 0;
+        LastWriteTimeUtc = info.Exists ? info.LastWriteTimeUtc : DateTime.UnixEpoch;
+        CreationTimeUtc = info.Exists && info.CreationTimeUtc > DateTime.UnixEpoch
+            ? info.CreationTimeUtc
+            : null;
     }
 
     public override string ToString() => DisplayPath;

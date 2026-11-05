@@ -7,12 +7,15 @@ using CommunityToolkit.Mvvm.Input;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 using Melotag.UI.Localization;
+using Melotag.UI.Media;
 
 /// <summary>列表行 + 编辑面板的可绑定模型。数字字段用文本承载，避免输入过程中的绑定异常。</summary>
 public partial class TrackRowViewModel : ObservableObject, IDisposable
 {
     private const int DetailCoverWidth = 400;
+    private const int DetailCoverHeight = 560;
     private const int ThumbnailWidth = 64;
+    private const int ThumbnailHeight = 64;
 
     /// <summary>仅保存用户待写入文件的封面改动；磁盘上的封面在需要时按需读取。</summary>
     private readonly List<TagPicture> _pictures = [];
@@ -21,11 +24,19 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     private DateTime? _modifiedUtc;
     private DateTime? _createdUtc;
 
-    private Bitmap? _thumbnail;
-    private bool _thumbnailRequested;
+    // 批量路径（自动匹配等）可以把待写入封面暂存到磁盘，行内只保留路径，避免整库原图常驻内存。
+    private string? _spooledCoverPath;
+    private string? _spooledCoverMime;
+
+    // 缩略图不常驻强引用：命中 ThumbnailCache（有界 LRU）或 UI 仍持有弱引用时才返回。
+    private WeakReference<Bitmap>? _thumbnail;
+    private bool _thumbnailAttemptStarted;
+    private bool _thumbnailAttemptCompleted;
+    private bool _thumbnailFailed;
     private int _thumbnailGeneration;
     private bool _previewRequested;
     private int _previewGeneration;
+    private bool _disposed;
 
     private string? _savedTitle;
     private string? _savedArtist;
@@ -90,25 +101,41 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
 
     public AudioInfo? Info => _info;
 
-    /// <summary>用户待写入的封面改动；空表示保持文件里的原封面。</summary>
+    /// <summary>内存中的待写入封面改动；磁盘暂存时为空，读取请用 <see cref="LoadPictures"/>。</summary>
     public IReadOnlyList<TagPicture> Pictures => _pictures;
     public bool PicturesDirty { get; private set; }
     public bool HasCover { get; private set; }
 
     /// <summary>
     /// 移动端列表用的 46px 缩略图。首次被绑定读取时才从文件解码，桌面端没有绑定不会触发。
+    /// 缩略图放在有界 LRU 缓存中；缓存淘汰后由 GC 回收，不会随滚动永久累积。
     /// </summary>
     public Bitmap? CoverThumbnail
     {
         get
         {
-            if (!_thumbnailRequested && HasCover)
+            if (_disposed || !HasCover) return null;
+
+            if (ThumbnailCache.TryGet(Key, out var cached))
+                return cached;
+
+            if (_thumbnail is { } reference && reference.TryGetTarget(out var bitmap))
             {
-                _thumbnailRequested = true;
+                // 缓存可能刚淘汰了它，但界面仍持有强引用；重新放回缓存。
+                ThumbnailCache.Put(Key, bitmap);
+                return bitmap;
+            }
+
+            // 第一次加载，或上次成功后缩略图已被淘汰（滚动回来时重新解码）。
+            if (!_thumbnailAttemptStarted || (_thumbnailAttemptCompleted && !_thumbnailFailed))
+            {
+                _thumbnailAttemptStarted = true;
+                _thumbnailAttemptCompleted = false;
+                _thumbnailFailed = false;
                 _ = LoadThumbnailAsync();
             }
 
-            return _thumbnail;
+            return null;
         }
     }
 
@@ -218,7 +245,8 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         Status = item.Status;
         ErrorText = item.Error;
 
-        // 待写入的封面在保存后已落盘，不再保留字节；需要时从文件回读。
+        // 待写入的封面在保存后已落盘（或本次重新读取要丢弃改动），不再保留字节/暂存文件。
+        ClearSpooledCover();
         _pictures.Clear();
         PicturesDirty = false;
         HasCover = item.HasCover || item.Tags.Pictures.Count > 0;
@@ -244,18 +272,39 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         Status = TrackStatus.Modified;
     }
 
-    public void SetCover(byte[] data, string mimeType)
+    /// <summary>
+    /// 设置待写入封面。<paramref name="spoolToDisk"/> 为 true 时把字节写入临时文件，
+    /// 行内只保留路径；适合批量自动匹配等一次写入很多行的场景。
+    /// 返回 false 表示磁盘暂存失败（此时不会改内存/封面状态），批量调用方应计入 miss，
+    /// 不要把整批原图退回内存常驻。
+    /// </summary>
+    public bool SetCover(byte[] data, string mimeType, bool spoolToDisk = false)
     {
+        string? spooledPath = null;
+        if (spoolToDisk)
+        {
+            spooledPath = CoverSpool.TryStore(data);
+            if (spooledPath is null) return false;
+        }
+
+        var previousSpool = _spooledCoverPath;
+        _spooledCoverPath = spooledPath;
+        _spooledCoverMime = spooledPath is null ? null : mimeType;
         _pictures.Clear();
-        _pictures.Add(new TagPicture(data, mimeType));
+        if (spooledPath is null)
+            _pictures.Add(new TagPicture(data, mimeType));
+
+        CoverSpool.TryDelete(previousSpool);
         PicturesDirty = true;
         HasCover = true;
         InvalidateCovers();
         Status = TrackStatus.Modified;
+        return true;
     }
 
     public void ClearCover()
     {
+        ClearSpooledCover();
         _pictures.Clear();
         PicturesDirty = true;
         HasCover = false;
@@ -266,7 +315,12 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     /// <summary>按需读取当前封面：有未保存改动时用改动，否则回读文件。返回临时列表，不常驻内存。</summary>
     public IReadOnlyList<TagPicture> LoadPictures()
     {
-        if (PicturesDirty) return _pictures;
+        if (PicturesDirty)
+        {
+            if (_spooledCoverPath is null) return _pictures;
+            return TryReadSpooledCover() is { } picture ? [picture] : [];
+        }
+
         if (_pictureLoader is null || Source is null) return [];
 
         try
@@ -282,6 +336,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     /// <summary>详情面板用的大图；由列表选中项变化驱动，同一时刻只保留一张。</summary>
     public void RequestCoverPreview()
     {
+        if (_disposed) return;
         _previewRequested = true;
         _ = LoadPreviewAsync();
     }
@@ -295,11 +350,12 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _thumbnailGeneration++;
+        if (_disposed) return;
+        _disposed = true;
         _previewGeneration++;
-        _thumbnail?.Dispose();
-        _thumbnail = null;
+        ReleaseThumbnail();
         ReleasePreview();
+        ClearSpooledCover();
     }
 
     /// <summary>先把绑定切到 null，再释放旧位图，避免界面短时间持有已释放的图像。</summary>
@@ -312,13 +368,25 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
 
     public void RenameTo(IFileHandle newHandle)
     {
+        var previousKey = Key;
         Source = newHandle;
         Key = newHandle.Key;
         Path = newHandle.DisplayPath;
         FileName = newHandle.FileName;
+
+        // 缩略图仍有效，只是缓存键（文件标识）变了。
+        if (!string.Equals(previousKey, Key, StringComparison.Ordinal) &&
+            ThumbnailCache.Remove(previousKey) is { } cached)
+        {
+            ThumbnailCache.Put(Key, cached);
+        }
     }
 
-    public TrackTags ToTags() => new()
+    /// <summary>
+    /// 生成待写入的标签。磁盘暂存的封面会在这里逐首读回（一次只在内存里保留一首的字节），
+    /// 调用方（保存流程）随后逐首写文件即可。
+    /// </summary>
+    public TrackTags ToTags(bool includePictures = true) => new()
     {
         Title = TrackTags.Normalize(Title),
         Artist = TrackTags.Normalize(Artist),
@@ -332,7 +400,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         Composer = TrackTags.Normalize(Composer),
         Lyricist = TrackTags.Normalize(Lyricist),
         Lyrics = string.IsNullOrWhiteSpace(Lyrics) ? null : Lyrics,
-        Pictures = [.. _pictures],
+        Pictures = includePictures ? ReadPicturesForSave() : [],
     };
 
     private static uint? ParseUInt(string? text) =>
@@ -341,11 +409,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     /// <summary>封面变化后丢掉已解码的位图；详情预览按原请求状态重新加载。</summary>
     private void InvalidateCovers()
     {
-        _thumbnailGeneration++;
-        _thumbnail?.Dispose();
-        _thumbnail = null;
-        _thumbnailRequested = false;
-        OnPropertyChanged(nameof(CoverThumbnail));
+        ReleaseThumbnail();
         OnPropertyChanged(nameof(HasCover));
 
         if (_previewRequested)
@@ -359,10 +423,26 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>释放缩略图强引用/缓存并让迟到的解码结果作废。</summary>
+    private void ReleaseThumbnail()
+    {
+        _thumbnailAttemptStarted = false;
+        _thumbnailAttemptCompleted = false;
+        _thumbnailFailed = false;
+        _thumbnailGeneration++;
+
+        var cached = ThumbnailCache.Remove(Key);
+        _thumbnail = null;
+
+        // 先让绑定刷新到 null，再释放缓存里的位图，避免界面短暂引用已释放图像。
+        OnPropertyChanged(nameof(CoverThumbnail));
+        cached?.Dispose();
+    }
+
     private async Task LoadThumbnailAsync()
     {
         var generation = ++_thumbnailGeneration;
-        var bitmap = await DecodeCoverAsync(ThumbnailWidth);
+        var bitmap = await DecodeCoverAsync(ThumbnailWidth, ThumbnailHeight);
 
         if (generation != _thumbnailGeneration)
         {
@@ -384,15 +464,20 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        _thumbnail?.Dispose();
-        _thumbnail = bitmap;
+        _thumbnailAttemptCompleted = true;
+        _thumbnailFailed = bitmap is null;
+
+        if (bitmap is null) return;
+
+        _thumbnail = new WeakReference<Bitmap>(bitmap);
+        ThumbnailCache.Put(Key, bitmap);
         OnPropertyChanged(nameof(CoverThumbnail));
     }
 
     private async Task LoadPreviewAsync()
     {
         var generation = ++_previewGeneration;
-        var bitmap = await DecodeCoverAsync(DetailCoverWidth);
+        var bitmap = await DecodeCoverAsync(DetailCoverWidth, DetailCoverHeight);
 
         if (generation != _previewGeneration)
         {
@@ -419,13 +504,22 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         previous?.Dispose();
     }
 
-    private async Task<Bitmap?> DecodeCoverAsync(int maxWidth)
+    private async Task<Bitmap?> DecodeCoverAsync(int maxWidth, int maxHeight)
     {
         if (PicturesDirty)
         {
+            var spooledPath = _spooledCoverPath;
+            var spooledMime = _spooledCoverMime;
+            if (spooledPath is not null)
+            {
+                return await Task.Run(() => TryReadSpooledCover(spooledPath, spooledMime) is { } picture
+                    ? Decode(picture.Data, maxWidth, maxHeight)
+                    : null);
+            }
+
             if (_pictures.Count == 0) return null;
             var data = _pictures[0].Data;
-            return await Task.Run(() => Decode(data, maxWidth));
+            return await Task.Run(() => Decode(data, maxWidth, maxHeight));
         }
 
         if (!HasCover || _pictureLoader is null || Source is null) return null;
@@ -437,7 +531,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
             return await Task.Run(() =>
             {
                 var picture = loader(handle).FirstOrDefault();
-                return picture is null ? null : Decode(picture.Data, maxWidth);
+                return picture is null ? null : Decode(picture.Data, maxWidth, maxHeight);
             });
         }
         catch
@@ -446,17 +540,48 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private static Bitmap? Decode(byte[] data, int maxWidth)
+    private static Bitmap? Decode(byte[] data, int maxWidth, int maxHeight) =>
+        CoverPreviewDecoder.Decode(data, maxWidth, maxHeight);
+
+    /// <summary>保存前取待写入封面；暂存文件读不出来时退化为“不替换封面”，避免删掉文件里的原封面。</summary>
+    private List<TagPicture> ReadPicturesForSave()
+    {
+        if (_spooledCoverPath is null) return [.. _pictures];
+
+        if (TryReadSpooledCover() is { } picture)
+            return [picture];
+
+        ClearSpooledCover();
+        PicturesDirty = false;
+        return [];
+    }
+
+    private TagPicture? TryReadSpooledCover()
+    {
+        var path = _spooledCoverPath;
+        return path is null ? null : TryReadSpooledCover(path, _spooledCoverMime);
+    }
+
+    private static TagPicture? TryReadSpooledCover(string path, string? mimeType)
     {
         try
         {
-            using var ms = new MemoryStream(data, writable: false);
-            return Bitmap.DecodeToWidth(ms, maxWidth, BitmapInterpolationMode.HighQuality);
+            var data = File.ReadAllBytes(path);
+            if (data.Length == 0) return null;
+            return new TagPicture(data, mimeType ?? "image/jpeg");
         }
         catch
         {
             return null;
         }
+    }
+
+    private void ClearSpooledCover()
+    {
+        var path = _spooledCoverPath;
+        _spooledCoverPath = null;
+        _spooledCoverMime = null;
+        CoverSpool.TryDelete(path);
     }
 
     partial void OnTitleChanged(string? value)

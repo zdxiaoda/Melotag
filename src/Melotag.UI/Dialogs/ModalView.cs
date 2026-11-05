@@ -73,7 +73,11 @@ public static class ModalHost
     private static void ShowOverlay(TopLevel? owner, ModalView view, double requestedWidth,
         double requestedHeight, TaskCompletionSource<object?> completion)
     {
-        if (owner is null || OverlayLayer.GetOverlayLayer(owner) is not { } layer) return;
+        if (owner is null || OverlayLayer.GetOverlayLayer(owner) is not { } layer)
+        {
+            completion.TrySetResult(null);
+            return;
+        }
 
         view.ShowHeader = true;
         view.HorizontalAlignment = HorizontalAlignment.Center;

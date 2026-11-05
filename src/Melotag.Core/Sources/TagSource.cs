@@ -136,6 +136,8 @@ public static class Http
         }
     }
 
+    private const int MaxImageBytes = 32 * 1024 * 1024;
+
     public static async Task<byte[]?> TryGetBytesAsync(string url, CancellationToken ct, string? referer = null)
     {
         try
@@ -143,10 +145,23 @@ public static class Http
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
             if (referer is not null) request.Headers.TryAddWithoutValidation("Referer", referer);
-            using var response = await Client.SendAsync(request, ct);
+            using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!response.IsSuccessStatusCode) return null;
-            var bytes = await response.Content.ReadAsByteArrayAsync(ct);
-            return bytes.Length == 0 ? null : bytes;
+            if (response.Content.Headers.ContentLength > MaxImageBytes) return null;
+
+            await using var input = await response.Content.ReadAsStreamAsync(ct);
+            using var output = new MemoryStream();
+            var buffer = new byte[81920];
+            var total = 0;
+            int read;
+            while ((read = await input.ReadAsync(buffer, ct)) > 0)
+            {
+                total += read;
+                if (total > MaxImageBytes) return null;
+                output.Write(buffer, 0, read);
+            }
+
+            return output.Length == 0 ? null : output.ToArray();
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {

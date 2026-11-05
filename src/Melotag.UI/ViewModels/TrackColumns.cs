@@ -39,6 +39,12 @@ public static class TrackColumns
 
     public static bool IsKnown(string? id) => id is not null && All.Contains(id);
 
+    public static bool TryParseSortField(string? id, out TrackSortField field)
+    {
+        field = default;
+        return IsKnown(id) && Enum.TryParse(id!, ignoreCase: true, out field);
+    }
+
     public static string LabelKey(string id) => $"Column.{id}";
 }
 

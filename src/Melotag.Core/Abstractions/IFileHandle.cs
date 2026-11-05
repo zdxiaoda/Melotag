@@ -40,4 +40,12 @@ public interface IFileHandle
 
     /// <summary>写入标签后恢复修改时间；平台不支持时静默忽略。</summary>
     void SetLastWriteTimeUtc(DateTime utc);
+
+    /// <summary>
+    /// 重新读取文件大小、修改时间等元数据。默认实现不做任何事，
+    /// 供缓存了 FileInfo / SAF 查询结果的平台实现覆盖。
+    /// </summary>
+    void RefreshMetadata()
+    {
+    }
 }

@@ -1,17 +1,28 @@
 namespace Melotag.UI.Dialogs;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Melotag.Core.Models;
 using Melotag.Core.Services;
 using Melotag.Core.Sources;
 using Melotag.Storage;
 using Melotag.UI.Localization;
+using Melotag.UI.Media;
 using Melotag.UI.ViewModels;
 
 public partial class CoverDialog : ModalView
 {
+    /// <summary>预览只保留这个尺寸以内的位图，避免打开对话框时解码整张原图。</summary>
+    private const int PreviewMaxWidth = 512;
+    private const int PreviewMaxHeight = 512;
+
+    /// <summary>本地封面上限；流式读取，超过后不再继续读入或解码。</summary>
+    private const int MaxLocalCoverBytes = 32 * 1024 * 1024;
+
     private readonly TagSearchService? _search;
     private readonly CoverService _coverService = new();
     private readonly AppSettings? _settings;
@@ -20,6 +31,11 @@ public partial class CoverDialog : ModalView
     private CancellationTokenSource? _cts;
     private byte[]? _current;
     private string _mime = "image/jpeg";
+    private Bitmap? _previewBitmap;
+    private int _previewVersion;
+    private bool _dirty;
+    private bool _initialLoadStarted;
+    private bool _detached;
 
     public CoverDialog()
     {
@@ -36,10 +52,6 @@ public partial class CoverDialog : ModalView
 
         MaxSizeBox.Value = settings.Pictures.MaxSizeKb;
         MaxSizeBox.IsEnabled = !settings.Pictures.KeepOriginal;
-
-        var pictures = row.LoadPictures();
-        if (pictures.Count > 0)
-            ShowPreview(pictures[0].Data, pictures[0].MimeType);
     }
 
     public byte[]? Result { get; private set; }
@@ -48,25 +60,130 @@ public partial class CoverDialog : ModalView
 
     private IStorageProvider? Storage => TopLevel.GetTopLevel(this)?.StorageProvider;
 
-    private void ShowPreview(byte[] data, string mime)
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        base.OnAttachedToVisualTree(e);
+
+        if (_initialLoadStarted || _row is null) return;
+        _initialLoadStarted = true;
+        _ = LoadInitialPreviewAsync();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _detached = true;
+        _previewVersion++;
+        _cts?.Cancel();
+        _cts = null;
+        DisposePreview();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private async Task LoadInitialPreviewAsync()
+    {
+        var row = _row;
+        if (row is null) return;
+
+        var version = ++_previewVersion;
+
+        IReadOnlyList<TagPicture> pictures;
         try
         {
-            using var ms = new MemoryStream(data);
-            var bitmap = new Bitmap(ms);
-            (Preview.Source as Bitmap)?.Dispose();
-            Preview.Source = bitmap;
-            Placeholder.IsVisible = false;
-            _current = data;
-            _mime = mime;
-            Result = data;
-            ResultMime = mime;
-            Status.Text = $"{data.Length / 1024} KB · {mime}";
+            pictures = await Task.Run(row.LoadPictures);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Status.Text = Localizer.F("Cover.CannotShow", ex.Message);
+            return;
         }
+
+        if (version != _previewVersion || _detached || pictures.Count == 0) return;
+
+        // 初始预览只是展示文件里已有的封面；没有修改时 OK 不应该让调用方重新 SetCover。
+        await ApplyPreviewAsync(pictures[0].Data, pictures[0].MimeType, userChange: false, version);
+    }
+
+    private async Task ApplyWithLimitsAsync(byte[] bytes)
+    {
+        var settings = _settings;
+        if (settings is null || _detached) return;
+
+        var version = ++_previewVersion;
+        var keepOriginal = settings.Pictures.KeepOriginal;
+        var maxSizeKb = (int)(MaxSizeBox.Value ?? settings.Pictures.MaxSizeKb);
+
+        var normalized = await Task.Run(() => keepOriginal
+            ? _coverService.ValidateOriginal(bytes, settings.Pictures.AllowedFormats)
+            : _coverService.Normalize(
+                bytes,
+                settings.Pictures.MaxWidth,
+                settings.Pictures.MaxHeight,
+                maxSizeKb,
+                settings.Pictures.AllowedFormats));
+
+        if (version != _previewVersion || _detached) return;
+
+        if (normalized is null)
+        {
+            Status.Text = Localizer.T("Cover.Invalid");
+            return;
+        }
+
+        if (!await ApplyPreviewAsync(normalized.Data, normalized.MimeType, userChange: true, version))
+            return;
+
+        Status.Text = $"{normalized.Width}×{normalized.Height} · {normalized.Data.Length / 1024} KB";
+    }
+
+    private async Task<bool> ApplyPreviewAsync(byte[] data, string mime, bool userChange, int version)
+    {
+        var bitmap = await Task.Run(() => CoverPreviewDecoder.Decode(data, PreviewMaxWidth, PreviewMaxHeight));
+
+        if (version != _previewVersion || _detached)
+        {
+            bitmap?.Dispose();
+            return false;
+        }
+
+        if (bitmap is null)
+        {
+            Status.Text = Localizer.T("Cover.Invalid");
+            return false;
+        }
+
+        SetPreviewBitmap(bitmap);
+        Placeholder.IsVisible = false;
+        _current = data;
+        _mime = mime;
+
+        if (userChange)
+        {
+            _dirty = true;
+            Removed = false;
+        }
+        else
+        {
+            _dirty = false;
+        }
+
+        Status.Text = $"{bitmap.PixelSize.Width}×{bitmap.PixelSize.Height} · {data.Length / 1024} KB";
+        return true;
+    }
+
+    private void SetPreviewBitmap(Bitmap bitmap)
+    {
+        var previous = _previewBitmap;
+        _previewBitmap = bitmap;
+        Preview.Source = bitmap;
+        previous?.Dispose();
+    }
+
+    private void DisposePreview()
+    {
+        Preview.Source = null;
+        var previous = _previewBitmap;
+        _previewBitmap = null;
+        _current = null;
+        previous?.Dispose();
     }
 
     private async void OnSearch(object? sender, RoutedEventArgs e)
@@ -128,6 +245,7 @@ public partial class CoverDialog : ModalView
         var candidate = _results[index];
         if (string.IsNullOrWhiteSpace(candidate.CoverUrl)) return;
 
+        var version = ++_previewVersion;
         Progress.IsVisible = true;
         Status.Text = Localizer.T("Search.CoverDownloading");
         try
@@ -140,7 +258,8 @@ public partial class CoverDialog : ModalView
                 return;
             }
 
-            ApplyWithLimits(bytes);
+            if (version != _previewVersion || _detached) return;
+            await ApplyWithLimitsAsync(bytes);
         }
         finally
         {
@@ -148,34 +267,11 @@ public partial class CoverDialog : ModalView
         }
     }
 
-    private void ApplyWithLimits(byte[] bytes)
-    {
-        if (_settings is null) return;
-
-        var normalized = _settings.Pictures.KeepOriginal
-            ? _coverService.ValidateOriginal(bytes, _settings.Pictures.AllowedFormats)
-            : _coverService.Normalize(
-                bytes,
-                _settings.Pictures.MaxWidth,
-                _settings.Pictures.MaxHeight,
-                (int)(MaxSizeBox.Value ?? _settings.Pictures.MaxSizeKb),
-                _settings.Pictures.AllowedFormats);
-
-        if (normalized is null)
-        {
-            Status.Text = Localizer.T("Cover.Invalid");
-            return;
-        }
-
-        ShowPreview(normalized.Data, normalized.MimeType);
-        Status.Text = $"{normalized.Width}×{normalized.Height} · {normalized.Data.Length / 1024} KB";
-        Removed = false;
-    }
-
     private async void OnPickLocal(object? sender, RoutedEventArgs e)
     {
         if (Storage is not { } storage) return;
 
+        var version = _previewVersion;
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = Localizer.T("Cover.PickTitle"),
@@ -190,8 +286,30 @@ public partial class CoverDialog : ModalView
 
         await using var stream = await files[0].OpenReadAsync();
         using var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer);
-        ApplyWithLimits(buffer.ToArray());
+        if (!await CopyWithLimitAsync(stream, buffer, MaxLocalCoverBytes))
+        {
+            Status.Text = Localizer.T("Cover.Invalid");
+            return;
+        }
+
+        if (version != _previewVersion || _detached) return;
+        await ApplyWithLimitsAsync(buffer.ToArray());
+    }
+
+    private static async Task<bool> CopyWithLimitAsync(Stream source, Stream destination, int maxBytes)
+    {
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true)
+        {
+            var read = await source.ReadAsync(buffer, 0, buffer.Length);
+            if (read <= 0) return true;
+
+            total += read;
+            if (total > maxBytes) return false;
+
+            await destination.WriteAsync(buffer.AsMemory(0, read));
+        }
     }
 
     private async void OnExport(object? sender, RoutedEventArgs e)
@@ -222,24 +340,38 @@ public partial class CoverDialog : ModalView
 
     private void OnRemove(object? sender, RoutedEventArgs e)
     {
-        Preview.Source = null;
+        _previewVersion++;
+        DisposePreview();
         Placeholder.IsVisible = true;
-        _current = null;
-        Result = null;
+        _dirty = true;
         Removed = true;
+        Result = null;
         Status.Text = Localizer.T("Cover.RemoveOnSave");
     }
 
     private void OnOk(object? sender, RoutedEventArgs e)
     {
-        Result = _current;
+        // 只有在用户确实改过封面时才把数据交回调用方；未修改时返回 null，避免无意义的 SetCover。
+        Result = _dirty && !Removed ? _current : null;
         ResultMime = _mime;
         Close(true);
+        SchedulePreviewDispose();
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e)
     {
         _cts?.Cancel();
         Close(false);
+        SchedulePreviewDispose();
+    }
+
+    /// <summary>桌面窗口关闭/Android 浮层移除时兜底释放预览位图。</summary>
+    private void SchedulePreviewDispose()
+    {
+        _detached = true;
+        _previewVersion++;
+
+        // 让关闭流程先完成绑定解绑，再释放位图，避免界面短暂引用已释放图像。
+        Dispatcher.UIThread.Post(DisposePreview, DispatcherPriority.Background);
     }
 }
