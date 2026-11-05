@@ -24,13 +24,24 @@
 
 .PARAMETER KeepTemp
     Keep the generated demo/media folder under %TEMP% for inspection.
+
+.PARAMETER Trailer
+    Record a raw 1760x990@30fps screen capture of the real app instead of
+    saving screenshots. Uses only -Languages[0], writes raw.mp4 and beats.json
+    under packaging\store\trailer\<lang>\, and leaves final encoding to
+    Build-StoreTrailer.py.
+
+.PARAMETER TrailerRoot
+    Output folder for -Trailer. Default: packaging/store/trailer.
 #>
 [CmdletBinding()]
 param(
     [string]$OutputRoot = '',
     [string[]]$Languages = @('zh-CN', 'ja-JP', 'en-US'),
     [switch]$SkipBuild,
-    [switch]$KeepTemp
+    [switch]$KeepTemp,
+    [switch]$Trailer,
+    [string]$TrailerRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,6 +57,10 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $script:RepoRoot 'packaging\store\images\screenshots'
 }
 $script:OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
+if ([string]::IsNullOrWhiteSpace($TrailerRoot)) {
+    $TrailerRoot = Join-Path $script:RepoRoot 'packaging\store\trailer'
+}
+$script:TrailerRoot = [System.IO.Path]::GetFullPath($TrailerRoot)
 
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName UIAutomationClient
@@ -106,7 +121,9 @@ public static class CapWin
     [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr context);
-    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extraInfo);
+    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, int data, UIntPtr extraInfo);
+    [DllImport("user32.dll")] public static extern bool GetCursorPos(ref POINT point);
+    [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extraInfo);
 
     public struct RECT { public int Left, Top, Right, Bottom; }
     public struct POINT { public int X, Y; }
@@ -284,6 +301,15 @@ public static class CapWin
         SetCursorPos(x, y);
         mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
         mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+    }
+
+    public static void MouseDown() { mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero); }
+    public static void MouseUp() { mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero); }
+    public static void ScrollWheel(int delta) { mouse_event(0x0800, 0, 0, delta, UIntPtr.Zero); }
+    public static void PageDown()
+    {
+        keybd_event(0x22, 0, 0, UIntPtr.Zero);
+        keybd_event(0x22, 0, 2, UIntPtr.Zero);
     }
 
     public static void SendEscape(IntPtr hWnd)
@@ -985,6 +1011,17 @@ function New-DemoLibrary {
     }
 }
 
+function Get-AppVersion {
+    $props = Join-Path $script:RepoRoot 'Directory.Build.props'
+    if (Test-Path -LiteralPath $props) {
+        $match = [regex]::Match(
+            [System.IO.File]::ReadAllText($props),
+            '<Version>\s*([^<\s]+)\s*</Version>')
+        if ($match.Success) { return $match.Groups[1].Value }
+    }
+    return ''
+}
+
 function New-IsolatedSettings {
     param(
         [Parameter(Mandatory)] [string]$DataRoot,
@@ -1043,6 +1080,9 @@ function New-IsolatedSettings {
             Theme = 'Light'
             WindowWidth = 1600
             WindowHeight = 900
+            # Suppress the one-time "what's new" dialog; on a fresh data dir the
+            # app otherwise shows it over the toolbar and covers the capture.
+            LastSeenVersion = Get-AppVersion
         }
         RecentDirectories = @()
         ManagedDirectories = @()
@@ -1439,6 +1479,423 @@ function Stop-CaptureApp {
 }
 
 # ---------------------------------------------------------------------------
+# Trailer recording (-Trailer)
+#
+# Records the real app through gdigrab at 1760x990 / 30 fps and writes the
+# chapter beats the post-production script uses to time captions. Everything
+# else (title cards, captions, ambient bed, 1080p encode) lives in
+# Build-StoreTrailer.py so a take can be re-edited without re-recording.
+# ---------------------------------------------------------------------------
+
+$script:TrailerWidth = 1760
+$script:TrailerHeight = 990
+$script:TrailerX = 76
+$script:TrailerY = 22
+$script:TrailerFps = 30
+# Approximate ffmpeg start-up before the first captured frame; added to every
+# beat so caption timing lines up with the encoded video.
+$script:RecordInsetSec = 0.8
+$script:Beats = [System.Collections.Generic.List[object]]::new()
+$script:BeatClock = $null
+$script:RecorderLogTask = $null
+
+function Add-Beat([string]$Name) {
+    $t = [Math]::Round($script:BeatClock.Elapsed.TotalSeconds + $script:RecordInsetSec, 3)
+    $script:Beats.Add([pscustomobject]@{ name = $Name; t = $t })
+    Write-Info ("beat {0,-9} @ {1,6:N2}s" -f $Name, $t)
+}
+
+function Move-CursorSmooth {
+    param([int]$ToX, [int]$ToY, [int]$Steps = 24, [int]$StepDelayMs = 11)
+
+    $point = New-Object CapWin+POINT
+    [void][CapWin]::GetCursorPos([ref]$point)
+    $startX = $point.X
+    $startY = $point.Y
+    for ($i = 1; $i -le $Steps; $i++) {
+        $t = $i / [double]$Steps
+        $ease = $t * $t * (3 - 2 * $t)
+        [void][CapWin]::SetCursorPos(
+            [int][Math]::Round($startX + ($ToX - $startX) * $ease),
+            [int][Math]::Round($startY + ($ToY - $startY) * $ease))
+        Start-Sleep -Milliseconds $StepDelayMs
+    }
+}
+
+function Click-Point {
+    param([int]$X, [int]$Y, [int]$Steps = 24)
+
+    Move-CursorSmooth -ToX $X -ToY $Y -Steps $Steps
+    Start-Sleep -Milliseconds 110
+    [CapWin]::MouseDown()
+    Start-Sleep -Milliseconds 90
+    [CapWin]::MouseUp()
+    Start-Sleep -Milliseconds 160
+}
+
+function Click-Element {
+    param([Parameter(Mandatory)]$Element, [int]$Steps = 24)
+
+    $rect = $Element.Current.BoundingRectangle
+    if ($rect.Width -le 0 -or $rect.Height -le 0) {
+        throw "Cannot click element '$($Element.Current.Name)': empty bounds."
+    }
+    Click-Point -X ([int]($rect.X + $rect.Width / 2)) -Y ([int]($rect.Y + $rect.Height / 2)) -Steps $Steps
+}
+
+function Set-TrailerWindow {
+    param(
+        [Parameter(Mandatory)][IntPtr]$Hwnd,
+        [Parameter(Mandatory)][string]$Label,
+        # Avalonia window templates draw rounded corners and a soft edge inside
+        # the client rect (about 22 px). Overscan makes that margin fall outside
+        # the recording region so no sliver of the window behind shows through.
+        [int]$Overscan = 0
+    )
+
+    $width = $script:TrailerWidth + 2 * $Overscan
+    $height = $script:TrailerHeight + 2 * $Overscan
+    $x = $script:TrailerX - $Overscan
+    $y = $script:TrailerY - $Overscan
+
+    if (-not [CapWin]::SetClientSize($Hwnd, $width, $height, $x, $y)) {
+        throw "Could not resize $Label to ${width}x${height}."
+    }
+    [CapWin]::BringToFront($Hwnd)
+    Start-Sleep -Milliseconds 450
+
+    $clientWidth = 0
+    $clientHeight = 0
+    [void][CapWin]::ClientSize($Hwnd, [ref]$clientWidth, [ref]$clientHeight)
+    if ($clientWidth -ne $width -or $clientHeight -ne $height) {
+        throw "Unexpected $Label client size: ${clientWidth}x${clientHeight}, expected ${width}x${height}."
+    }
+}
+
+function Start-TrailerRecording {
+    param([Parameter(Mandatory)][IntPtr]$Hwnd, [Parameter(Mandatory)][string]$Path)
+
+    $originX = 0
+    $originY = 0
+    if (-not [CapWin]::ClientOrigin($Hwnd, [ref]$originX, [ref]$originY)) {
+        throw 'Unable to map the client origin for recording.'
+    }
+    Write-Info "Recording region: ${originX},${originY} $($script:TrailerWidth)x$($script:TrailerHeight)"
+
+    $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $ffmpeg
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardInput = $true
+    $startInfo.RedirectStandardError = $true
+    foreach ($argument in @(
+            '-hide_banner', '-loglevel', 'warning', '-y',
+            '-f', 'gdigrab', '-framerate', "$($script:TrailerFps)", '-draw_mouse', '1',
+            '-offset_x', "$originX", '-offset_y', "$originY",
+            '-video_size', "$($script:TrailerWidth)x$($script:TrailerHeight)",
+            '-i', 'desktop',
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '14',
+            '-pix_fmt', 'yuv420p', '-g', "$($script:TrailerFps)",
+            '-movflags', '+faststart',
+            $Path)) {
+        $startInfo.ArgumentList.Add($argument)
+    }
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if ($null -eq $process) { throw 'Could not start ffmpeg for recording.' }
+    $script:RecorderLogTask = $process.StandardError.ReadToEndAsync()
+    return $process
+}
+
+function Stop-TrailerRecording {
+    param([System.Diagnostics.Process]$Process, [string]$LogPath)
+
+    if ($null -eq $Process) { return }
+    try {
+        $Process.StandardInput.WriteLine('q')
+        $Process.StandardInput.Flush()
+        $Process.StandardInput.Close()
+    }
+    catch { }
+    if (-not $Process.WaitForExit(20000)) {
+        try { $Process.Kill($true) } catch { }
+        [void]$Process.WaitForExit(3000)
+    }
+    if ($null -ne $script:RecorderLogTask) {
+        $log = $script:RecorderLogTask.Result
+        if (-not [string]::IsNullOrWhiteSpace($log)) {
+            [System.IO.File]::WriteAllText($LogPath, $log, [System.Text.UTF8Encoding]::new($false))
+        }
+    }
+    $script:RecorderLogTask = $null
+}
+
+function Open-TrailerDialog {
+    param(
+        [Parameter(Mandatory)][IntPtr]$MainHwnd,
+        [Parameter(Mandatory)][string]$ButtonName,
+        [Parameter(Mandatory)][string]$DialogTitle,
+        [Parameter(Mandatory)][int]$ProcessId
+    )
+
+    $root = Get-UiaRoot $MainHwnd
+    $button = Find-UiaByName -Root $root -Name $ButtonName -ControlType ([System.Windows.Automation.ControlType]::Button)
+    if ($null -eq $button) { throw "Toolbar button '$ButtonName' was not found." }
+
+    Click-Element -Element $button -Steps 22
+    $dialogHwnd = Wait-VisibleWindow -ProcessId $ProcessId -Title $DialogTitle -TimeoutSeconds 30
+    Set-TrailerWindow -Hwnd $dialogHwnd -Label "$DialogTitle window" -Overscan 30
+    Start-Sleep -Milliseconds 450
+    return $dialogHwnd
+}
+
+function Close-TrailerDialog {
+    param(
+        [Parameter(Mandatory)][IntPtr]$DialogHwnd,
+        [Parameter(Mandatory)][string]$CancelName,
+        [Parameter(Mandatory)][string]$DialogTitle,
+        [Parameter(Mandatory)][int]$ProcessId
+    )
+
+    $root = Get-UiaRoot $DialogHwnd
+    $cancel = Find-UiaByName -Root $root -Name $CancelName -ControlType ([System.Windows.Automation.ControlType]::Button)
+    if ($null -ne $cancel) {
+        Click-Element -Element $cancel -Steps 20
+    }
+    else {
+        [CapWin]::SendEscape($DialogHwnd)
+    }
+
+    try {
+        Wait-WindowGone -ProcessId $ProcessId -Title $DialogTitle -TimeoutSeconds 15 | Out-Null
+    }
+    catch {
+        [CapWin]::SendEscape($DialogHwnd)
+        Start-Sleep -Milliseconds 300
+        [CapWin]::SendClose($DialogHwnd)
+        Wait-WindowGone -ProcessId $ProcessId -Title $DialogTitle -TimeoutSeconds 10 | Out-Null
+    }
+}
+
+function Wait-SelectedTitle {
+    param(
+        [Parameter(Mandatory)][IntPtr]$MainHwnd,
+        [Parameter(Mandatory)][string]$Expected,
+        [int]$TimeoutSeconds = 6
+    )
+
+    return Wait-Until -Description "selected title '$Expected'" -TimeoutSeconds $TimeoutSeconds -Condition {
+        $edits = Find-UiaAllByControlType -Root (Get-UiaRoot $MainHwnd) -ControlType ([System.Windows.Automation.ControlType]::Edit)
+        for ($i = 0; $i -lt $edits.Count; $i++) {
+            if ((Get-UiaValue -Element $edits.Item($i)) -eq $Expected) { return $true }
+        }
+        return $false
+    }
+}
+
+function Invoke-TrailerTour {
+    param(
+        [Parameter(Mandatory)]$Locale,
+        [Parameter(Mandatory)][IntPtr]$MainHwnd,
+        [Parameter(Mandatory)][int]$ProcessId
+    )
+
+    $root = Get-UiaRoot $MainHwnd
+    $grid = Wait-Until -Description 'track DataGrid' -TimeoutSeconds 20 -Condition {
+        return Find-UiaByAutomationId -Root (Get-UiaRoot $MainHwnd) -AutomationId 'TracksGrid'
+    }
+    $rows = Find-UiaAllByControlType -Root $grid -ControlType ([System.Windows.Automation.ControlType]::DataItem)
+    if ($rows.Count -lt 4) { throw "Expected at least 4 track rows, found $($rows.Count)." }
+
+    $originX = 0
+    $originY = 0
+    [void][CapWin]::ClientOrigin($MainHwnd, [ref]$originX, [ref]$originY)
+
+    # Park the cursor on the status bar so the take starts with a still frame.
+    [void][CapWin]::SetCursorPos($originX + 1520, $originY + 950)
+    Start-Sleep -Milliseconds 350
+
+    $script:Beats.Clear()
+    $script:BeatClock = [System.Diagnostics.Stopwatch]::StartNew()
+
+    Add-Beat 'import'
+    Start-Sleep -Milliseconds 1500
+
+    # Select a different track: the editor panel updates with its album/cover.
+    $row = $rows.Item(3).Current.BoundingRectangle
+    Click-Point -X ([int]($row.X + 260)) -Y ([int]($row.Y + $row.Height / 2)) -Steps 26
+    [void](Wait-SelectedTitle -MainHwnd $MainHwnd -Expected $Demo.Tracks[3].Title)
+    Add-Beat 'select'
+    Start-Sleep -Milliseconds 2200
+
+    # Back to the first track; it is the one carrying synced lyrics.
+    $row = $rows.Item(0).Current.BoundingRectangle
+    Click-Point -X ([int]($row.X + 260)) -Y ([int]($row.Y + $row.Height / 2)) -Steps 20
+    [void](Wait-SelectedTitle -MainHwnd $MainHwnd -Expected $Demo.Tracks[0].Title)
+    Start-Sleep -Milliseconds 750
+
+    $lyricsHwnd = Open-TrailerDialog -MainHwnd $MainHwnd -ButtonName $Locale.LyricsButton -DialogTitle $Locale.LyricsTitle -ProcessId $ProcessId
+    $editor = Wait-Until -Description 'lyrics editor' -TimeoutSeconds 15 -Condition {
+        return Find-UiaByAutomationId -Root (Get-UiaRoot $lyricsHwnd) -AutomationId 'Editor'
+    }
+    if ([string]::IsNullOrWhiteSpace((Get-UiaValue -Element $editor))) {
+        throw 'Lyrics editor is empty; the take would show a blank panel.'
+    }
+    Add-Beat 'lyrics'
+    Start-Sleep -Milliseconds 2600
+    Close-TrailerDialog -DialogHwnd $lyricsHwnd -CancelName $Locale.Cancel -DialogTitle $Locale.LyricsTitle -ProcessId $ProcessId
+    Start-Sleep -Milliseconds 350
+
+    $renameHwnd = Open-TrailerDialog -MainHwnd $MainHwnd -ButtonName $Locale.RenameButton -DialogTitle $Locale.RenameTitle -ProcessId $ProcessId
+    Add-Beat 'rename'
+    Start-Sleep -Milliseconds 2900
+    Close-TrailerDialog -DialogHwnd $renameHwnd -CancelName $Locale.Cancel -DialogTitle $Locale.RenameTitle -ProcessId $ProcessId
+    Start-Sleep -Milliseconds 350
+
+    $settingsHwnd = Open-TrailerDialog -MainHwnd $MainHwnd -ButtonName $Locale.SettingsButton -DialogTitle $Locale.SettingsTitle -ProcessId $ProcessId
+    $uiTab = Wait-Until -Description "settings tab '$($Locale.UiTab)'" -TimeoutSeconds 15 -Condition {
+        return Find-UiaByName -Root (Get-UiaRoot $settingsHwnd) -Name $Locale.UiTab -ControlType ([System.Windows.Automation.ControlType]::TabItem)
+    }
+    Click-Element -Element $uiTab -Steps 18
+    Start-Sleep -Milliseconds 550
+
+    $languageBox = Wait-Until -Description 'settings language ComboBox' -TimeoutSeconds 15 -Condition {
+        return Find-UiaByAutomationId -Root (Get-UiaRoot $settingsHwnd) -AutomationId 'LanguageBox'
+    }
+    Add-Beat 'settings'
+    Start-Sleep -Milliseconds 700
+
+    $expand = $languageBox.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $expand.Expand()
+    Start-Sleep -Milliseconds 2300
+    try { $expand.Collapse() } catch { }
+    Start-Sleep -Milliseconds 350
+
+    Close-TrailerDialog -DialogHwnd $settingsHwnd -CancelName $Locale.Cancel -DialogTitle $Locale.SettingsTitle -ProcessId $ProcessId
+    Start-Sleep -Milliseconds 450
+
+    # Final beat: the whole 22-track library fits on screen, so there is nothing
+    # to scroll. Select a mid-list row and hold for the closing caption.
+    [CapWin]::BringToFront($MainHwnd)
+    [CapWin]::ForceForeground($MainHwnd)
+    Start-Sleep -Milliseconds 300
+    $row = $rows.Item(7).Current.BoundingRectangle
+    Click-Point -X ([int]($row.X + 260)) -Y ([int]($row.Y + $row.Height / 2)) -Steps 18
+    [void](Wait-SelectedTitle -MainHwnd $MainHwnd -Expected $Demo.Tracks[7].Title)
+    [void][CapWin]::SetCursorPos($originX + 640, $originY + 690)
+    Add-Beat 'outro'
+    Start-Sleep -Milliseconds 2400
+
+    $script:BeatClock.Stop()
+    Write-Info ("take length: {0:N2}s" -f $script:BeatClock.Elapsed.TotalSeconds)
+}
+
+function Invoke-TrailerTake {
+    param(
+        [Parameter(Mandatory)]$Locale,
+        [Parameter(Mandatory)]$Demo,
+        [Parameter(Mandatory)][string]$DesktopExe,
+        [Parameter(Mandatory)][string]$OutputRoot
+    )
+
+    $dataRoot = Join-Path $script:TempRoot (Join-Path 'data' ($Locale.Code + '-trailer'))
+    if (Test-Path -LiteralPath $dataRoot) {
+        Remove-Item -LiteralPath $dataRoot -Recurse -Force
+    }
+    $settingsPath = New-IsolatedSettings -DataRoot $dataRoot -Language $Locale.Language
+    Write-Step "Launching $($Locale.Code) for the trailer take"
+    Write-Info "settings.json: $settingsPath"
+
+    $audioPaths = @($Demo.Tracks | ForEach-Object { $_.Path })
+    $manifestBefore = Get-AudioManifest -Files $audioPaths
+
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $DesktopExe
+    $startInfo.WorkingDirectory = $Demo.Root
+    $startInfo.UseShellExecute = $false
+    $startInfo.Environment['MELOTAG_DATA_DIR'] = $dataRoot
+    foreach ($audioPath in $audioPaths) {
+        [void]$startInfo.ArgumentList.Add($audioPath)
+    }
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if ($null -eq $process) { throw 'Could not start Melotag.' }
+    Write-Info "Process id: $($process.Id)"
+
+    $recorder = $null
+    $outputDir = Join-Path $OutputRoot $Locale.Code
+    [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
+    $rawPath = Join-Path $outputDir 'raw.mp4'
+    $beatsPath = Join-Path $outputDir 'beats.json'
+    $logPath = Join-Path $outputDir 'recorder.log'
+    foreach ($stale in @($rawPath, $beatsPath, $logPath)) {
+        if (Test-Path -LiteralPath $stale) { Remove-Item -LiteralPath $stale -Force }
+    }
+
+    try {
+        $mainHwnd = Wait-VisibleWindow -ProcessId $process.Id -Title $Locale.MainTitle -TimeoutSeconds 60
+        Set-TrailerWindow -Hwnd $mainHwnd -Label 'main window'
+        Start-Sleep -Milliseconds 900
+        $null = Wait-ForTracks -MainHwnd $mainHwnd -ExpectedRows $Demo.Tracks.Count
+        Start-Sleep -Milliseconds 500
+
+        # Windows swallows the first click on an inactive window. Activate and
+        # focus the app before recording so the first row click really selects.
+        $originX = 0
+        $originY = 0
+        [void][CapWin]::ClientOrigin($mainHwnd, [ref]$originX, [ref]$originY)
+        Click-Point -X ($originX + 40) -Y ($originY + $script:TrailerHeight - 16) -Steps 4
+        Start-Sleep -Milliseconds 400
+
+        $recorder = Start-TrailerRecording -Hwnd $mainHwnd -Path $rawPath
+        Start-Sleep -Milliseconds 700
+
+        Invoke-TrailerTour -Locale $Locale -MainHwnd $mainHwnd -ProcessId $process.Id
+
+        Stop-TrailerRecording -Process $recorder -LogPath $logPath
+        $recorder = $null
+        Start-Sleep -Milliseconds 300
+
+        $manifestAfter = Get-AudioManifest -Files $audioPaths
+        if ($manifestBefore -ne $manifestAfter) {
+            throw 'Audio files were modified during the trailer take; rename/apply must never run.'
+        }
+        Write-Info 'Audio file hashes unchanged.'
+
+        if (-not (Test-Path -LiteralPath $rawPath)) { throw "Recording was not written: $rawPath" }
+        $probe = & ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames -show_entries format=duration -of json $rawPath 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "ffprobe failed on $rawPath`n$probe" }
+        $info = ($probe -join [Environment]::NewLine) | ConvertFrom-Json
+        $stream = $info.streams[0]
+        $duration = [double]$info.format.duration
+        Write-Info ("raw take: {0}x{1}, {2} frames, {3:N2}s" -f $stream.width, $stream.height, $stream.nb_frames, $duration)
+        if ($stream.width -ne $script:TrailerWidth -or $stream.height -ne $script:TrailerHeight) {
+            throw "Recording size is $($stream.width)x$($stream.height), expected $($script:TrailerWidth)x$($script:TrailerHeight)."
+        }
+        if ($duration -lt 12) { throw "Recording is only $duration s; the tour did not complete." }
+
+        $beats = [ordered]@{
+            language = $Locale.Code
+            width = $script:TrailerWidth
+            height = $script:TrailerHeight
+            fps = $script:TrailerFps
+            duration = [Math]::Round($duration, 3)
+            beats = @($script:Beats)
+        }
+        [System.IO.File]::WriteAllText($beatsPath, ($beats | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+        Write-Info "wrote $beatsPath"
+    }
+    finally {
+        if ($null -ne $recorder) {
+            Stop-TrailerRecording -Process $recorder -LogPath $logPath
+        }
+        Stop-CaptureApp -Process $process
+        Start-Sleep -Milliseconds 400
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1479,6 +1936,7 @@ try {
     [System.IO.Directory]::CreateDirectory($script:OutputRoot) | Out-Null
 
     foreach ($locale in $selectedLocales) {
+        if ($Trailer) { break }
         $languageOutput = Join-Path $script:OutputRoot $locale.Code
         if (Test-Path -LiteralPath $languageOutput) {
             Remove-Item -LiteralPath $languageOutput -Recurse -Force
@@ -1503,10 +1961,20 @@ try {
     Write-Step "Using $desktopExe"
 
     $demoLibraries = @{}
-    foreach ($locale in $selectedLocales) {
+    $demoLocales = if ($Trailer) { @($selectedLocales[0]) } else { $selectedLocales }
+    foreach ($locale in $demoLocales) {
         Write-Step "Generating fictional demo library for $($locale.Code)"
         $demoLibraries[$locale.Code] = New-DemoLibrary -Ffmpeg $ffmpeg -LocaleCode $locale.Code
         Write-Info "Created $($demoLibraries[$locale.Code].Tracks.Count) tracks under $($demoLibraries[$locale.Code].Root)"
+    }
+
+    if ($Trailer) {
+        $locale = $selectedLocales[0]
+        Write-Step "Trailer take: $($locale.Code) -> $script:TrailerRoot"
+        Invoke-TrailerTake -Locale $locale -Demo $demoLibraries[$locale.Code] -DesktopExe $desktopExe -OutputRoot $script:TrailerRoot
+        Write-Step 'Raw trailer footage captured. Run Build-StoreTrailer.py to produce the 1080p video.'
+        $success = $true
+        return
     }
 
     foreach ($locale in $selectedLocales) {
