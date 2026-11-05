@@ -5,6 +5,11 @@ artifacts/
 publish/
 dist/
 stage/
+__pycache__/
+
+# Store trailer renders: the MP4s are build output, upload them from disk
+packaging/store/trailer/*/.build/
+packaging/store/trailer/*/*.mp4
 
 # IDE
 .vs/

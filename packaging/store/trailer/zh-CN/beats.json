@@ -1,0 +1,33 @@
+{
+  "language": "zh-CN",
+  "width": 1760,
+  "height": 990,
+  "fps": 30,
+  "duration": 31.467,
+  "beats": [
+    {
+      "name": "import",
+      "t": 0.802
+    },
+    {
+      "name": "select",
+      "t": 3.413
+    },
+    {
+      "name": "lyrics",
+      "t": 9.247
+    },
+    {
+      "name": "rename",
+      "t": 14.916
+    },
+    {
+      "name": "settings",
+      "t": 22.208
+    },
+    {
+      "name": "outro",
+      "t": 28.055
+    }
+  ]
+}

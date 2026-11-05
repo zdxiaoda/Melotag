@@ -32,12 +32,14 @@
 | `images/logo/box-art-1080x1080.png` | 1080×1080 box art | PC 可选展示物料 | 可选上传 |
 | `images/poster/<lang>/poster-720x1080.png` | 每语言 1 张 poster | PC 可选展示物料 | 可选上传 |
 | `images/hero/super-hero-1920x1080.png` | 1920×1080 hero art | PC 可选展示物料 | 可选上传 |
+| `trailer/<lang>/Melotag-<ver>-trailer-<lang>.mp4` | 三语宣传片（1920×1080，约 39 秒） | 对应语言 listing 的 Trailer 字段 | 上传 MP4 |
+| `trailer/<lang>/thumbnail-1920x1080.png` | 对应语言的宣传片缩略图 | Trailer 缩略图 | 上传 PNG |
 | `privacy/zh-CN/privacy.md`、`privacy/ja-JP/privacy.md`、`privacy/en-US/privacy.md` | 三语隐私政策源文件 | 发布为公开网页后填写 URL | 不上传文件，填写公开 URL |
 | `submission/upload-checklist.md` | 提交核对清单 | 发布者逐项勾选 | 不上传 |
 | `submission/age-rating-notes.md` | IARC 问卷事实依据 | 答题参考 | 不上传 |
 | `submission/certification-notes.md` | 英文认证备注草稿及中文说明 | 粘贴英文正文到认证备注 | 仅按需粘贴正文 |
 | `submission/package-and-release.md` | MSIX、标识与发布前风险 | 打包/发布检查 | 不上传 |
-| `tools/` | 图片生成和截图脚本 | 复现物料 | 不上传，也不放入 MSIX |
+| `tools/` | 图片生成、截图和宣传片脚本 | 复现物料 | 不上传，也不放入 MSIX |
 
 完整目录树：
 
@@ -68,13 +70,22 @@ packaging/store/
 │  │  └─ en-US/poster-720x1080.png
 │  └─ hero/
 │     └─ super-hero-1920x1080.png
+├─ trailer/
+│  ├─ zh-CN/
+│  │  ├─ Melotag-<ver>-trailer-zh-CN.mp4
+│  │  ├─ thumbnail-1920x1080.png
+│  │  ├─ raw.mp4
+│  │  └─ beats.json
+│  ├─ ja-JP/   （与 zh-CN 同结构）
+│  └─ en-US/   （与 zh-CN 同结构）
 ├─ privacy/
 │  ├─ zh-CN/privacy.md
 │  ├─ ja-JP/privacy.md
 │  └─ en-US/privacy.md
 └─ tools/
    ├─ Generate-StoreArt.py
-   └─ Capture-StoreScreenshots.ps1
+   ├─ Capture-StoreScreenshots.ps1
+   └─ Build-StoreTrailer.py
 ```
 
 除特别说明外，下文路径均相对于 `packaging/store/`；复现命令从仓库根目录 `D:\Project\Musictag` 执行。
@@ -215,6 +226,41 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 
 脚本会先删除所选语言的输出目录再重建；如需保留旧图，请先备份。默认输出到 `packaging/store/images/screenshots`。
 
+### 5.3 录制并合成宣传片（可选）
+
+宣传片对应 Partner Center 的 Trailer 字段，不是上架必需项。三语版本都已录制完成，每条都从同一套脚本生成；文案在 `Build-StoreTrailer.py` 的 `CAPTIONS`、`TITLE`、`END` 中按语言维护，改文案不需要重录。
+
+```bash
+# 1) 真实录屏：隔离演示库 + UIA 真实点击 + gdigrab 录制 1760x990@30fps
+#    每种语言执行一次（zh-CN / ja-JP / en-US）
+pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Trailer -Languages zh-CN
+
+# 2) 合成：标题卡、字幕、CC0 配乐、1080p 编码与规格校验
+uv run --offline --with pillow python packaging/store/tools/Build-StoreTrailer.py --lang zh-CN
+```
+
+产物在 `trailer/<lang>/`（三语各一份）：
+
+| 文件 | 说明 |
+| --- | --- |
+| `Melotag-<ver>-trailer-<lang>.mp4` | 1920×1080、30 fps、H.264 High + AAC、约 39 秒、`-movflags +faststart` |
+| `thumbnail-1920x1080.png` | 上传 Trailer 时要求的 1920×1080 PNG 缩略图 |
+| `raw.mp4` | 原始录屏（1760×990）；只改字幕或卡片时不必重录 |
+| `beats.json` | 每个章节的时间点，字幕据此对齐 |
+
+配乐放在 `audio/soft-music-cc0.mp3`（CC0 1.0，可商用、无需署名），出处、许可证原文与校验和见 [audio/README.md](audio/README.md)。换曲用 `--music <文件>`；文件缺失时脚本会退回内置合成铺底。
+
+内容与合规约定：
+
+- 画面只用隔离演示库（虚构曲名、LRC、封面），不读取真实音乐库、不联网搜索，录制前后会比对音频文件哈希。
+- 对话框窗口自带约 22 px 的圆角/阴影内边距，录制时按 `-Overscan 30` 放大，让这圈边距落到画面外，避免边缘露出主窗口。
+- 配乐是 Freesound 的 CC0 曲目 *Soft Music*：截取前 39 秒、归一化到 -22 LUFS、首尾淡入淡出，不含需要署名或限制商用的素材。换曲后请实际听一遍再上传。
+- 卡片、缩略图与字幕统一使用 Source Han Sans SC / Noto Sans（OFL-1.1），与商店图同一套字体，见 [images/FONT-LICENSES.md](images/FONT-LICENSES.md)。
+- 成片 MP4 与中间录屏 `raw.mp4` 不进入 Git（见 `.gitignore`），只提交脚本、缩略图与章节时间点；上传 Store 时从工作区取文件。
+- 不使用年龄分级标识、微软或其他平台品牌标识。应用上架前，结尾卡只写“免费 / Windows 10-11 / x64 与 arm64”和 GitHub 地址，不写“在 Microsoft Store 下载”。
+- Trailer 需单独通过认证；时长控制在 60 秒内更稳妥，画面必须与当前版本界面一致。
+- `raw.mp4` 是复现中间产物，不入库也不上传；`beats.json` 入库用于同步字幕时间点，但不上传。
+
 ## 6. 上传顺序建议
 
 1. 在 Partner Center 预留或确认产品名称，创建 Windows PC 应用，记录三个产品标识。
@@ -224,13 +270,16 @@ pwsh -NoProfile -File packaging/store/tools/Capture-StoreScreenshots.ps1 -Output
 5. 生成并上传 `.msixbundle`，确认包版本为 `1.4.1.0` 且包标识与 Partner Center 一致。
 6. 按 zh-CN、ja-JP、en-US 分别填写 listing，上传对应 4 张截图和 caption，以及 300×300 商店图标。
 7. 如需美化 PC 商店页面，再上传可选的 poster、box art 和 hero art。
-8. 在 Notes for certification 中粘贴英文认证备注，完成冒烟测试后提交认证。
+8. 如需宣传片，在该语言 listing 的 Trailer 区域上传对应 MP4 与 1920×1080 缩略图；Trailer 需单独通过认证。
+9. 在 Notes for certification 中粘贴英文认证备注，完成冒烟测试后提交认证。
 
 逐项操作和待办状态见 [submission/upload-checklist.md](submission/upload-checklist.md)。
 
 ## 7. 不要上传或不要打包的内容
 
-- `tools/`：图片生成和截图脚本，不是商店素材；不要上传，也不要放进 MSIX。
+- `tools/`：图片生成、截图和宣传片脚本，不是商店素材；不要上传，也不要放进 MSIX。
+- `trailer/*/raw.mp4`、`trailer/*/beats.json`、`trailer/*/.build/`：录制与合成中间产物，只上传成片 MP4 与缩略图。
+- `audio/`：配乐源文件与许可说明，已嵌入成片；不要把音频单独上传到 Store。
 - `submission/`：提交辅助文档，不是商店素材；只有 `certification-notes.md` 的英文正文按需粘贴到认证备注字段。
 - `listing/*/listing.md`：作为复制源，不要把 Markdown 文件当作图片或 listing 附件上传。
 - `privacy/*/privacy.md`：作为待发布网页源文件，不要作为图片素材上传；应在公开后可访问时填写 URL。

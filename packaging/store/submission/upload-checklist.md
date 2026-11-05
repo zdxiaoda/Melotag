@@ -29,6 +29,7 @@
 - [x] 系统要求可核对：`packaging/windows/msix/Package.appxmanifest` 的 `TargetDeviceFamily` 为 `Windows.Desktop`，`MinVersion` 为 `10.0.19041.0`，`ProcessorArchitecture` 由构建参数注入（x64 / arm64）。
 - [x] MSIX 清单和构建脚本存在：`packaging/windows/msix/Package.appxmanifest`、`build-msix.ps1`、`build-msix-bundle.ps1`。
 - [x] 截图和商店图片复现脚本存在：`tools/Generate-StoreArt.py`、`tools/Capture-StoreScreenshots.ps1`。
+- [x] 三语宣传片与缩略图：`trailer/{zh-CN,ja-JP,en-US}/Melotag-<ver>-trailer-<lang>.mp4` 与同目录 `thumbnail-1920x1080.png`。
 
 注意：仓库中没有已生成、已签名、可直接上传的 `.msixbundle` 成品；商店包属于构建产物，需要在 Windows 上生成后再上传。
 
@@ -115,6 +116,7 @@
 | 4 张截图已上传 | [ ] | [ ] | [ ] | `images/screenshots/<lang>/`，按 01→04 顺序 |
 | 4 条截图 caption 已填写 | [ ] | [ ] | [ ] | 见 README 的逐张映射 |
 | 300×300 商店图标 | [ ] | [ ] | [ ] | 同一张 `images/logo/app-tile-300x300.png` |
+| 宣传片（PC 可选） | [ ] | [ ] | [ ] | `trailer/<lang>/`；上传 MP4 与同语言 1920×1080 缩略图，需单独过认证 |
 | 三语 poster（PC 可选） | [ ] | [ ] | [ ] | `images/poster/<lang>/poster-720x1080.png`；不上传不影响必需项 |
 | 通用 box art（PC 可选） | [ ] | [ ] | [ ] | `images/logo/box-art-1080x1080.png`；不能替代截图 |
 | 通用 hero art（PC 可选） | [ ] | [ ] | [ ] | `images/hero/super-hero-1920x1080.png`；不能替代截图 |
@@ -132,6 +134,7 @@
 - [ ] 截图 caption 与实际上传顺序一致；不要复用其他语言的截图或 caption。
 - [ ] 只复制字段正文，不把 Markdown 标题、列表编号或“首次提交可留空”等编辑说明粘贴到商店字段。
 - [ ] 如上传可选的 poster，先复核其营销文案与已实现功能一致；海报不是 listing 描述，也不能替代截图。
+- [ ] 如上传宣传片，确认画面与当前版本界面一致、不含年龄分级或平台品牌标识，且结尾没有宣称商店已上架；Trailer 需单独通过认证。
 - [ ] 不上传 `tools/` 中的脚本。
 
 ## 8. 待发布者操作：最终认证与发布
