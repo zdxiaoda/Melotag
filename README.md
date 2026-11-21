@@ -92,7 +92,7 @@ MP3 / FLAC / APE / WavPack / TTA / MPC / OGG / Opus / MP4 / M4A / WAV / AIFF / W
 ## 产品预览
 
 <p>
-  <img src="packaging/store/images/screenshots/zh-CN/01-main.png" width="960" alt="音签 Melotag 主界面">
+  <img src="https://raw.githubusercontent.com/zdxiaoda/melotag-release/main/store/images/screenshots/zh-CN/01-main.png" width="960" alt="音签 Melotag 主界面">
 </p>
 
 ## 开发

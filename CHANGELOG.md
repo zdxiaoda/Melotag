@@ -1,5 +1,15 @@
 # Changelog
 
+## 未发布
+
+### 工程
+
+- 打包脚本（Inno Setup、MSIX、RPM、Flatpak）与 Microsoft Store 提交物料拆分到独立仓库
+  [zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release)；`release.yml` 的
+  `publish` / `msix` / `release` 作业发布时把它 checkout 到工作区 `packaging/` 路径，脚本相对路径不变。
+- 商店宣传片改为 melotag-release 仓库中的 Remotion 项目纯代码生成（三语 + 缩略图），
+  移除原"Windows 真机录屏 + Python 合成"流水线；BGM 换为 ChiliChill《给你的BGM Vol.1》（注明出处使用）。
+
 ## 1.5.0
 
 ### 新增

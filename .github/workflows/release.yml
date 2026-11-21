@@ -51,6 +51,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # 打包脚本已拆分到 melotag-release 仓库；checkout 到 packaging/ 路径后，
+      # Inno Setup / MSIX / Linux 打包脚本的相对路径保持不变。
+      - name: Checkout packaging scripts
+        uses: actions/checkout@v7
+        with:
+          repository: zdxiaoda/melotag-release
+          ref: main
+          path: packaging
+          sparse-checkout: packaging
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -142,6 +152,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Checkout packaging scripts
+        uses: actions/checkout@v7
+        with:
+          repository: zdxiaoda/melotag-release
+          ref: main
+          path: packaging
+          sparse-checkout: packaging
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -221,6 +239,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Checkout packaging scripts
+        uses: actions/checkout@v7
+        with:
+          repository: zdxiaoda/melotag-release
+          ref: main
+          path: packaging
+          sparse-checkout: packaging
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6

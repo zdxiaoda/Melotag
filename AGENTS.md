@@ -17,12 +17,13 @@ tests/
 tools/
   Melotag.Probe/      在线源诊断
   Melotag.Branding/   LOGO / .ico / MSIX 图标生成
-packaging/
-  linux/              desktop、rpm spec
-  windows/            Inno Setup、MSIX 清单与脚本
-  flatpak/            Flatpak 清单与 desktop
 docs/dev/             签名、上架等开发文档
 ```
+
+打包脚本与商店物料在独立仓库 [zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release)：
+`packaging/`（Inno Setup、MSIX、RPM、Flatpak）与 `store/`（商店物料、截图、隐私政策、
+Remotion 宣传片项目）。`release.yml` 发布时会把它 checkout 到主工作区的 `packaging/`
+路径（sparse-checkout），因此各打包脚本的相对路径保持不变。
 
 ## 构建与测试
 
@@ -34,6 +35,7 @@ dotnet build Melotag.slnx -c Release
 dotnet run --project src/Melotag.Desktop -- "D:\music"
 dotnet run --project tools/Melotag.Probe -- "晴天" "周杰伦"
 dotnet run --project tools/Melotag.Branding -- emit .
+# MSIX 图标生成需要先 checkout melotag-release 到 packaging/（见"项目结构"）：
 dotnet run --project tools/Melotag.Branding -- msix packaging/windows/msix/Assets
 ```
 
@@ -95,12 +97,17 @@ Android 数据目录是应用私有空间 `files/data`。
 
 ### 打包实现
 
-- **Windows 安装包**：`packaging/windows/melotag.iss`，Inno Setup 6；CI 在 `windows-latest` 上生成。
+打包脚本位于 [zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release) 仓库；
+`release.yml` 的 `publish` / `msix` / `release` 三个作业会把它 checkout 到工作区
+`packaging/` 路径后再执行，本地复现同样可以先 clone 到同级目录或 `packaging/` 路径。
+
+- **Windows 安装包**：`packaging/windows/melotag.iss`（melotag-release 仓库），Inno Setup 6；CI 在 `windows-latest` 上生成。
 - **MSIX**：`packaging/windows/msix/Package.appxmanifest` + `build-msix.ps1`；需要 Partner Center 的三个产品标识，见
   [Microsoft Store 上架指南](docs/dev/MicrosoftStore上架指南.md)。
 - **Linux RPM**：`packaging/linux/melotag.spec`，CI 用 `rpmbuild`。
 - **AppImage**：self-contained Linux 发布 + `appimagetool`。
 - **Flatpak**：`packaging/flatpak/io.melotag.app.yml` + Freedesktop 24.08 运行时。
+- **商店物料与宣传片**：melotag-release 仓库的 `store/`（listing、截图、隐私政策、Remotion 宣传片项目）。
 - **Android 签名**：`tools/create-android-keystore.sh` + 4 个 GitHub Secrets，见
   [Android 签名与发布](docs/dev/Android签名与发布.md)。
 

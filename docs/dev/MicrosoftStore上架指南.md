@@ -1,6 +1,8 @@
 # Microsoft Store 上架指南
 
-Microsoft Store 不接受 Inno Setup 的 `.exe` 安装包，需要 **MSIX**。仓库已经准备了 MSIX 清单模板和打包脚本，你只需要填入 Partner Center 给你的产品标识。
+Microsoft Store 不接受 Inno Setup 的 `.exe` 安装包，需要 **MSIX**。MSIX 清单模板和打包脚本在
+[zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release) 仓库的 `packaging/windows/msix/` 下
+（主仓库 CI 发布时会把该仓库 checkout 到工作区 `packaging/` 路径），你只需要填入 Partner Center 给你的产品标识。
 
 ## 1. 在 Partner Center 创建应用
 
@@ -38,6 +40,9 @@ Microsoft Store 不接受 Inno Setup 的 `.exe` 安装包，需要 **MSIX**。�
 没有配置这三个标识时，MSIX 步骤会自动跳过，不影响其他安装包。
 
 ## 3. 本地构建 MSIX（可选）
+
+以下命令从 Melotag 主仓库根目录执行；先把 melotag-release clone 到同级目录
+（或用 `git clone https://github.com/zdxiaoda/melotag-release packaging` 直接放到 `packaging/` 路径）。
 
 先为两个架构各做一次非单文件的 self-contained 发布：
 
@@ -156,8 +161,8 @@ Add-AppxPackage dist\installer-win-x64\Melotag-1.4.1.0-win-x64.msix
 
 ## 8. 相关文件
 
-- `packaging/windows/msix/Package.appxmanifest`：MSIX 清单模板
-- `packaging/windows/msix/build-msix.ps1`：构建单架构 MSIX
-- `packaging/windows/msix/build-msix-bundle.ps1`：合并 x64 + arm64 为 `.msixbundle`
-- `tools/Melotag.Branding`：生成应用图标与 MSIX 图标
-- `.github/workflows/release.yml`：CI 自动生成 `.msixbundle` 的逻辑
+- melotag-release 仓库 `packaging/windows/msix/Package.appxmanifest`：MSIX 清单模板
+- melotag-release 仓库 `packaging/windows/msix/build-msix.ps1`：构建单架构 MSIX
+- melotag-release 仓库 `packaging/windows/msix/build-msix-bundle.ps1`：合并 x64 + arm64 为 `.msixbundle`
+- 主仓库 `tools/Melotag.Branding`：生成应用图标与 MSIX 图标
+- 主仓库 `.github/workflows/release.yml`：CI 自动 checkout melotag-release 并生成 `.msixbundle` 的逻辑
