@@ -103,10 +103,9 @@ public partial class SettingsDialog : ModalView
             })
             .Where(region => region is not null && region.TwoLetterISORegionName.Length == 2)
             .GroupBy(region => region!.TwoLetterISORegionName, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First()!)
-            .Select(region => new CountryOption(
-                region.TwoLetterISORegionName,
-                $"{region.TwoLetterISORegionName} — {CountryName(region)}"))
+            .Select(group => new CountryOption(
+                group.Key,
+                $"{group.Key} — {group.First()!.EnglishName}"))
             .OrderBy(option => option.Code, StringComparer.Ordinal)
             .ToList();
 
@@ -116,11 +115,6 @@ public partial class SettingsDialog : ModalView
 
         return options;
     }
-
-    private static string CountryName(RegionInfo region) =>
-        !string.IsNullOrWhiteSpace(region.NativeName) ? region.NativeName :
-        !string.IsNullOrWhiteSpace(region.EnglishName) ? region.EnglishName :
-        region.TwoLetterISORegionName;
 
     private void OnOriginalCoverChanged(object? sender, RoutedEventArgs e) => UpdatePictureLimitsEnabled();
 

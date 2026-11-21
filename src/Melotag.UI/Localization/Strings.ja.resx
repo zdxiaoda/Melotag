@@ -734,7 +734,7 @@
     <value>Last.fm API キー</value>
   </data>
   <data name="Settings.ITunesCountry" xml:space="preserve">
-    <value>iTunes ストアの国</value>
+    <value>iTunes ストアの地域</value>
   </data>
   <data name="Settings.UserAgent" xml:space="preserve">
     <value>アクセス識別子 (User-Agent)</value>
