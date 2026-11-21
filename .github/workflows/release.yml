@@ -362,7 +362,7 @@ jobs:
           上游项目：https://github.com/${GITHUB_REPOSITORY}
           许可证：MIT；本包同时包含下列第三方组件：
            Avalonia (MIT)、FluentAvalonia (MIT)、TagLib# (LGPL-2.1)、
-           SkiaSharp (MIT)、OpenCC (Apache-2.0)、Microsoft.Data.Sqlite (MIT)。
+           SkiaSharp (MIT)、OpenCC (Apache-2.0)、Microsoft.Data.Sqlite (MIT)、AcoustID.NET (LGPL-2.1)。
           EOF
           chmod 644 "$root/usr/share/doc/$pkg/copyright"
           install -m644 LICENSE "$root/usr/share/doc/$pkg/LICENSE"
@@ -388,7 +388,7 @@ jobs:
           Priority: optional
           Homepage: https://github.com/${GITHUB_REPOSITORY}
           Depends: libc6, libfontconfig1, libfreetype6, libice6, libsm6, libx11-6, libxcb1, libxkbcommon0, libxrandr2, libxi6, libxcursor1, libxinerama1, libegl1, libgl1, libglib2.0-0 | libglib2.0-0t64
-          Recommends: dotnet-runtime-10.0
+          Recommends: dotnet-runtime-10.0, gstreamer1.0-libav
           Description: 音签 Melotag - 跨平台音乐标签编辑器
            支持 MP3 / FLAC / APE / OGG / MP4 等容器的标签、封面与歌词读写，
            可从多个在线源匹配元数据，并带有重命名、历史撤销与简繁转换。

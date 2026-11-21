@@ -34,6 +34,7 @@ dotnet build Melotag.slnx -c Release
 
 dotnet run --project src/Melotag.Desktop -- "D:\music"
 dotnet run --project tools/Melotag.Probe -- "晴天" "周杰伦"
+dotnet run --project tools/Melotag.Probe -- acoustid "/path/to/song.mp3"
 dotnet run --project tools/Melotag.Branding -- emit .
 # MSIX 图标生成需要先 checkout melotag-release 到 packaging/（见"项目结构"）：
 dotnet run --project tools/Melotag.Branding -- msix packaging/windows/msix/Assets
@@ -54,6 +55,7 @@ Android 数据目录是应用私有空间 `files/data`。
 - .NET 10 / Avalonia 12 / CommunityToolkit.Mvvm / TagLib# 2.3 / SkiaSharp / Microsoft.Data.Sqlite。
 - 可空引用类型已开启；新增代码尽量不引入警告。
 - 用户可见文案统一放 `src/Melotag.UI/Localization/Strings*.resx`（中/日/英），不要在中途硬编码中文。
+  繁体中文（zh-Hant）由简中资源经 OpenCC（`ChineseConversionService`）运行时转换，不维护第四份 resx。
 - 逻辑判断不要依赖本地化后的状态文本；使用 `TrackStatus` 等枚举。
 - 平台差异集中在 `IFileHandle`、`IPlatformHost`、`IFilePickerPlatform`、`ModalHost`。
 - 修改 XAML 后至少在本地跑一次 `dotnet build`；UI 文案改动同时检查三种语言的 resx 键是否齐全。
@@ -137,10 +139,10 @@ Android 数据目录是应用私有空间 `files/data`。
 
 | 项 | 原因 |
 |---|---|
+| 桌面端指纹的解码依赖 | Windows 用系统 Media Foundation；Linux 依赖发行版 GStreamer 及解码插件（如 `gstreamer1.0-libav`），缺失时 AcoustID 源报错并提示安装，不随包附带二进制 |
 | Android 单文件授权的连带改名 | 通过 `ACTION_OPEN_DOCUMENT` 选中的单个文件无法枚举同目录，`.lrc`/封面不会随音频一起改名；用「添加文件夹」导入即可 |
 | Android 云盘改名 | 是否支持由 provider 的 `FLAG_SUPPORTS_RENAME` 决定，不支持时按文件失败并提示 |
 | Android 改名后的历史记录 | 重命名会改变 `content://` URI，旧历史记录键不再匹配（与桌面改路径一致） |
-| 繁体中文界面 | 目前提供简中 / 日文 / 英文 |
 | 托盘最小化 | 需要 `TrayIcon` 集成 |
 | 全局查找替换 | 过滤 + 面板直接编辑已覆盖主要场景 |
 | 作词字段写入 | TagLib# 2.3 未暴露 Lyricist |
@@ -148,9 +150,13 @@ Android 数据目录是应用私有空间 `files/data`。
 | 多音轨音频 | TagLib 不支持按轨编辑，文件会被跳过 |
 
 - 图像处理用 SkiaSharp（MIT）；ImageSharp 4.x 的许可门禁会在 Release 构建失败。
+- AcoustID 指纹：不随包携带任何二进制。指纹计算用 AcoustID.NET（chromaprint 的纯 C# 移植，
+  指纹与官方逐位一致，LGPL-2.1 独立程序集）；解码走平台系统组件——Windows 用系统 Media Foundation
+  （NAudio 封装）、Linux 用系统 GStreamer（手写 P/Invoke）、Android 用 MediaCodec。
+  Linux 缺解码插件时把系统报错上浮给用户（提示安装 gstreamer1.0-libav 等），不静默失败。
 - 国内平台适配器只做只读搜索/歌词/封面查询，不内置任何版权内容。
 - Avalonia 12：Fluent 主题拆分为独立包；`TextBox` 无 `Header`；DataGrid 列模板与默认编译绑定冲突（已关闭编译绑定）；拖放使用 `DragEventArgs.DataTransfer` + `DataFormat.File`。
-- MusicBrainz 要求可识别 User-Agent；默认 UA 已指向 GitHub 仓库。
+- MusicBrainz 要求可识别 User-Agent；UA 固定为程序集版本派生的内置值（含仓库名），不提供用户设置。
 
 ## 文档索引
 

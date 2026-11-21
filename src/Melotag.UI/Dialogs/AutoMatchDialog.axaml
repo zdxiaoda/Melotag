@@ -2,7 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Melotag.UI.Controls"
              xmlns:loc="using:Melotag.UI.Localization"
-             x:Class="Melotag.UI.Dialogs.AutoMatchDialog">
+              x:Class="Melotag.UI.Dialogs.AutoMatchDialog">
+
+  <UserControl.Styles>
+    <Style Selector="UserControl.narrow Grid.pad">
+      <Setter Property="Margin" Value="8" />
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -19,7 +25,7 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid Grid.Row="1" Classes="pad" Margin="16" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
         <TextBlock Grid.Row="0" x:Name="FileCountText" Opacity="0.75" TextWrapping="Wrap" />
 
         <StackPanel Grid.Row="1" Spacing="6">

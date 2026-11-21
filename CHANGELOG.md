@@ -1,9 +1,32 @@
 # Changelog
 
-## 未发布
+## 1.6.0
+
+### 新增
+
+- Android 系统返回键级联：先关闭最上层弹窗，再退出详情页，最后交给系统默认行为（此前按返回会直接退出应用）。
+- 单文件「在线匹配」结果列表新增按来源实时筛选：搜索仍按全局源设置执行，出结果后可用下拉只看某个来源的候选。
+- 单文件「在线匹配」搜索同时携带音频指纹（AcoustID）：标签全空或文件名错乱时也能识别出正确曲目；此前指纹仅批量自动匹配可用。
+- 新增繁体中文界面：设置中可直接选择，繁体系统语言自动识别；界面文案由简中资源经 OpenCC 运行时转换，不引入第四份资源文件。
+- 新增 AcoustID 音频指纹识别源：对没有标签或标签错误的文件按声音内容匹配，应用密钥内置、开箱即用。
+  指纹计算用 AcoustID.NET 纯托管实现（与官方逐位一致）；解码走平台系统组件
+  （Windows Media Foundation / Linux GStreamer / Android MediaCodec），不随包携带任何二进制，
+  缺系统解码器时给出可操作的提示而不是静默失败。
+
+### 改进
+
+- User-Agent 调整：固定为程序集版本自动生成的内置 UA（`Melotag/<版本> (+仓库地址)`，含仓库名与实时版本号），
+  应用升级后自动跟随，不再提供设置项；旧配置里保存的 UA 一并忽略。
+- 全部弹窗在窄屏（手机）下收紧边距、下拉与输入控件自适应宽度；设置对话框在窄屏下标签页移到顶部。
+- Android 弹窗浮层避让系统栏（安全区），手机上铺满可用区域；此前标题与底部按钮会压进状态栏和手势条。
+- iTunes 商店地区列表显示名修复：此前取到藏语、巴什基尔语等任意文化的"本名"，无字体回退时满屏乱码；现在统一显示英文通用名。
+- 手动检查更新对话框内容支持滚动，窄屏不再溢出。
 
 ### 工程
 
+- AcoustID 实测：wo80/AcoustID.NET（chromaprint 纯 C# 移植）与官方 fpcalc 1.6.2 对同一 PCM 的指纹逐位一致，
+  指纹计算因此无需任何原生库；桌面端解码改用平台系统组件（Media Foundation / GStreamer），移除外部二进制依赖。
+- 单元测试增加到 99 个；版本号升级到 `1.6.0`，Android versionCode 递增到 12。
 - 打包脚本（Inno Setup、MSIX、RPM、Flatpak）与 Microsoft Store 提交物料拆分到独立仓库
   [zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release)；`release.yml` 的
   `publish` / `msix` / `release` 作业发布时把它 checkout 到工作区 `packaging/` 路径，脚本相对路径不变。

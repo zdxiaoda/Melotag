@@ -14,6 +14,9 @@ public class MelotagAndroidApplication : AvaloniaAndroidApplication<Melotag.UI.A
     {
         // 数据目录必须在 App 读取 settings.json / 打开 history.db 之前确定。
         PlatformServices.Host = new AndroidPlatformHost(this);
+
+        // 指纹：平台解码 + libchromaprint（JniLibs，缺库时 IsAvailable=false 静默失效）。
+        PlatformServices.Fingerprinter = new Audio.AndroidFingerprinter(this);
     }
 
     public override void OnCreate()

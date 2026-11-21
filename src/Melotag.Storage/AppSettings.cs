@@ -13,11 +13,13 @@ public sealed class SearchSettings
 /// <summary>各类别默认的在线源顺序；设置界面「恢复默认」与旧配置迁移共用这一份。</summary>
 public static class SourceDefaults
 {
-    public static readonly string[] Tags = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "itunes", "lastfm"];
+    public static readonly string[] Tags =
+        ["netease", "qq", "kugou", "kuwo", "musicbrainz", "acoustid", "itunes", "lastfm"];
     public static readonly string[] Pictures = ["netease", "kugou", "kuwo", "itunes", "coverart"];
     public static readonly string[] Lyrics = ["netease", "qq", "kugou", "lrclib"];
 
-    public static readonly string[] All = ["netease", "qq", "kugou", "kuwo", "musicbrainz", "coverart", "itunes", "lastfm", "lrclib"];
+    public static readonly string[] All =
+        ["netease", "qq", "kugou", "kuwo", "musicbrainz", "acoustid", "coverart", "itunes", "lastfm", "lrclib"];
 
     public static string[] For(string category) => category switch
     {
@@ -36,7 +38,6 @@ public sealed class SourceSettings
     public string ConnectorsLyricAndTranslation { get; set; } = "\n";
     public string LastFmApiKey { get; set; } = "";
     public string ITunesCountry { get; set; } = "CN";
-    public string UserAgent { get; set; } = Melotag.Core.ProductInfo.UserAgent;
 }
 
 public sealed class LyricsSettings
@@ -130,26 +131,22 @@ public sealed class AppSettings
             if (string.IsNullOrWhiteSpace(Ui.Language)) Ui.Language = "auto";
             else if (Ui.Language is "zh-CHS" or "zh-CN") Ui.Language = "zh-Hans";
 
-            if (string.IsNullOrWhiteSpace(Sources.UserAgent) ||
-                Sources.UserAgent.Contains("example.com", StringComparison.OrdinalIgnoreCase))
-                Sources.UserAgent = Melotag.Core.ProductInfo.UserAgent;
-
             SettingsVersion = 5;
         }
 
-        if (SettingsVersion < 6)
+        if (SettingsVersion < 7)
         {
-            // 内置默认 UA 跟随应用版本更新；用户自定义的 UA 保持原样。
-            if (IsBuiltInUserAgent(Sources.UserAgent))
-                Sources.UserAgent = Melotag.Core.ProductInfo.UserAgent;
+            // AcoustID 指纹源并入已有列表，排在 MusicBrainz 之后，其余顺序不变。
+            Sanitize(Sources.Tags);
+            if (!Sources.Tags.Contains("acoustid", StringComparer.OrdinalIgnoreCase))
+            {
+                var anchor = Sources.Tags.FindIndex(
+                    id => id.Equals("musicbrainz", StringComparison.OrdinalIgnoreCase));
+                Sources.Tags.Insert(anchor < 0 ? Sources.Tags.Count : anchor + 1, "acoustid");
+            }
 
-            SettingsVersion = 6;
+            SettingsVersion = 7;
         }
-
-        static bool IsBuiltInUserAgent(string? value) =>
-            !string.IsNullOrWhiteSpace(value) &&
-            value.StartsWith("Melotag/", StringComparison.OrdinalIgnoreCase) &&
-            value.EndsWith($"(+{Melotag.Core.ProductInfo.RepositoryUrl})", StringComparison.OrdinalIgnoreCase);
 
         static void MergeInto(List<string> list, string[] ids)
         {

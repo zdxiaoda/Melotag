@@ -1,5 +1,6 @@
 namespace Melotag.Core.Sources;
 
+using Melotag.Core.Abstractions;
 using Melotag.Core.Models;
 
 public sealed record TagQuery
@@ -10,6 +11,9 @@ public sealed record TagQuery
     public string? FileName { get; init; }
     public TimeSpan? Duration { get; init; }
 
+    /// <summary>指纹源（AcoustID）用；纯文本搜索时不提供。</summary>
+    public IFileHandle? File { get; init; }
+
     public static TagQuery From(TrackItem item) => new()
     {
         Title = item.Tags.Title,
@@ -17,6 +21,7 @@ public sealed record TagQuery
         Album = item.Tags.Album,
         FileName = Path.GetFileNameWithoutExtension(item.Path),
         Duration = item.Info?.Duration,
+        File = item.Source,
     };
 
     public string SearchText(bool useFileName, bool useArtist, bool useAlbum)
@@ -76,6 +81,10 @@ public interface ITagSource
     string Id { get; }
     string DisplayName { get; }
     SourceCapability Capabilities { get; }
+
+    /// <summary>最近一次搜索的用户可见错误（如缺少解码器）；无错误为 null。</summary>
+    string? LastError { get; }
+
     Task<IReadOnlyList<TagCandidate>> SearchAsync(TagQuery query, int limit, SourceCapability capability, CancellationToken ct);
     Task<byte[]?> DownloadCoverAsync(string coverUrl, CancellationToken ct);
     Task<string?> DownloadLyricsAsync(TagCandidate candidate, CancellationToken ct);
@@ -86,6 +95,9 @@ public abstract class TagSourceBase : ITagSource
     public abstract string Id { get; }
     public abstract string DisplayName { get; }
     public abstract SourceCapability Capabilities { get; }
+
+    /// <summary>子类在搜索失败时写入用户可处理的提示。</summary>
+    public string? LastError { get; protected set; }
 
     public virtual Task<IReadOnlyList<TagCandidate>> SearchAsync(TagQuery query, int limit, SourceCapability capability, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<TagCandidate>>([]);

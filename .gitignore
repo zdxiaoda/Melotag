@@ -41,3 +41,6 @@ desktop.ini
 *.jks
 *.b64
 android-signing/
+
+# Command Code agent session data
+.commandcode/

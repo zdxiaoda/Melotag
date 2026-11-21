@@ -21,6 +21,7 @@ public partial class LyricsDialog : ModalView
     public LyricsDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public LyricsDialog(TagSearchService search, AppSettings settings, TrackRowViewModel row)
@@ -30,6 +31,7 @@ public partial class LyricsDialog : ModalView
         _row = row;
 
         InitializeComponent();
+        HookNarrowMode();
 
         Editor.Text = row.Lyrics ?? "";
         EncodingCombo.ItemsSource = TextFile.EncodingChoices;

@@ -24,6 +24,7 @@ public partial class HistoryDialog : ModalView
     public HistoryDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public HistoryDialog(IHistoryStore store, string path, Action<HistoryEntry> restore)
@@ -33,6 +34,7 @@ public partial class HistoryDialog : ModalView
         _restore = restore;
 
         InitializeComponent();
+        HookNarrowMode();
 
         Header.Text = path;
         Reload();

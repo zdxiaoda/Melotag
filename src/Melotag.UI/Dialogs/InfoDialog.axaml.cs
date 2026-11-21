@@ -9,11 +9,13 @@ public partial class InfoDialog : ModalView
     public InfoDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public InfoDialog(string title, Control content)
     {
         InitializeComponent();
+        HookNarrowMode();
         TitleText.Text = title;
         Body.Content = content;
     }

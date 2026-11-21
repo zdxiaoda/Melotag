@@ -3,10 +3,12 @@ namespace Melotag.UI.Localization;
 using System.ComponentModel;
 using System.Globalization;
 using System.Resources;
+using Melotag.Core.Services;
 
 /// <summary>
-/// 三语（简中 / 日 / 英）资源入口。XAML 通过 <see cref="TrExtension"/> 绑定
+/// 简中 / 繁中 / 英 / 日资源入口。XAML 通过 <see cref="TrExtension"/> 绑定
 /// <see cref="LocalizedString.Value"/>，代码通过 <see cref="T"/> / <see cref="F"/> 取文案。
+/// 繁中（zh-Hant）不维护独立 resx，读取简中资源后经 OpenCC 运行时转换。
 /// </summary>
 public sealed class Localizer : INotifyPropertyChanged
 {
@@ -16,13 +18,33 @@ public sealed class Localizer : INotifyPropertyChanged
     public static Localizer Instance { get; } = new();
 
     private readonly Dictionary<string, LocalizedString> _strings = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _hantCache = new(StringComparer.Ordinal);
+    private readonly ChineseConversionService _chinese = new();
     private CultureInfo _culture = CultureInfo.GetCultureInfo("zh-Hans");
 
     private Localizer()
     {
     }
 
-    public string this[string key] => Resources.GetString(key, _culture) ?? key;
+    public string this[string key]
+    {
+        get
+        {
+            var culture = _culture.Name == "zh-Hant"
+                ? CultureInfo.GetCultureInfo("zh-Hans")
+                : _culture;
+            var value = Resources.GetString(key, culture) ?? key;
+            if (_culture.Name != "zh-Hant") return value;
+
+            if (!_hantCache.TryGetValue(key, out var converted))
+            {
+                converted = _chinese.ToTraditional(value);
+                _hantCache[key] = converted;
+            }
+
+            return converted;
+        }
+    }
 
     public string CurrentLanguage => _culture.Name;
 
@@ -74,10 +96,12 @@ public sealed class Localizer : INotifyPropertyChanged
         _culture = normalized switch
         {
             "zh-Hans" => CultureInfo.GetCultureInfo("zh-Hans"),
+            "zh-Hant" => CultureInfo.GetCultureInfo("zh-Hant"),
             "ja" => CultureInfo.GetCultureInfo("ja"),
             _ => CultureInfo.GetCultureInfo("en"),
         };
 
+        _hantCache.Clear();
         CultureInfo.CurrentUICulture = _culture;
 
         LocalizedString[] strings;
@@ -94,19 +118,30 @@ public sealed class Localizer : INotifyPropertyChanged
     }
 
     private static string DetectSystemLanguage() =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch
-        {
-            "zh" => "zh-Hans",
-            "ja" => "ja",
-            _ => "en",
-        };
+        IsHant(CultureInfo.CurrentUICulture.Name)
+            ? "zh-Hant"
+            : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch
+            {
+                "zh" => "zh-Hans",
+                "ja" => "ja",
+                _ => "en",
+            };
 
     private static string Normalize(string setting)
     {
+        if (IsHant(setting)) return "zh-Hant";
         if (setting.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-Hans";
         if (setting.StartsWith("ja", StringComparison.OrdinalIgnoreCase)) return "ja";
         return "en";
     }
+
+    /// <summary>繁中相关的语言/地区标记（zh-Hant、zh-TW、zh-HK、zh-MO 及旧式 zh-CHT）。</summary>
+    private static bool IsHant(string name) =>
+        name.StartsWith("zh-hant", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("zh-tw", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("zh-hk", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("zh-mo", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("zh-cht", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>单个资源 key 的可观察值；语言切换时刷新 <see cref="Value"/>。</summary>

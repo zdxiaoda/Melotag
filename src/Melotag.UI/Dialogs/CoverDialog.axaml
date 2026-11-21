@@ -1,7 +1,16 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="using:Melotag.UI.Localization"
-             x:Class="Melotag.UI.Dialogs.CoverDialog">
+              x:Class="Melotag.UI.Dialogs.CoverDialog">
+
+  <UserControl.Styles>
+    <Style Selector="UserControl.narrow Grid.pad">
+      <Setter Property="Margin" Value="8" />
+    </Style>
+    <Style Selector="UserControl.narrow ComboBox.ctl">
+      <Setter Property="Width" Value="220" />
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -18,7 +27,7 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
+      <Grid Grid.Row="1" Classes="pad" Margin="16" RowDefinitions="*,Auto" RowSpacing="10">
         <Border Grid.Row="0" Background="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}"
                 CornerRadius="6" Padding="8" MinHeight="180">
           <Grid>
@@ -32,7 +41,7 @@
           <WrapPanel>
             <Button Content="{loc:Tr Key=Cover.SearchOnline}" Click="OnSearch" Classes="accent" Margin="0,0,8,6" />
             <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" Margin="0,0,8,6" />
-            <ComboBox x:Name="ResultCombo" Width="260" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
+            <ComboBox x:Name="ResultCombo" Classes="ctl" Width="260" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
           </WrapPanel>
           <WrapPanel>
             <Button Content="{loc:Tr Key=Cover.PickLocal}" Click="OnPickLocal" Margin="0,0,8,6" />

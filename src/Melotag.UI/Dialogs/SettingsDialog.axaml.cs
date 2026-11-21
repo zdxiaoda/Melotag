@@ -20,6 +20,7 @@ public partial class SettingsDialog : ModalView
     {
         InitializeComponent();
         _settings = new AppSettings();
+        HookNarrowMode();
     }
 
     public SettingsDialog(AppSettings settings, IReadOnlyList<ITagSource>? sources = null, Action? onSaved = null)
@@ -28,13 +29,13 @@ public partial class SettingsDialog : ModalView
         _onSaved = onSaved;
 
         InitializeComponent();
+        HookNarrowMode();
 
         ThreadsBox.Value = settings.Search.Threads;
         ItemsBox.Value = settings.Search.ItemsPerSource;
         AutoThreadsBox.Value = settings.Search.AutoMatchThreads;
 
         LastFmKeyBox.Text = settings.Sources.LastFmApiKey;
-        UserAgentBox.Text = settings.Sources.UserAgent;
 
         var countryCode = string.IsNullOrWhiteSpace(settings.Sources.ITunesCountry)
             ? "CN"
@@ -74,17 +75,33 @@ public partial class SettingsDialog : ModalView
         {
             new("auto", Localizer.T("Language.Auto")),
             new("zh-Hans", Localizer.T("Language.Chinese")),
+            new("zh-Hant", "繁體中文"),
             new("ja", Localizer.T("Language.Japanese")),
             new("en", Localizer.T("Language.English")),
         };
 
-        var currentLanguage = settings.Ui.Language is "zh-CHS" or "zh-CN" ? "zh-Hans" : settings.Ui.Language;
+        var currentLanguage = settings.Ui.Language switch
+        {
+            "zh-CHS" or "zh-CN" => "zh-Hans",
+            "zh-CHT" or "zh-TW" or "zh-HK" or "zh-MO" => "zh-Hant",
+            var other => other,
+        };
         LanguageBox.ItemsSource = languageOptions;
         LanguageBox.SelectedItem = languageOptions.FirstOrDefault(o =>
             string.Equals(o.Code, currentLanguage, StringComparison.OrdinalIgnoreCase)) ?? languageOptions[0];
         CheckUpdatesBox.IsChecked = settings.Ui.CheckForUpdatesOnStartup;
 
         CompactBox.IsChecked = settings.Ui.UseCompactRows;
+    }
+
+    /// <summary>窄屏（手机）下标签页改放顶部；narrow 类切换由基类完成。</summary>
+    private void HookNarrowMode()
+    {
+        base.HookNarrowMode();
+        SizeChanged += (_, _) =>
+            RootTabs.TabStripPlacement = Bounds.Width is > 0 and < ModalHost.NarrowWidth
+                ? Dock.Top
+                : Dock.Left;
     }
 
     private static List<CountryOption> CreateCountryOptions(string currentCode)
@@ -135,9 +152,6 @@ public partial class SettingsDialog : ModalView
 
         _settings.Sources.LastFmApiKey = LastFmKeyBox.Text?.Trim() ?? "";
         _settings.Sources.ITunesCountry = (CountryBox.SelectedItem as CountryOption)?.Code ?? "CN";
-        _settings.Sources.UserAgent = UserAgentBox.Text?.Trim() ?? "";
-        if (!string.IsNullOrWhiteSpace(_settings.Sources.UserAgent))
-            Melotag.Core.Sources.Http.UserAgent = _settings.Sources.UserAgent;
 
         _settings.Sources.Tags = TagSources.GetOrderedIds();
         _settings.Sources.Pictures = CoverSources.GetOrderedIds();

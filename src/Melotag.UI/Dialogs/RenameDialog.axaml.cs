@@ -36,6 +36,7 @@ public partial class RenameDialog : ModalView
     public RenameDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public RenameDialog(IReadOnlyList<TrackRowViewModel> rows, ISafeNamePolicy policy, IHistoryStore? history)
@@ -45,6 +46,7 @@ public partial class RenameDialog : ModalView
         _history = history;
 
         InitializeComponent();
+        HookNarrowMode();
 
         PresetCombo.ItemsSource = RenamePresets.Defaults;
         BuildGroupRows();

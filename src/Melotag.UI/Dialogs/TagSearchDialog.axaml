@@ -1,7 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="using:Melotag.UI.Localization"
-             x:Class="Melotag.UI.Dialogs.TagSearchDialog">
+              x:Class="Melotag.UI.Dialogs.TagSearchDialog">
+
+  <UserControl.Styles>
+    <Style Selector="UserControl.narrow Grid.pad">
+      <Setter Property="Margin" Value="8" />
+    </Style>
+    <Style Selector="UserControl.narrow StackPanel.ctl">
+      <Setter Property="Width" Value="NaN" />
+      <Setter Property="MinWidth" Value="170" />
+    </Style>
+    <Style Selector="UserControl.narrow ComboBox.ctl">
+      <Setter Property="Width" Value="NaN" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -18,29 +32,33 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid Grid.Row="1" Classes="pad" Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
         <WrapPanel Grid.Row="0">
-          <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
+          <StackPanel Classes="ctl" Spacing="4" Margin="0,0,10,6" Width="180">
             <TextBlock Text="{loc:Tr Key=Field.Title}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="TitleBox" />
           </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
+          <StackPanel Classes="ctl" Spacing="4" Margin="0,0,10,6" Width="180">
             <TextBlock Text="{loc:Tr Key=Field.Artist}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="ArtistBox" />
           </StackPanel>
-          <StackPanel Spacing="4" Margin="0,0,10,6" Width="180">
+          <StackPanel Classes="ctl" Spacing="4" Margin="0,0,10,6" Width="180">
             <TextBlock Text="{loc:Tr Key=Field.Album}" FontSize="12" Opacity="0.7" />
             <TextBox x:Name="AlbumBox" />
           </StackPanel>
         </WrapPanel>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-          <Button Content="{loc:Tr Key=Button.Search}" Click="OnSearch" Classes="accent" />
-          <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="120" IsVisible="False" />
-          <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" />
-        </StackPanel>
+        <WrapPanel Grid.Row="1">
+          <Button Content="{loc:Tr Key=Button.Search}" Click="OnSearch" Classes="accent" Margin="0,0,10,6" />
+          <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="120" IsVisible="False"
+                       Margin="0,0,10,6" VerticalAlignment="Center" />
+          <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6" />
+        </WrapPanel>
 
-        <ListBox Grid.Row="2" x:Name="ResultsList" SelectionMode="Single">
+        <ComboBox Grid.Row="2" x:Name="SourceFilterBox" Classes="ctl" Width="200"
+                  HorizontalAlignment="Left" SelectionChanged="OnSourceFilterChanged" />
+
+        <ListBox Grid.Row="3" x:Name="ResultsList" SelectionMode="Single">
           <ListBox.ItemTemplate>
             <DataTemplate>
               <StackPanel Spacing="2" Margin="0,2">
@@ -61,9 +79,9 @@
           </ListBox.ItemTemplate>
         </ListBox>
 
-        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
           <TextBlock Text="{loc:Tr Key=AutoMatch.Rule}" VerticalAlignment="Center" />
-          <ComboBox Grid.Column="1" x:Name="RuleCombo" Width="190" HorizontalAlignment="Left" />
+          <ComboBox Grid.Column="1" x:Name="RuleCombo" Classes="ctl" Width="190" HorizontalAlignment="Left" />
           <Button Grid.Column="2" Content="{loc:Tr Key=Button.Apply}" Click="OnApply" Classes="accent" />
           <Button Grid.Column="3" Content="{loc:Tr Key=Button.Cancel}" Click="OnCancel" />
         </Grid>

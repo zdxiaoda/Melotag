@@ -39,10 +39,29 @@ public abstract class ModalView : UserControl
 
     /// <summary>供宿主（Escape、窗口关闭等）触发关闭。</summary>
     public void RequestClose(object? result = null) => Close(result);
+
+    /// <summary>
+    /// 窄屏（手机）下给自身切换 <c>narrow</c> 类，供 XAML 里
+    /// <c>UserControl.narrow</c> 前缀的样式收紧布局。
+    /// </summary>
+    protected void HookNarrowMode() =>
+        SizeChanged += (_, _) =>
+        {
+            var narrow = Bounds.Width is > 0 and < ModalHost.NarrowWidth;
+            if (narrow == Classes.Contains("narrow")) return;
+
+            if (narrow) Classes.Add("narrow");
+            else Classes.Remove("narrow");
+        };
 }
 
 public static class ModalHost
 {
+    /// <summary>窄于此宽度按手机布局处理（浮层全出血、对话框启用 narrow 样式）。</summary>
+    internal const double NarrowWidth = 600;
+
+    private static readonly List<ModalView> Overlays = [];
+
     private static bool IsSingleView =>
         Application.Current?.ApplicationLifetime is ISingleViewApplicationLifetime;
 
@@ -82,7 +101,6 @@ public static class ModalHost
         view.ShowHeader = true;
         view.HorizontalAlignment = HorizontalAlignment.Center;
         view.VerticalAlignment = VerticalAlignment.Center;
-        view.Margin = new Thickness(0);
 
         var backdrop = new Border
         {
@@ -99,30 +117,54 @@ public static class ModalHost
         host.Children.Add(backdrop);
         host.Children.Add(view);
         layer.Children.Add(host);
+        Overlays.Add(view);
 
         void ApplySize()
         {
             var area = owner.Bounds.Size;
-            var width = Math.Min(requestedWidth, Math.Max(280, area.Width - 24));
-            var height = Math.Min(requestedHeight, Math.Max(200, area.Height - 24));
+            var safe = owner.InsetsManager?.SafeAreaPadding ?? default;
+
+            // 窄屏（手机）铺满安全区，桌面浮层保留 24px 边距。
+            var outer = area.Width < NarrowWidth ? 0 : 24;
+            var width = Math.Min(requestedWidth,
+                Math.Max(280, area.Width - safe.Left - safe.Right - outer));
+            var height = Math.Min(requestedHeight,
+                Math.Max(200, area.Height - safe.Top - safe.Bottom - outer));
 
             host.Width = area.Width;
             host.Height = area.Height;
+            view.Margin = safe;
             view.Width = width;
             view.Height = height;
         }
 
         ApplySize();
         owner.SizeChanged += OnOwnerSizeChanged;
+        owner.InsetsManager?.SafeAreaChanged += OnInsetsChanged;
 
         _ = completion.Task.ContinueWith(_ => Dispatcher.UIThread.Post(() =>
         {
             owner.SizeChanged -= OnOwnerSizeChanged;
+            owner.InsetsManager?.SafeAreaChanged -= OnInsetsChanged;
+            Overlays.Remove(view);
             layer.Children.Remove(host);
             host.Children.Clear();
         }), TaskScheduler.Default);
 
         void OnOwnerSizeChanged(object? sender, SizeChangedEventArgs e) => ApplySize();
+        void OnInsetsChanged(object? sender, EventArgs e) => ApplySize();
+    }
+
+    /// <summary>
+    /// 关闭最上层浮层（Android 返回键等场景）。没有浮层时返回 false，
+    /// 由调用方继续处理（如返回详情页 / 交给系统默认行为）。
+    /// </summary>
+    public static bool CloseTopmost()
+    {
+        if (Overlays.Count == 0) return false;
+
+        Overlays[^1].RequestClose();
+        return true;
     }
 
     private static void ShowWindow(Window owner, ModalView view, string title, double width, double height,

@@ -1,7 +1,16 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="using:Melotag.UI.Localization"
-             x:Class="Melotag.UI.Dialogs.LyricsDialog">
+              x:Class="Melotag.UI.Dialogs.LyricsDialog">
+
+  <UserControl.Styles>
+    <Style Selector="UserControl.narrow Grid.pad">
+      <Setter Property="Margin" Value="8" />
+    </Style>
+    <Style Selector="UserControl.narrow ComboBox.ctl">
+      <Setter Property="Width" Value="220" />
+    </Style>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -18,12 +27,12 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
+      <Grid Grid.Row="1" Classes="pad" Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="10">
         <StackPanel Grid.Row="0" Spacing="8">
           <WrapPanel>
             <Button Content="{loc:Tr Key=Lyrics.SearchOnline}" Click="OnSearch" Classes="accent" Margin="0,0,8,6" />
             <ProgressBar x:Name="Progress" IsIndeterminate="True" Width="90" IsVisible="False" Margin="0,0,8,6" />
-            <ComboBox x:Name="ResultCombo" Width="280" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
+            <ComboBox x:Name="ResultCombo" Classes="ctl" Width="280" Margin="0,0,8,6" SelectionChanged="OnResultChanged" />
             <TextBlock x:Name="Status" VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6" />
           </WrapPanel>
 

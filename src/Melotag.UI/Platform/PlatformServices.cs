@@ -20,4 +20,7 @@ public static class PlatformServices
     public static IPlatformHost Host { get; set; } = new Storage.FileSystemPlatformHost();
 
     public static IFilePickerPlatform FilePicker { get; set; } = new StorageProviderFilePicker();
+
+    /// <summary>音频指纹提供方；各平台头在启动时注入（桌面系统解码 + AcoustID.NET，Android MediaCodec + AcoustID.NET）。</summary>
+    public static IFingerprinter? Fingerprinter { get; set; }
 }

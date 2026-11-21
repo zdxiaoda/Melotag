@@ -7,4 +7,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Melotag.Core\Melotag.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- acoustid 诊断模式与桌面端共用同一份系统解码 + AcoustID.NET 实现。 -->
+    <Compile Include="..\..\src\Melotag.Desktop\Audio\DesktopFingerprinter.cs" Link="DesktopFingerprinter.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AcoustID.NET" Version="1.3.3" />
+    <PackageReference Include="NAudio" Version="3.3.0" />
+  </ItemGroup>
 </Project>

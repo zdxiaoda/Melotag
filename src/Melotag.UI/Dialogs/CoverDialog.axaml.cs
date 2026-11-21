@@ -40,6 +40,7 @@ public partial class CoverDialog : ModalView
     public CoverDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public CoverDialog(TagSearchService search, AppSettings settings, TrackRowViewModel row)
@@ -49,6 +50,7 @@ public partial class CoverDialog : ModalView
         _row = row;
 
         InitializeComponent();
+        HookNarrowMode();
 
         MaxSizeBox.Value = settings.Pictures.MaxSizeKb;
         MaxSizeBox.IsEnabled = !settings.Pictures.KeepOriginal;

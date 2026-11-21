@@ -501,7 +501,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row);
+        var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row, Vm.Search.Sources);
         if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.TagSearch"), 940, 640) is true && dialog.Selected is { } candidate)
             await Vm.ApplyCandidateAsync(row, candidate, dialog.Rule);
     }

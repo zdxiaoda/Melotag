@@ -2,6 +2,7 @@ namespace Melotag.UI.Views;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -53,7 +54,12 @@ public sealed class UpdateUi
             content.Children.Add(open);
         }
 
-        var dialog = new InfoDialog(Localizer.T("Menu.Help.CheckUpdates"), content);
+        var scroller = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = content,
+        };
+        var dialog = new InfoDialog(Localizer.T("Menu.Help.CheckUpdates"), scroller);
         await ModalHost.ShowAsync(owner, dialog, Localizer.T("Menu.Help.CheckUpdates"), 560, 420);
     }
 }

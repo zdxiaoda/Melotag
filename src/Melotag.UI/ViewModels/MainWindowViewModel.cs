@@ -50,10 +50,6 @@ public partial class MainWindowViewModel : ObservableObject
         _host = host ?? new FileSystemPlatformHost();
         Settings = settings;
 
-        Http.UserAgent = string.IsNullOrWhiteSpace(settings.Sources.UserAgent)
-            ? Http.UserAgent
-            : settings.Sources.UserAgent;
-
         _sortField = ParseSortField(settings.Ui.SortColumn);
         SortOptions = BuildSortOptions();
 
@@ -661,6 +657,7 @@ public partial class MainWindowViewModel : ObservableObject
                 Album = row.Album,
                 FileName = row.FileName,
                 Duration = row.Info?.Duration,
+                File = row.Source,
             };
 
             try
@@ -690,6 +687,10 @@ public partial class MainWindowViewModel : ObservableObject
         ReapplyView();
 
         StatusText = Localizer.F("Status.AutoMatchDone", hit, miss);
+
+        // 指纹解码失败（如 Linux 缺 GStreamer 解码插件）随批量结果一并提示。
+        if (_search.Find("acoustid")?.LastError is { } decodeError)
+            StatusText = $"{StatusText} · {decodeError}";
     }
 
     /// <summary>把已有封面导出到音频同目录，命名为 "文件名-cover.jpg/png"。</summary>

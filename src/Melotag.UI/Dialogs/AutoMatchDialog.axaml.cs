@@ -15,11 +15,13 @@ public partial class AutoMatchDialog : ModalView
     public AutoMatchDialog()
     {
         InitializeComponent();
+        HookNarrowMode();
     }
 
     public AutoMatchDialog(AppSettings settings, IReadOnlyList<ITagSource> sources, int fileCount)
     {
         InitializeComponent();
+        HookNarrowMode();
 
         FileCountText.Text = Localizer.F("AutoMatch.FileCount", fileCount);
         TagSources.Load(sources, settings.Sources.Tags, SourceDefaults.Tags);

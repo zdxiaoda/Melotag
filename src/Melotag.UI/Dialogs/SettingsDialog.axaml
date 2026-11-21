@@ -29,6 +29,15 @@
       <Setter Property="Opacity" Value="0.75" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <Style Selector="UserControl.narrow Border.card">
+      <Setter Property="Padding" Value="10" />
+    </Style>
+    <Style Selector="UserControl.narrow Grid.pad">
+      <Setter Property="Margin" Value="4,8" />
+    </Style>
+    <Style Selector="UserControl.narrow TabControl.sourceTabs">
+      <Setter Property="Height" Value="220" />
+    </Style>
   </UserControl.Styles>
 
   <Border Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
@@ -46,8 +55,8 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="12" RowDefinitions="*,Auto" RowSpacing="10">
-        <TabControl Grid.Row="0" Padding="0" TabStripPlacement="Left">
+      <Grid Grid.Row="1" Classes="pad" Margin="12" RowDefinitions="*,Auto" RowSpacing="10">
+        <TabControl Grid.Row="0" x:Name="RootTabs" Padding="0" TabStripPlacement="Left">
 
           <!-- 搜索 -->
           <TabItem Header="{loc:Tr Key=Settings.Search}">
@@ -89,6 +98,7 @@
                       <TextBox x:Name="LastFmKeyBox" PasswordChar="*"
                                HorizontalAlignment="Stretch" MaxWidth="380" />
                     </StackPanel>
+                    <TextBlock Classes="hint" Text="{loc:Tr Key=Settings.MusicBrainzNote}" />
                     <StackPanel Classes="settingRow">
                       <TextBlock Classes="settingLabel" Text="{loc:Tr Key=Settings.ITunesCountry}" />
                       <ComboBox x:Name="CountryBox" HorizontalAlignment="Stretch" MaxWidth="300">
@@ -99,19 +109,13 @@
                         </ComboBox.ItemTemplate>
                       </ComboBox>
                     </StackPanel>
-                    <StackPanel Classes="settingRow">
-                      <TextBlock Classes="settingLabel" Text="{loc:Tr Key=Settings.UserAgent}" />
-                      <TextBox x:Name="UserAgentBox" HorizontalAlignment="Stretch" MaxWidth="380" />
-                    </StackPanel>
-                    <TextBlock Classes="hint" Text="{loc:Tr Key=Settings.UserAgentHint}" />
-                    <TextBlock Classes="hint" Text="{loc:Tr Key=Settings.MusicBrainzNote}" />
                   </StackPanel>
                 </Border>
 
                 <Border Classes="card">
                   <StackPanel Spacing="8">
                     <TextBlock Classes="section" Text="{loc:Tr Key=Settings.SourceOrder}" />
-                    <TabControl x:Name="SourceTabs" Height="280">
+                    <TabControl x:Name="SourceTabs" Classes="sourceTabs" Height="280">
                       <TabItem Header="{loc:Tr Key=Settings.TabTags}">
                         <c:SourceOrderPanel x:Name="TagSources" Capability="Tags" Margin="2,8,2,2" />
                       </TabItem>

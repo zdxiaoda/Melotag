@@ -493,6 +493,9 @@
   <data name="Search.Searching" xml:space="preserve">
     <value>Searching…</value>
   </data>
+  <data name="Search.AllSources" xml:space="preserve">
+    <value>All sources</value>
+  </data>
   <data name="Search.NoResults" xml:space="preserve">
     <value>No results (check the network or Last.fm API key)</value>
   </data>
@@ -735,9 +738,6 @@
   </data>
   <data name="Settings.ITunesCountry" xml:space="preserve">
     <value>iTunes store region</value>
-  </data>
-  <data name="Settings.UserAgent" xml:space="preserve">
-    <value>Access identifier (User-Agent)</value>
   </data>
   <data name="Settings.MusicBrainzNote" xml:space="preserve">
     <value>Last.fm requires an API key; leave it empty to skip this source.</value>
@@ -999,9 +999,6 @@
   </data>
   <data name="Settings.Updates" xml:space="preserve">
     <value>Updates</value>
-  </data>
-  <data name="Settings.UserAgentHint" xml:space="preserve">
-    <value>Usually keep the default; some services require an identifiable string.</value>
   </data>
   <data name="About.Features" xml:space="preserve">
     <value>Read and write title, artist, album, year, track, genre, lyrics and cover art.</value>

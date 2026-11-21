@@ -7,7 +7,7 @@
     <AssemblyName>Melotag.Android</AssemblyName>
     <Product>音签 Melotag</Product>
     <ApplicationId>io.melotag.app</ApplicationId>
-    <ApplicationVersion>11</ApplicationVersion>
+    <ApplicationVersion>12</ApplicationVersion>
     <!-- 显示版本继承 Directory.Build.props 的 Version，避免与桌面端不一致。 -->
     <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
@@ -18,6 +18,10 @@
     <AndroidResource Include="Icon.png">
       <Link>Resources\drawable\Icon.png</Link>
     </AndroidResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AcoustID.NET" Version="1.3.3" />
   </ItemGroup>
 
   <ItemGroup>

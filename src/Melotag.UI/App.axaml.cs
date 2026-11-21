@@ -43,10 +43,6 @@ public partial class App : Application
         var historyStore = new SqliteHistoryStore();
         historyStore.Initialize();
 
-        Core.Sources.Http.UserAgent = string.IsNullOrWhiteSpace(settings.Sources.UserAgent)
-            ? Core.Sources.Http.UserAgent
-            : settings.Sources.UserAgent;
-
         var searchService = new Core.Sources.TagSearchService(
         [
             new Core.Sources.NeteaseSource(),
@@ -58,6 +54,7 @@ public partial class App : Application
             new Core.Sources.ITunesSource(() => settings.Sources.ITunesCountry),
             new Core.Sources.LastFmSource(() => settings.Sources.LastFmApiKey),
             new Core.Sources.LrclibSource(),
+            new Core.Sources.AcoustIdSource(Platform.PlatformServices.Fingerprinter),
         ]);
 
         var coverService = new Core.Services.CoverService();

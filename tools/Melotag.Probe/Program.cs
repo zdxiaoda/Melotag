@@ -16,6 +16,37 @@ var sources = new ITagSource[]
 
 var search = new TagSearchService(sources);
 
+if (args.Length > 1 && args[0] is "acoustid")
+{
+    // 指纹诊断：系统解码（Windows Media Foundation / Linux GStreamer）+ AcoustID 查询（内置 key）。
+    var fingerprinter = new Melotag.Desktop.Audio.DesktopFingerprinter();
+    Console.WriteLine($"decoder available: {fingerprinter.IsAvailable}");
+    Console.WriteLine($"api key: {(string.IsNullOrWhiteSpace(AcoustIdSource.DefaultApiKey) ? "<missing>" : "built-in")}");
+
+    var source = new AcoustIdSource(fingerprinter);
+    var file = new Melotag.Core.Files.PhysicalFileHandle(args[1]);
+    try
+    {
+        var fp = await fingerprinter.ComputeAsync(file, CancellationToken.None);
+        Console.WriteLine(fp is null
+            ? $"fingerprint failed: {fingerprinter.LastError}"
+            : $"fingerprint ok: dur={fp.DurationSeconds}s len={fp.Fingerprint.Length} {fp.Fingerprint}");
+        var results = await source.SearchAsync(new TagQuery { File = file }, 5,
+            SourceCapability.Tags, CancellationToken.None);
+        Console.WriteLine($"count={results.Count}");
+        foreach (var r in results)
+            Console.WriteLine($"  {r.Title} | {r.Artist} | {r.Album} | {r.Year} | {r.Detail}");
+        if (results.Count == 0 && source.LastError is { } err)
+            Console.WriteLine($"source error: {err}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("acoustid failed: " + ex.Message);
+    }
+
+    return;
+}
+
 var title = args.Length > 0 ? args[0] : "Get Lucky";
 var artist = args.Length > 1 ? args[1] : "Daft Punk";
 var query = new TagQuery { Title = title, Artist = artist };

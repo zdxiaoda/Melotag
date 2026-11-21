@@ -22,6 +22,8 @@ public partial class MobileShellView : UserControl
     {
         InitializeComponent();
 
+        Loaded += HookBackRequested;
+
         DataContextChanged += (_, _) =>
         {
             if (Vm is { } vm)
@@ -33,6 +35,32 @@ public partial class MobileShellView : UserControl
     private MainWindowViewModel? Vm => DataContext as MainWindowViewModel;
 
     private TopLevel? Top => TopLevel.GetTopLevel(this);
+
+    private bool _backHooked;
+
+    /// <summary>TopLevel 在 attach 前拿不到，Loaded 时挂系统返回键。</summary>
+    private void HookBackRequested(object? sender, RoutedEventArgs e)
+    {
+        if (_backHooked || Top is not { } top) return;
+
+        _backHooked = true;
+        top.BackRequested += OnBackRequested;
+    }
+
+    /// <summary>返回键级联：先关最上层浮层，再退详情页，最后交给系统默认。</summary>
+    private void OnBackRequested(object? sender, RoutedEventArgs e)
+    {
+        if (ModalHost.CloseTopmost())
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (!DetailPage.IsVisible) return;
+
+        ShowDetail(false);
+        e.Handled = true;
+    }
 
     private void UpdateEmptyHint()
     {
@@ -238,7 +266,7 @@ public partial class MobileShellView : UserControl
             return;
         }
 
-        var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row);
+        var dialog = new TagSearchDialog(Vm.Search, Vm.Settings, row, Vm.Search.Sources);
         if (await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.TagSearch"), 940, 640) is true &&
             dialog.Selected is { } candidate)
             await Vm.ApplyCandidateAsync(row, candidate, dialog.Rule);

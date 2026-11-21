@@ -493,6 +493,9 @@
   <data name="Search.Searching" xml:space="preserve">
     <value>検索中…</value>
   </data>
+  <data name="Search.AllSources" xml:space="preserve">
+    <value>すべてのソース</value>
+  </data>
   <data name="Search.NoResults" xml:space="preserve">
     <value>結果がありません（ネットワークまたは Last.fm API キーを確認してください）</value>
   </data>
@@ -735,9 +738,6 @@
   </data>
   <data name="Settings.ITunesCountry" xml:space="preserve">
     <value>iTunes ストアの地域</value>
-  </data>
-  <data name="Settings.UserAgent" xml:space="preserve">
-    <value>アクセス識別子 (User-Agent)</value>
   </data>
   <data name="Settings.MusicBrainzNote" xml:space="preserve">
     <value>Last.fm には API キーが必要です。空欄の場合はこのソースをスキップします。</value>
@@ -999,9 +999,6 @@
   </data>
   <data name="Settings.Updates" xml:space="preserve">
     <value>アップデート</value>
-  </data>
-  <data name="Settings.UserAgentHint" xml:space="preserve">
-    <value>通常は既定値のままで問題ありません。サービスによっては識別可能な文字列が必要です。</value>
   </data>
   <data name="About.Features" xml:space="preserve">
     <value>タイトル、アーティスト、アルバム、年、トラック、ジャンル、歌詞、カバーの読み書きに対応。</value>
