@@ -113,15 +113,25 @@ jobs:
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (!(Test-Path $iscc)) {
-            # arm64 架构标识需要 Inno Setup 6.3+，Chocolatey 安装的是最新 6.x。
-            choco install innosetup --no-progress -y
-            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          }
           $rid = "${{ matrix.rid }}"
           $arch = if ($rid -eq 'win-arm64') { 'arm64' } else { 'x64' }
           New-Item -ItemType Directory -Force -Path "dist/$rid-installer" | Out-Null
-          & $iscc "/DMyAppVersion=$env:APP_VERSION" "/DMyAppRid=$rid" "/DMyAppArch=$arch" "packaging/windows/melotag.iss"
+
+          function Invoke-Issc {
+            & $iscc "/DMyAppVersion=$env:APP_VERSION" "/DMyAppRid=$rid" "/DMyAppArch=$arch" "packaging/windows/melotag.iss"
+            return $LASTEXITCODE
+          }
+
+          # windows-latest 曾出现预装 Inno Setup 残缺（exe 在、数据文件不在）的情况，
+          # 失败时用 choco 强制重装修复后重试。
+          $code = Invoke-Issc
+          if ($code -ne 0) {
+            Write-Host "预装 Inno Setup 异常（退出码 $code），重装后重试。"
+            choco install innosetup --no-progress -y --force
+            $code = Invoke-Issc
+          }
+          if ($code -ne 0) { throw "ISCC 打包失败（退出码 $code）。" }
+
           Get-ChildItem "dist/$rid-installer" | Format-Table Name,Length
 
       - name: Upload Windows installer
