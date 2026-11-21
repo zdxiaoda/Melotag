@@ -20,7 +20,7 @@ public partial class SettingsDialog : ModalView
     {
         InitializeComponent();
         _settings = new AppSettings();
-        HookNarrowMode();
+        HookSettingsNarrowMode();
     }
 
     public SettingsDialog(AppSettings settings, IReadOnlyList<ITagSource>? sources = null, Action? onSaved = null)
@@ -29,7 +29,7 @@ public partial class SettingsDialog : ModalView
         _onSaved = onSaved;
 
         InitializeComponent();
-        HookNarrowMode();
+        HookSettingsNarrowMode();
 
         ThreadsBox.Value = settings.Search.Threads;
         ItemsBox.Value = settings.Search.ItemsPerSource;
@@ -95,9 +95,9 @@ public partial class SettingsDialog : ModalView
     }
 
     /// <summary>窄屏（手机）下标签页改放顶部；narrow 类切换由基类完成。</summary>
-    private void HookNarrowMode()
+    private void HookSettingsNarrowMode()
     {
-        base.HookNarrowMode();
+        HookNarrowMode();
         SizeChanged += (_, _) =>
             RootTabs.TabStripPlacement = Bounds.Width is > 0 and < ModalHost.NarrowWidth
                 ? Dock.Top

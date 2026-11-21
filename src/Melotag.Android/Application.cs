@@ -15,7 +15,7 @@ public class MelotagAndroidApplication : AvaloniaAndroidApplication<Melotag.UI.A
         // 数据目录必须在 App 读取 settings.json / 打开 history.db 之前确定。
         PlatformServices.Host = new AndroidPlatformHost(this);
 
-        // 指纹：平台解码 + libchromaprint（JniLibs，缺库时 IsAvailable=false 静默失效）。
+        // 指纹：MediaCodec 平台解码 + AcoustID.NET 纯托管指纹计算，无二进制依赖。
         PlatformServices.Fingerprinter = new Audio.AndroidFingerprinter(this);
     }
 

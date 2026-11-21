@@ -4,12 +4,10 @@ using AcoustID;
 using Android.Content;
 using Android.Media;
 using Melotag.Core.Abstractions;
-using Melotag.Droid.Saf;
 
 /// <summary>
-/// Android 端指纹：MediaExtractor + MediaCodec 平台解码出 PCM，喂给
-/// AcoustID.NET（chromaprint 的纯 C# 移植，指纹与官方逐位一致，无需原生库）。
-/// 只分析前 120 秒；解码失败返回 null，调用方静默跳过。
+/// Android 端指纹：ContentResolver 打开文件描述符 → MediaCodec 平台解码 PCM →
+/// AcoustID.NET 计算指纹（纯托管，与官方逐位一致），不随 APK 携带任何解码器与二进制。
 /// </summary>
 public sealed class AndroidFingerprinter : IFingerprinter
 {

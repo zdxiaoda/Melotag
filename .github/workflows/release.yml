@@ -58,8 +58,18 @@ jobs:
         with:
           repository: zdxiaoda/melotag-release
           ref: main
-          path: packaging
+          path: melotag-release
           sparse-checkout: packaging
+
+      # sparse-checkout 路径相对仓库根（packaging/packaging/ 双层嵌套），
+      # 归位到各脚本期望的 packaging/ 后删除外层检出目录。
+      - name: Place packaging scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf packaging
+          mv melotag-release/packaging packaging
+          rm -rf melotag-release
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -167,8 +177,18 @@ jobs:
         with:
           repository: zdxiaoda/melotag-release
           ref: main
-          path: packaging
+          path: melotag-release
           sparse-checkout: packaging
+
+      # sparse-checkout 路径相对仓库根（packaging/packaging/ 双层嵌套），
+      # 归位到各脚本期望的 packaging/ 后删除外层检出目录。
+      - name: Place packaging scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf packaging
+          mv melotag-release/packaging packaging
+          rm -rf melotag-release
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -255,8 +275,18 @@ jobs:
         with:
           repository: zdxiaoda/melotag-release
           ref: main
-          path: packaging
+          path: melotag-release
           sparse-checkout: packaging
+
+      # sparse-checkout 路径相对仓库根（packaging/packaging/ 双层嵌套），
+      # 归位到各脚本期望的 packaging/ 后删除外层检出目录。
+      - name: Place packaging scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf packaging
+          mv melotag-release/packaging packaging
+          rm -rf melotag-release
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
