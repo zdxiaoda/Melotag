@@ -26,7 +26,7 @@
 
 - AcoustID 实测：wo80/AcoustID.NET（chromaprint 纯 C# 移植）与官方 fpcalc 1.6.2 对同一 PCM 的指纹逐位一致，
   指纹计算因此无需任何原生库；桌面端解码改用平台系统组件（Media Foundation / GStreamer），移除外部二进制依赖。
-- 单元测试增加到 99 个；版本号升级到 `1.6.0`，Android versionCode 递增到 12。
+- 单元测试增加到 97 个；版本号升级到 `1.6.0`，Android versionCode 递增到 12。
 - 打包脚本（Inno Setup、MSIX、RPM、Flatpak）与 Microsoft Store 提交物料拆分到独立仓库
   [zdxiaoda/melotag-release](https://github.com/zdxiaoda/melotag-release)；`release.yml` 的
   `publish` / `msix` / `release` 作业发布时把它 checkout 到工作区 `packaging/` 路径，脚本相对路径不变。
