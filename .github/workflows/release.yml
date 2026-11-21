@@ -128,7 +128,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "dist/$rid-installer" | Out-Null
 
           function Invoke-Issc {
-            & $iscc "/DMyAppVersion=$env:APP_VERSION" "/DMyAppRid=$rid" "/DMyAppArch=$arch" "packaging/windows/melotag.iss"
+            # 输出走 Out-Host 展示但不进返回管道，保证函数返回值只有退出码。
+            & $iscc "/DMyAppVersion=$env:APP_VERSION" "/DMyAppRid=$rid" "/DMyAppArch=$arch" "packaging/windows/melotag.iss" 2>&1 | Out-Host
             return $LASTEXITCODE
           }
 
