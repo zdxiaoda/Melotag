@@ -38,6 +38,40 @@ public class NamePatternTests
             NamePattern.Validate("@4@5. @1", PatternDirection.Parse));
     }
 
+    /// <summary>反写方向：用分隔符隔开就不算歧义，只有真正挨在一起才报错。</summary>
+    [Fact]
+    public void Validate_ParseDirection_AllowsSeparatedPlaceholders_ButRejectsTouchingOnes()
+    {
+        Assert.DoesNotContain(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@1-@2", PatternDirection.Parse));
+        Assert.DoesNotContain(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@1 - @2", PatternDirection.Parse));
+        Assert.DoesNotContain(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@4.@5. @1", PatternDirection.Parse));
+
+        Assert.Contains(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@1@2", PatternDirection.Parse));
+        Assert.Contains(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@4@5. @1", PatternDirection.Parse));
+    }
+
+    [Fact]
+    public void Validate_AdjacentDetection_IsNotFooledByIsolatedAtSign()
+    {
+        // 不构成占位符的 '@' 会打断相邻关系："@1 @x @2" 里 @1 与 @2 之间隔了普通文本
+        Assert.DoesNotContain(PatternError.AdjacentPlaceholders,
+            NamePattern.Validate("@1 @x @2", PatternDirection.Parse));
+    }
+
+    [Fact]
+    public void Render_DiscAndTrack_AreAlwaysTwoDigits()
+    {
+        Assert.Equal("02", NamePattern.Render("@4", new TrackTags { Disc = 2 }));
+        Assert.Equal("12", NamePattern.Render("@4", new TrackTags { Disc = 12 }));
+        Assert.Equal("03", NamePattern.Render("@5", new TrackTags { Track = 3 }));
+        Assert.Equal("11", NamePattern.Render("@5", new TrackTags { Track = 11 }));
+    }
+
     [Fact]
     public void Validate_UnknownPlaceholder_IsReported()
     {

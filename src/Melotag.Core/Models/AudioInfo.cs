@@ -9,9 +9,17 @@ public sealed record AudioInfo(
     int? Channels,
     long SizeBytes)
 {
-    public string DurationText => Duration.TotalHours >= 1
-        ? Duration.ToString(@"h\:mm\:ss")
-        : Duration.ToString(@"m\:ss");
+    /// <summary>时长显示。用 TotalHours 而不是 "h" 格式，避免超过 24 小时回绕成 0 点。</summary>
+    public string DurationText
+    {
+        get
+        {
+            if (Duration.TotalHours >= 1)
+                return $"{(int)Duration.TotalHours}:{Duration.Minutes:00}:{Duration.Seconds:00}";
+
+            return $"{(int)Duration.TotalMinutes}:{Duration.Seconds:00}";
+        }
+    }
 
     public string BitrateText => BitrateKbps is null ? "" : $"{BitrateKbps} kbps";
     public string SampleRateText => SampleRateHz is null ? "" : $"{SampleRateHz} Hz";

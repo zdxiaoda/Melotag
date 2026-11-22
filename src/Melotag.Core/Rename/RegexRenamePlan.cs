@@ -23,8 +23,8 @@ public sealed class RegexRenamePlan
             throw new ArgumentException("至少映射一个捕获组", nameof(groupMap));
         if (groupMap.Keys.Any(k => k <= 0))
             throw new ArgumentException("捕获组编号必须从 1 开始", nameof(groupMap));
-        if (groupMap.Keys.Distinct().Count() != groupMap.Count)
-            throw new ArgumentException("捕获组编号不能重复", nameof(groupMap));
+        if (groupMap.Values.Distinct().Count() != groupMap.Count)
+            throw new ArgumentException("同一个字段不能映射多个捕获组", nameof(groupMap));
 
         var regex = new Regex(pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         var maxGroup = regex.GetGroupNumbers().DefaultIfEmpty(0).Max();
@@ -34,16 +34,27 @@ public sealed class RegexRenamePlan
         return new RegexRenamePlan(regex, new Dictionary<int, FieldKey>(groupMap));
     }
 
-    /// <summary>返回仅包含被映射字段的标签集合；不匹配返回 null。</summary>
+    /// <summary>返回仅包含被映射字段的标签集合；不匹配（含匹配超时）返回 null。</summary>
     public TrackTags? Map(string input)
     {
-        var match = Pattern.Match(input);
+        Match match;
+        try
+        {
+            match = Pattern.Match(input);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // 灾难性回溯：当作不匹配，不要拖垮批量反写
+            return null;
+        }
+
         if (!match.Success) return null;
 
         var result = new TrackTags();
         foreach (var (group, field) in GroupMap)
         {
-            if (group >= match.Groups.Count || !match.Groups[group].Success) continue;
+            // Create 已经保证 group 在范围内
+            if (!match.Groups[group].Success) continue;
             var value = match.Groups[group].Value.Trim();
             if (value.Length == 0) continue;
 

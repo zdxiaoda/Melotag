@@ -1,5 +1,6 @@
 namespace Melotag.Core.Services;
 
+using System.Globalization;
 using System.Text.Json;
 using Melotag.Core.Sources;
 
@@ -53,8 +54,12 @@ public sealed class UpdateService
             if (root.TryGetProperty("draft", out var draft) && draft.ValueKind == JsonValueKind.True) return null;
             if (root.TryGetProperty("prerelease", out var pre) && pre.ValueKind == JsonValueKind.True) return null;
 
-            var tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() : null;
-            var url = root.TryGetProperty("html_url", out var u) ? u.GetString() : null;
+            var tag = root.TryGetProperty("tag_name", out var t) && t.ValueKind == JsonValueKind.String
+                ? t.GetString()
+                : null;
+            var url = root.TryGetProperty("html_url", out var u) && u.ValueKind == JsonValueKind.String
+                ? u.GetString()
+                : null;
             if (string.IsNullOrWhiteSpace(tag) || string.IsNullOrWhiteSpace(url)) return null;
 
             var notes = root.TryGetProperty("body", out var b) && b.ValueKind == JsonValueKind.String
@@ -62,7 +67,7 @@ public sealed class UpdateService
                 : null;
 
             var version = Normalize(tag);
-            return new ReleaseInfo(version, url!, notes, CompareVersion(version, currentVersion) > 0, tag);
+            return new ReleaseInfo(version, url, notes, CompareVersion(version, currentVersion) > 0, tag);
         }
         catch (JsonException)
         {
@@ -70,13 +75,41 @@ public sealed class UpdateService
         }
     }
 
+    /// <summary>
+    /// 按 <c>.</c> 分段逐段数值比较，缺段补 0。任一侧无法解析成数字时返回 0（视为「没有更新」），
+    /// 而不是退回字符串比较——string.CompareOrdinal 会把 "1.10.0" 判成小于 "1.9.0"。
+    /// </summary>
     public static int CompareVersion(string left, string right)
     {
-        if (Version.TryParse(Changelog.NormalizeVersion(left), out var a) &&
-            Version.TryParse(Changelog.NormalizeVersion(right), out var b))
-            return a.CompareTo(b);
+        var a = ParseSegments(Changelog.NormalizeVersion(left));
+        var b = ParseSegments(Changelog.NormalizeVersion(right));
+        if (a is null || b is null) return 0;
 
-        return string.CompareOrdinal(Changelog.NormalizeVersion(left), Changelog.NormalizeVersion(right));
+        var length = Math.Max(a.Length, b.Length);
+        for (var i = 0; i < length; i++)
+        {
+            var x = i < a.Length ? a[i] : 0;
+            var y = i < b.Length ? b[i] : 0;
+            if (x != y) return x.CompareTo(y);
+        }
+
+        return 0;
+    }
+
+    private static int[]? ParseSegments(string version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+
+        var segments = version.Split('.', StringSplitOptions.TrimEntries);
+        var numbers = new int[segments.Length];
+        for (var i = 0; i < segments.Length; i++)
+        {
+            if (!int.TryParse(segments[i], NumberStyles.None, CultureInfo.InvariantCulture, out var number))
+                return null;
+            numbers[i] = number;
+        }
+
+        return numbers;
     }
 
     private static string Normalize(string version) => Changelog.NormalizeVersion(version);

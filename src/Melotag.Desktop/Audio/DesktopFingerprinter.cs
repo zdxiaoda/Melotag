@@ -1,5 +1,6 @@
 namespace Melotag.Desktop.Audio;
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Files;
@@ -51,6 +52,9 @@ public sealed class DesktopFingerprinter : IFingerprinter
             var isFloat = format.Encoding == NAudio.Wave.WaveFormatEncoding.IeeeFloat
                 || format.BitsPerSample == 32 && format.Encoding == NAudio.Wave.WaveFormatEncoding.Extensible;
 
+            // 注：AcoustID.NET 1.3.3 的 AcoustID.ChromaContext 是纯托管实现（只有
+            // AcoustID.Native.NativeChromaContext 实现 IDisposable），没有需要释放的
+            // native 资源，因此这里无需（也无法）using/Dispose。
             var chroma = new AcoustID.ChromaContext();
             if (!chroma.Start(format.SampleRate, channels))
             {
@@ -71,7 +75,10 @@ public sealed class DesktopFingerprinter : IFingerprinter
                 if (fedFrames >= maxFrames) break;
             }
 
-            return Finish(chroma, fedFrames, format.SampleRate);
+            // AcoustID 查询要求整首时长，指纹片段只取前 120 秒，不能拿片段长度充当时长。
+            // MediaFoundationReader.TotalTime 取不到时长时是 TimeSpan.Zero，即约定的“未知”。
+            var totalSeconds = (int)Math.Round(reader.TotalTime.TotalSeconds);
+            return Finish(chroma, totalSeconds);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -80,13 +87,14 @@ public sealed class DesktopFingerprinter : IFingerprinter
         }
     }
 
-    private static FingerprintResult? Finish(AcoustID.ChromaContext chroma, long fedFrames, int sampleRate)
+    private static FingerprintResult? Finish(AcoustID.ChromaContext chroma, int totalSeconds)
     {
         chroma.Finish();
         var fingerprint = chroma.GetFingerprint();
         if (string.IsNullOrEmpty(fingerprint))
             return null;
-        return new FingerprintResult(fingerprint, (int)(fedFrames / sampleRate));
+        // 0 表示时长未知：容器/解码器给不出整首时长时按契约返回 0，不再用片段长度顶替。
+        return new FingerprintResult(fingerprint, Math.Max(totalSeconds, 0));
     }
 
     /// <summary>按声道缩混到 ≤2 声道并喂给指纹器；返回是否成功。</summary>
@@ -171,6 +179,15 @@ public sealed class DesktopFingerprinter : IFingerprinter
         private const int StatePlaying = 4;
         private const uint MessageError = 1 << 1;
         private const ulong PullTimeoutNs = 100_000_000; // 100ms
+        private const int FormatTime = 3; // GstFormat: TIME（查询结果为纳秒）
+
+        /// <summary>整条管线的墙钟上限：正常解码 120 秒音频远快于此，超出说明卡死或无音频轨。</summary>
+        private static readonly TimeSpan DecodeBudget = TimeSpan.FromSeconds(MaxSeconds * 1.5 + 30);
+
+        /// <summary>连续多久既没有样本、也没有 EOS、也没有总线消息，就判定为卡死。</summary>
+        private static readonly TimeSpan StallBudget = TimeSpan.FromSeconds(5);
+
+        private const string TimeoutMessage = "AcoustID：解码超时（文件可能不含音频轨）";
 
         private static bool? _available;
         private static readonly Lock InitLock = new();
@@ -202,6 +219,7 @@ public sealed class DesktopFingerprinter : IFingerprinter
         [DllImport(Gst)] private static extern bool gst_bin_add(nint bin, nint element);
         [DllImport(Gst)] private static extern bool gst_element_link(nint src, nint sink);
         [DllImport(Gst)] private static extern int gst_element_set_state(nint element, int state);
+        [DllImport(Gst)] private static extern bool gst_element_query_duration(nint element, int format, out long duration);
         [DllImport(Gst)] private static extern nint gst_element_get_bus(nint element);
         [DllImport(Gst)] private static extern nint gst_element_get_static_pad(nint element, string name);
         [DllImport(Gst)] private static extern bool gst_pad_link(nint pad, nint otherPad);
@@ -230,6 +248,7 @@ public sealed class DesktopFingerprinter : IFingerprinter
             nint instance, string signal, nint handler, nint data, nint destroy, uint connectFlags);
 
         [DllImport(Glib)] private static extern void g_error_free(nint error);
+        [DllImport(Glib)] private static extern void g_free(nint memory);
 
         public static bool IsAvailable
         {
@@ -277,13 +296,28 @@ public sealed class DesktopFingerprinter : IFingerprinter
             {
                 nint bin = 0, sinkPad = 0, caps = 0, bus = 0;
                 GCHandle? padHandle = null;
+
+                // 元素所有权：gst_bin_add 成功后归 pipeline，失败/未加入的必须自己 unref。
+                var source = nint.Zero;
+                var decode = nint.Zero;
+                var convert = nint.Zero;
+                var resample = nint.Zero;
+                var sink = nint.Zero;
+                var elements = new nint[5];
+                var added = new bool[5];
+
                 try
                 {
-                    var source = gst_element_factory_make("filesrc", "src");
-                    var decode = gst_element_factory_make("decodebin", "decode");
-                    var convert = gst_element_factory_make("audioconvert", "convert");
-                    var resample = gst_element_factory_make("audioresample", "resample");
-                    var sink = gst_element_factory_make("appsink", "sink");
+                    source = gst_element_factory_make("filesrc", "src");
+                    decode = gst_element_factory_make("decodebin", "decode");
+                    convert = gst_element_factory_make("audioconvert", "convert");
+                    resample = gst_element_factory_make("audioresample", "resample");
+                    sink = gst_element_factory_make("appsink", "sink");
+                    elements[0] = source;
+                    elements[1] = decode;
+                    elements[2] = convert;
+                    elements[3] = resample;
+                    elements[4] = sink;
                     if (source == 0 || decode == 0 || convert == 0 || resample == 0 || sink == 0)
                     {
                         onError("AcoustID 不可用：系统 GStreamer 组件不完整");
@@ -291,13 +325,25 @@ public sealed class DesktopFingerprinter : IFingerprinter
                     }
 
                     bin = gst_element_factory_make("pipeline", null);
+                    if (bin == 0)
+                    {
+                        onError("AcoustID：GStreamer 管线创建失败");
+                        return null;
+                    }
+
                     SetString(source, "location", path);
 
-                    gst_bin_add(bin, source);
-                    gst_bin_add(bin, decode);
-                    gst_bin_add(bin, convert);
-                    gst_bin_add(bin, resample);
-                    gst_bin_add(bin, sink);
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        if (!gst_bin_add(bin, elements[i]))
+                        {
+                            onError("AcoustID：GStreamer 管线构建失败");
+                            return null;
+                        }
+
+                        added[i] = true;
+                    }
+
                     if (!gst_element_link(source, decode) ||
                         !gst_element_link(convert, resample) || !gst_element_link(resample, sink))
                     {
@@ -309,26 +355,44 @@ public sealed class DesktopFingerprinter : IFingerprinter
                     SetBoolean(sink, "sync", false);
                     SetBoolean(sink, "emit-signals", false);
                     caps = gst_caps_from_string($"audio/x-raw,format=S16LE,layout=interleaved,rate={TargetRate},channels={TargetChannels}");
+                    if (caps == 0)
+                    {
+                        onError("AcoustID：GStreamer 管线构建失败");
+                        return null;
+                    }
+
                     SetCaps(sink, "caps", caps);
                     gst_caps_unref(caps);
                     caps = 0;
 
                     // decodebin 的输出 pad 动态出现，只连接音频 pad。
-                    var state = new PadState { ConvertSink = gst_element_get_static_pad(convert, "sink") };
-                    sinkPad = state.ConvertSink;
+                    sinkPad = gst_element_get_static_pad(convert, "sink");
+                    if (sinkPad == 0)
+                    {
+                        onError("AcoustID：GStreamer 管线构建失败");
+                        return null;
+                    }
+
+                    var state = new PadState { ConvertSink = sinkPad };
                     var handle = GCHandle.Alloc(state);
                     padHandle = handle;
                     g_signal_connect_data(decode, "pad-added",
                         Marshal.GetFunctionPointerForDelegate(PadAdded), GCHandle.ToIntPtr(handle), 0, 0);
 
                     bus = gst_element_get_bus(bin);
+                    if (bus == 0)
+                    {
+                        onError("AcoustID：GStreamer 无法启动解码");
+                        return null;
+                    }
+
                     if (gst_element_set_state(bin, StatePlaying) < 0)
                     {
                         onError("AcoustID：GStreamer 无法启动解码");
                         return null;
                     }
 
-                    return Pull(sink, bus, ct, onError);
+                    return Pull(bin, sink, bus, ct, onError);
                 }
                 catch (DllNotFoundException)
                 {
@@ -346,14 +410,23 @@ public sealed class DesktopFingerprinter : IFingerprinter
                     if (bus != 0) gst_object_unref(bus);
                     if (sinkPad != 0) gst_object_unref(sinkPad);
                     if (caps != 0) gst_caps_unref(caps);
-                    padHandle?.Free();
                     if (bin != 0) gst_object_unref(bin);
+
+                    // 先拆管线（停止可能的 pad-added 回调），再放 GCHandle，避免 native 回调期间
+                    // userData 句柄悬空。
+                    padHandle?.Free();
+
+                    for (var i = 0; i < elements.Length; i++)
+                    {
+                        if (!added[i] && elements[i] != 0) gst_object_unref(elements[i]);
+                    }
                 }
             }
         }
 
-        private static FingerprintResult? Pull(nint sink, nint bus, CancellationToken ct, Action<string> onError)
+        private static FingerprintResult? Pull(nint bin, nint sink, nint bus, CancellationToken ct, Action<string> onError)
         {
+            // ChromaContext 为纯托管实现，无 native 资源可释放（见 DecodeMediaFoundation 注释）。
             var chroma = new AcoustID.ChromaContext();
             if (!chroma.Start(TargetRate, TargetChannels))
             {
@@ -361,38 +434,45 @@ public sealed class DesktopFingerprinter : IFingerprinter
                 return null;
             }
 
+            var totalSeconds = 0;
+            var durationQueried = false;
             var fedFrames = 0L;
             var maxFrames = (long)TargetRate * MaxSeconds;
             var buffer = new byte[256 * 1024];
+
+            // 墙钟保险：正常解码 120 秒音频是秒级完成，卡在 Pull 里必须能退出。
+            var clock = Stopwatch.StartNew();
+            var lastProgress = TimeSpan.Zero;
+
             while (fedFrames < maxFrames)
             {
                 if (ct.IsCancellationRequested) return null;
+                if (clock.Elapsed > DecodeBudget)
+                {
+                    onError(TimeoutMessage);
+                    return null;
+                }
 
                 var sample = gst_app_sink_try_pull_sample(sink, PullTimeoutNs);
                 if (sample != 0)
                 {
                     try
                     {
-                        var gstBuffer = gst_sample_get_buffer(sample);
-                        var size = gstBuffer == 0 ? 0 : gst_buffer_get_size(gstBuffer);
-                        if (size > 0)
-                        {
-                            var toCopy = (nint)Math.Min((long)size, buffer.Length);
-                            var copied = (int)gst_buffer_extract(gstBuffer, 0, buffer, toCopy);
-                            var usable = copied & ~1;
-                            if (usable > 0)
-                            {
-                                var samples = new short[usable / 2];
-                                Buffer.BlockCopy(buffer, 0, samples, 0, usable);
-                                chroma.Feed(samples, samples.Length);
-                                fedFrames += samples.Length / TargetChannels;
-                            }
-                        }
+                        fedFrames = FeedSample(chroma, sample, buffer, fedFrames, maxFrames);
                     }
                     finally
                     {
                         gst_sample_unref(sample);
                     }
+
+                    // 时长在解析出首个样本后才可靠；查不到就下一块再试，循环结束再兜底一次。
+                    if (!durationQueried)
+                    {
+                        totalSeconds = QueryDurationSeconds(bin);
+                        durationQueried = totalSeconds > 0;
+                    }
+
+                    lastProgress = clock.Elapsed;
                     continue;
                 }
 
@@ -404,7 +484,9 @@ public sealed class DesktopFingerprinter : IFingerprinter
                 {
                     try
                     {
-                        gst_message_parse_error(message, out var error, out _);
+                        gst_message_parse_error(message, out var error, out var debug);
+                        if (debug != 0) g_free(debug); // debug 串由 GLib 分配，必须 g_free。
+
                         if (error != 0)
                         {
                             var text = Marshal.PtrToStringAnsi(
@@ -418,6 +500,16 @@ public sealed class DesktopFingerprinter : IFingerprinter
                     {
                         gst_message_unref(message);
                     }
+
+                    lastProgress = clock.Elapsed;
+                    continue;
+                }
+
+                // 连续若干秒既无样本、也非 EOS、也无总线消息：管线卡死。
+                if (clock.Elapsed - lastProgress > StallBudget)
+                {
+                    onError(TimeoutMessage);
+                    return null;
                 }
             }
 
@@ -427,11 +519,59 @@ public sealed class DesktopFingerprinter : IFingerprinter
                 return null;
             }
 
+            // 时长兜底：解析出时长较晚的容器（如无索引的流）首块时可能还查不到。
+            if (totalSeconds <= 0) totalSeconds = QueryDurationSeconds(bin);
+
             chroma.Finish();
             var fingerprint = chroma.GetFingerprint();
-            return string.IsNullOrEmpty(fingerprint)
-                ? null
-                : new FingerprintResult(fingerprint, (int)(fedFrames / TargetRate));
+            if (string.IsNullOrEmpty(fingerprint)) return null;
+
+            // 0 表示时长未知：不能用参与指纹的片段长度冒充整首时长。
+            return new FingerprintResult(fingerprint, totalSeconds);
+        }
+
+        /// <summary>查整首时长（秒）；容器尚未解析出时长时返回 0。</summary>
+        private static int QueryDurationSeconds(nint bin)
+        {
+            if (!gst_element_query_duration(bin, FormatTime, out var durationNs) || durationNs <= 0) return 0;
+            return (int)Math.Round(durationNs / 1_000_000_000d);
+        }
+
+        /// <summary>
+        /// 把整块 GstBuffer 按 chunk 全部读出来喂给指纹器（不再只取前 256KB），
+        /// 并在达到 <paramref name="maxFrames"/> 时截断。返回累计已喂的帧数。
+        /// </summary>
+        private static long FeedSample(AcoustID.ChromaContext chroma, nint sample, byte[] buffer, long fedFrames,
+            long maxFrames)
+        {
+            var gstBuffer = gst_sample_get_buffer(sample);
+            if (gstBuffer == 0) return fedFrames;
+
+            var total = (long)gst_buffer_get_size(gstBuffer);
+            for (long offset = 0; offset < total && fedFrames < maxFrames;)
+            {
+                var chunk = (nint)Math.Min(total - offset, buffer.Length);
+                if (chunk <= 0) break;
+
+                var copied = (int)gst_buffer_extract(gstBuffer, (ulong)offset, buffer, chunk);
+                if (copied <= 0) break;
+                offset += copied;
+
+                var usable = copied & ~1; // S16LE：丢弃尾部半个样本
+                if (usable <= 0) continue;
+
+                var pending = (maxFrames - fedFrames) * TargetChannels;
+                var count = (int)Math.Min(usable / 2, pending);
+                count -= count % TargetChannels; // 只喂完整帧，避免声道错位
+                if (count <= 0) break;
+
+                var samples = new short[count];
+                Buffer.BlockCopy(buffer, 0, samples, 0, count * 2);
+                chroma.Feed(samples, count);
+                fedFrames += count / TargetChannels;
+            }
+
+            return fedFrames;
         }
 
         private sealed class PadState
@@ -441,10 +581,14 @@ public sealed class DesktopFingerprinter : IFingerprinter
 
         private static void OnPadAdded(nint element, nint pad, nint userData)
         {
-            var state = (PadState)GCHandle.FromIntPtr(userData).Target!;
+            if (GCHandle.FromIntPtr(userData).Target is not PadState state) return;
+            if (state.ConvertSink == 0) return;
+
             var caps = gst_pad_get_current_caps(pad);
+            if (caps == 0) return; // 无 caps 的 pad 类型未知，绝不能接到音频 sink 上。
+
             var isAudio = false;
-            if (caps != 0)
+            try
             {
                 var structure = gst_caps_get_structure(caps, 0);
                 if (structure != 0)
@@ -452,12 +596,10 @@ public sealed class DesktopFingerprinter : IFingerprinter
                     var name = Marshal.PtrToStringAnsi(gst_structure_get_name(structure));
                     isAudio = name == "audio/x-raw";
                 }
-                gst_caps_unref(caps);
             }
-            else
+            finally
             {
-                // 无 caps 时也尝试连接，由协商阶段决定成败。
-                isAudio = true;
+                gst_caps_unref(caps);
             }
 
             if (isAudio) gst_pad_link(pad, state.ConvertSink);

@@ -11,9 +11,21 @@ public sealed class ChineseConversionService
     private static readonly Lazy<Func<string, string>> ToSimplifiedConverter =
         new(() => OpenCC.Converter("tw2", "cn"), isThreadSafe: true);
 
-    public string ToTraditional(string text) =>
-        string.IsNullOrEmpty(text) ? text : ToTraditionalConverter.Value(text);
+    /// <summary>
+    /// OpenCC 的转换器是第三方实现，没有公开的线程安全保证（内部词典/缓冲可能被复用）；
+    /// 批量任务会并发调用转换，这里用实例级锁把转换调用串行化，代价远小于偶发的数据错乱。
+    /// </summary>
+    private readonly object _gate = new();
 
-    public string ToSimplified(string text) =>
-        string.IsNullOrEmpty(text) ? text : ToSimplifiedConverter.Value(text);
+    public string ToTraditional(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        lock (_gate) return ToTraditionalConverter.Value(text);
+    }
+
+    public string ToSimplified(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        lock (_gate) return ToSimplifiedConverter.Value(text);
+    }
 }

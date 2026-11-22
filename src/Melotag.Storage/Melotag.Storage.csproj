@@ -9,4 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Melotag.Core\Melotag.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- 回归测试直接验证路径拆分（content:// 与真实路径）；生产可见性不变。 -->
+    <InternalsVisibleTo Include="Melotag.Core.Tests" />
+  </ItemGroup>
 </Project>

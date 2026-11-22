@@ -1,6 +1,5 @@
 namespace Melotag.Core.Tests;
 
-using System.Diagnostics;
 using Melotag.Core.Abstractions;
 using Melotag.Core.Files;
 using Melotag.Core.Models;
@@ -8,49 +7,14 @@ using Melotag.Tags;
 
 public class TagLibRoundTripTests
 {
-    private static string? FindOnPath(string fileName)
-    {
-        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-        foreach (var dir in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var candidate = Path.Combine(dir.Trim('"'), fileName);
-            if (File.Exists(candidate)) return candidate;
-        }
-        return null;
-    }
-
-    private static bool TryCreateSample(string ffmpeg, string output, string extension)
-    {
-        var codec = extension switch
-        {
-            ".mp3" => "libmp3lame",
-            ".flac" => "flac",
-            _ => null,
-        };
-        if (codec is null) return false;
-
-        var args = $"-hide_banner -loglevel error -y -f lavfi -i anullsrc=r=44100:cl=stereo -t 0.5 -c:a {codec} \"{output}\"";
-        using var process = Process.Start(new ProcessStartInfo(ffmpeg, args)
-        {
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        });
-        if (process is null) return false;
-        process.WaitForExit(30_000);
-        return process.ExitCode == 0 && File.Exists(output);
-    }
-
-    [Theory]
+    [FfmpegTheory]
     [InlineData(".mp3")]
     [InlineData(".flac")]
     public void WriteThenRead_RoundTripsAllMappedFields(string extension)
     {
-        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
-        if (ffmpeg is null) return;
-
         var dir = Directory.CreateTempSubdirectory("musictag-tags-").FullName;
         var file = Path.Combine(dir, "sample" + extension);
-        if (!TryCreateSample(ffmpeg, file, extension)) return;
+        Assert.True(Ffmpeg.TryCreateSample(file, extension), "ffmpeg 生成测试样本失败");
 
         var store = new TagLibTagStore();
         var handle = new PhysicalFileHandle(file);
@@ -89,15 +53,12 @@ public class TagLibRoundTripTests
         Assert.Equal(tags.Lyrics, actual.Lyrics);
     }
 
-    [Fact]
+    [FfmpegFact]
     public void Write_KeepModifiedTime_PreservesTimestamp()
     {
-        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
-        if (ffmpeg is null) return;
-
         var dir = Directory.CreateTempSubdirectory("musictag-mtime-").FullName;
         var file = Path.Combine(dir, "sample.flac");
-        if (!TryCreateSample(ffmpeg, file, ".flac")) return;
+        Assert.True(Ffmpeg.TryCreateSample(file, ".flac"), "ffmpeg 生成测试样本失败");
 
         var store = new TagLibTagStore();
         var handle = new PhysicalFileHandle(file);
@@ -110,15 +71,12 @@ public class TagLibRoundTripTests
             $"修改时间未被保留：{before:O} -> {after:O}");
     }
 
-    [Fact]
+    [FfmpegFact]
     public void Write_CoverPicture_RoundTrips()
     {
-        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
-        if (ffmpeg is null) return;
-
         var dir = Directory.CreateTempSubdirectory("musictag-cover-").FullName;
         var file = Path.Combine(dir, "sample.mp3");
-        if (!TryCreateSample(ffmpeg, file, ".mp3")) return;
+        Assert.True(Ffmpeg.TryCreateSample(file, ".mp3"), "ffmpeg 生成测试样本失败");
 
         var jpeg = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9 };
         var store = new TagLibTagStore();
@@ -144,15 +102,12 @@ public class TagLibRoundTripTests
         Assert.Equal(jpeg, pictures[0].Data);
     }
 
-    [Fact]
+    [FfmpegFact]
     public void Read_EmptyPictureFrame_DoesNotReportCover()
     {
-        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
-        if (ffmpeg is null) return;
-
         var dir = Directory.CreateTempSubdirectory("musictag-cover-empty-").FullName;
         var file = Path.Combine(dir, "sample.mp3");
-        if (!TryCreateSample(ffmpeg, file, ".mp3")) return;
+        Assert.True(Ffmpeg.TryCreateSample(file, ".mp3"), "ffmpeg 生成测试样本失败");
 
         var store = new TagLibTagStore();
         store.Write(new PhysicalFileHandle(file), new TrackTags
@@ -166,15 +121,12 @@ public class TagLibRoundTripTests
         Assert.Empty(store.ReadPictures(new PhysicalFileHandle(file)));
     }
 
-    [Fact]
+    [FfmpegFact]
     public void Write_WithoutReplacingPictures_KeepsExistingCover()
     {
-        var ffmpeg = FindOnPath("ffmpeg.exe") ?? FindOnPath("ffmpeg");
-        if (ffmpeg is null) return;
-
         var dir = Directory.CreateTempSubdirectory("musictag-cover-keep-").FullName;
         var file = Path.Combine(dir, "sample.mp3");
-        if (!TryCreateSample(ffmpeg, file, ".mp3")) return;
+        Assert.True(Ffmpeg.TryCreateSample(file, ".mp3"), "ffmpeg 生成测试样本失败");
 
         var jpeg = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9 };
         var store = new TagLibTagStore();

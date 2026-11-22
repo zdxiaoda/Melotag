@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 /// <summary>
 /// 国内平台适配器。均为公开 Web 接口的只读查询，不内置任何版权内容；
@@ -28,26 +27,35 @@ public sealed class NeteaseSource : TagSourceBase
         var json = await Http.GetStringAsync(url, ct, Referer);
 
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("result", out var result) ||
-            !result.TryGetProperty("songs", out var songs)) return [];
+        if (doc.RootElement.ValueKind != JsonValueKind.Object ||
+            !doc.RootElement.TryGetProperty("result", out var result) ||
+            result.ValueKind != JsonValueKind.Object ||
+            !result.TryGetProperty("songs", out var songs) ||
+            songs.ValueKind != JsonValueKind.Array) return [];
 
         var list = new List<TagCandidate>();
         var ids = new List<long>();
 
         foreach (var song in songs.EnumerateArray())
         {
-            var id = song.GetProperty("id").GetInt64();
+            if (JsonRead.Int64(song, "id") is not { } id) continue;
             ids.Add(id);
 
-            var artists = song.TryGetProperty("artists", out var a)
-                ? string.Join(" / ", a.EnumerateArray().Select(x => x.GetProperty("name").GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
+            var artists = song.TryGetProperty("artists", out var a) && a.ValueKind == JsonValueKind.Array
+                ? string.Join(" / ", a.EnumerateArray()
+                    .Select(x => JsonRead.String(x, "name"))
+                    .Where(x => !string.IsNullOrWhiteSpace(x)))
                 : null;
-            var album = song.TryGetProperty("album", out var al) && al.TryGetProperty("name", out var an) ? an.GetString() : null;
-            var duration = song.TryGetProperty("duration", out var d) ? TimeSpan.FromMilliseconds(d.GetInt64()) : (TimeSpan?)null;
+            var album = song.TryGetProperty("album", out var al) && al.ValueKind == JsonValueKind.Object
+                ? JsonRead.String(al, "name")
+                : null;
+            var duration = JsonRead.Int64(song, "duration") is { } milliseconds
+                ? TimeSpan.FromMilliseconds(milliseconds)
+                : (TimeSpan?)null;
 
             list.Add(new TagCandidate(
                 SourceId: Id,
-                Title: song.GetProperty("name").GetString() ?? "",
+                Title: JsonRead.String(song, "name") ?? "",
                 Artist: artists,
                 Album: album,
                 Detail: duration?.ToString(@"m\:ss"),
@@ -64,15 +72,16 @@ public sealed class NeteaseSource : TagSourceBase
 
         if ((capability & SourceCapability.Lyrics) != 0)
         {
-            var withLyrics = new List<TagCandidate>();
-            foreach (var candidate in list.Take(Math.Min(list.Count, 5)))
+            // 保持候选原顺序：命中歌词的补上歌词，没有歌词的也照常返回。
+            for (var i = 0; i < list.Count && i < 5; i++)
             {
-                var lyrics = await LoadLyricsAsync(candidate.ReleaseId!, ct);
-                if (!string.IsNullOrWhiteSpace(lyrics))
-                    withLyrics.Add(candidate with { LyricsText = lyrics });
-            }
+                var id = list[i].ReleaseId;
+                if (string.IsNullOrWhiteSpace(id)) continue;
 
-            if (withLyrics.Count > 0) return withLyrics;
+                var lyrics = await LoadLyricsAsync(id, ct);
+                if (!string.IsNullOrWhiteSpace(lyrics))
+                    list[i] = list[i] with { LyricsText = lyrics };
+            }
         }
 
         return list;
@@ -89,13 +98,14 @@ public sealed class NeteaseSource : TagSourceBase
             var url = $"https://music.163.com/api/song/detail/?id={ids[0]}&ids=%5B{Uri.EscapeDataString(idList)}%5D";
             var json = await Http.GetStringAsync(url, ct, Referer);
             using var doc = JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("songs", out var songs)) return map;
+            if (!doc.RootElement.TryGetProperty("songs", out var songs) ||
+                songs.ValueKind != JsonValueKind.Array) return map;
 
             foreach (var song in songs.EnumerateArray())
             {
-                var id = song.GetProperty("id").GetInt64();
-                if (song.TryGetProperty("album", out var album) && album.TryGetProperty("picUrl", out var pic) &&
-                    pic.GetString() is { Length: > 0 } cover)
+                if (JsonRead.Int64(song, "id") is not { } id) continue;
+                if (song.TryGetProperty("album", out var album) && album.ValueKind == JsonValueKind.Object &&
+                    JsonRead.String(album, "picUrl") is { Length: > 0 } cover)
                     map[id] = cover;
             }
         }
@@ -114,8 +124,9 @@ public sealed class NeteaseSource : TagSourceBase
             var url = $"https://music.163.com/api/song/lyric?id={Uri.EscapeDataString(id)}&lv=1&kv=1&tv=-1";
             var json = await Http.GetStringAsync(url, ct, Referer);
             using var doc = JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("lrc", out var lrc)) return null;
-            return lrc.TryGetProperty("lyric", out var text) ? text.GetString() : null;
+            if (!doc.RootElement.TryGetProperty("lrc", out var lrc) || lrc.ValueKind != JsonValueKind.Object)
+                return null;
+            return JsonRead.String(lrc, "lyric");
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {
@@ -144,31 +155,33 @@ public sealed class QQMusicSource : TagSourceBase
         var json = await Http.GetStringAsync(url, ct, "https://y.qq.com/");
         using var doc = JsonDocument.Parse(json);
 
-        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+        if (doc.RootElement.ValueKind != JsonValueKind.Object ||
+            !doc.RootElement.TryGetProperty("data", out var data) ||
+            data.ValueKind != JsonValueKind.Object ||
             !data.TryGetProperty("song", out var song) ||
-            !song.TryGetProperty("itemlist", out var items)) return [];
+            song.ValueKind != JsonValueKind.Object ||
+            !song.TryGetProperty("itemlist", out var items) ||
+            items.ValueKind != JsonValueKind.Array) return [];
 
         var list = new List<TagCandidate>();
         foreach (var item in items.EnumerateArray().Take(Math.Clamp(limit, 1, 30)))
         {
             list.Add(new TagCandidate(
                 SourceId: Id,
-                Title: item.TryGetProperty("name", out var name) ? name.GetString() ?? "" : "",
-                Artist: item.TryGetProperty("singer", out var singer) ? singer.GetString() : null,
-                ReleaseId: item.TryGetProperty("mid", out var mid) ? mid.GetString() : null));
+                Title: JsonRead.String(item, "name") ?? "",
+                Artist: JsonRead.String(item, "singer"),
+                ReleaseId: JsonRead.String(item, "mid")));
         }
 
         if ((capability & SourceCapability.Lyrics) != 0)
         {
-            var withLyrics = new List<TagCandidate>();
-            foreach (var candidate in list.Take(Math.Min(list.Count, 5)))
+            // 保持候选原顺序：命中歌词的补上歌词，没有歌词的也照常返回。
+            for (var i = 0; i < list.Count && i < 5; i++)
             {
-                var lyrics = await LoadLyricsAsync(candidate.ReleaseId, ct);
+                var lyrics = await LoadLyricsAsync(list[i].ReleaseId, ct);
                 if (!string.IsNullOrWhiteSpace(lyrics))
-                    withLyrics.Add(candidate with { LyricsText = lyrics });
+                    list[i] = list[i] with { LyricsText = lyrics };
             }
-
-            if (withLyrics.Count > 0) return withLyrics;
         }
 
         return list;
@@ -184,7 +197,7 @@ public sealed class QQMusicSource : TagSourceBase
             var json = await Http.GetStringAsync(url, ct, Referer);
             using var doc = JsonDocument.Parse(json);
             if (!doc.RootElement.TryGetProperty("lyric", out var lyric)) return null;
-            var text = lyric.GetString();
+            var text = JsonRead.AsString(lyric);
             return string.IsNullOrWhiteSpace(text) ? null : WebUtility.HtmlDecode(text);
         }
         catch (Exception) when (!ct.IsCancellationRequested)
@@ -213,36 +226,39 @@ public sealed class KugouSource : TagSourceBase
         var json = await Http.GetStringAsync(url, ct);
         using var doc = JsonDocument.Parse(json);
 
-        if (!doc.RootElement.TryGetProperty("data", out var data) ||
-            !data.TryGetProperty("lists", out var lists)) return [];
+        if (doc.RootElement.ValueKind != JsonValueKind.Object ||
+            !doc.RootElement.TryGetProperty("data", out var data) ||
+            data.ValueKind != JsonValueKind.Object ||
+            !data.TryGetProperty("lists", out var lists) ||
+            lists.ValueKind != JsonValueKind.Array) return [];
 
         var list = new List<TagCandidate>();
         foreach (var item in lists.EnumerateArray())
         {
-            var image = item.TryGetProperty("Image", out var img) ? img.GetString() : null;
-            var cover = string.IsNullOrWhiteSpace(image) ? null : image!.Replace("{size}", "240");
+            var image = JsonRead.String(item, "Image");
+            var cover = string.IsNullOrWhiteSpace(image) ? null : image.Replace("{size}", "240");
 
             list.Add(new TagCandidate(
                 SourceId: Id,
-                Title: item.TryGetProperty("SongName", out var sn) ? sn.GetString() ?? "" : "",
-                Artist: item.TryGetProperty("SingerName", out var si) ? si.GetString() : null,
-                Album: item.TryGetProperty("AlbumName", out var an) ? an.GetString() : null,
+                Title: JsonRead.String(item, "SongName") ?? "",
+                Artist: JsonRead.String(item, "SingerName"),
+                Album: JsonRead.String(item, "AlbumName"),
                 CoverUrl: cover,
-                ReleaseId: item.TryGetProperty("FileHash", out var fh) ? fh.GetString() : null,
-                Detail: item.TryGetProperty("Duration", out var du) ? TimeSpan.FromSeconds(du.GetInt32()).ToString(@"m\:ss") : null));
+                ReleaseId: JsonRead.String(item, "FileHash"),
+                Detail: JsonRead.Int32(item, "Duration") is { } seconds
+                    ? TimeSpan.FromSeconds(seconds).ToString(@"m\:ss")
+                    : null));
         }
 
         if ((capability & SourceCapability.Lyrics) != 0)
         {
-            var withLyrics = new List<TagCandidate>();
-            foreach (var candidate in list.Take(Math.Min(list.Count, 3)))
+            // 保持候选原顺序：命中歌词的补上歌词，没有歌词的也照常返回。
+            for (var i = 0; i < list.Count && i < 3; i++)
             {
-                var lyrics = await LoadLyricsAsync(candidate, ct);
+                var lyrics = await LoadLyricsAsync(list[i], ct);
                 if (!string.IsNullOrWhiteSpace(lyrics))
-                    withLyrics.Add(candidate with { LyricsText = lyrics });
+                    list[i] = list[i] with { LyricsText = lyrics };
             }
-
-            if (withLyrics.Count > 0) return withLyrics;
         }
 
         return list;
@@ -260,19 +276,20 @@ public sealed class KugouSource : TagSourceBase
             var searchJson = await Http.GetStringAsync(searchUrl, ct);
             using var searchDoc = JsonDocument.Parse(searchJson);
             if (!searchDoc.RootElement.TryGetProperty("candidates", out var candidates) ||
+                candidates.ValueKind != JsonValueKind.Array ||
                 candidates.GetArrayLength() == 0) return null;
 
             var first = candidates[0];
-            var id = first.TryGetProperty("id", out var idElement) ? idElement.GetString() : null;
-            var key = first.TryGetProperty("accesskey", out var keyElement) ? keyElement.GetString() : null;
+            var id = JsonRead.String(first, "id");
+            var key = JsonRead.String(first, "accesskey");
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(key)) return null;
 
-            var downloadUrl = $"https://krcs.kugou.com/download?ver=1&client=pc&id={Uri.EscapeDataString(id!)}&accesskey={Uri.EscapeDataString(key!)}&fmt=lrc&charset=utf8";
+            var downloadUrl = $"https://krcs.kugou.com/download?ver=1&client=pc&id={Uri.EscapeDataString(id)}&accesskey={Uri.EscapeDataString(key)}&fmt=lrc&charset=utf8";
             var downloadJson = await Http.GetStringAsync(downloadUrl, ct);
             using var downloadDoc = JsonDocument.Parse(downloadJson);
             if (!downloadDoc.RootElement.TryGetProperty("content", out var content)) return null;
 
-            var base64 = content.GetString();
+            var base64 = JsonRead.AsString(content);
             if (string.IsNullOrWhiteSpace(base64)) return null;
             return Encoding.UTF8.GetString(Convert.FromBase64String(base64));
         }
@@ -286,8 +303,6 @@ public sealed class KugouSource : TagSourceBase
 /// <summary>酷我：搜索与封面。歌词接口目前返回 301，暂不提供歌词。</summary>
 public sealed class KuwoSource : TagSourceBase
 {
-    private static readonly Regex JsonQuotes = new("'", RegexOptions.Compiled);
-
     public override string Id => "kuwo";
     public override string DisplayName => "酷我音乐";
     public override SourceCapability Capabilities => SourceCapability.Tags | SourceCapability.Cover;
@@ -298,39 +313,154 @@ public sealed class KuwoSource : TagSourceBase
         if (string.IsNullOrWhiteSpace(term)) return [];
 
         var count = Math.Clamp(limit, 1, 30);
-        var url = "http://search.kuwo.cn/r.s" +
+        var url = "https://search.kuwo.cn/r.s" +
                   $"?all={Uri.EscapeDataString(term)}&ft=music&itemset=web_2013&client=kt&pn=0&rn={count}&rformat=json&encoding=utf8";
         var raw = await Http.GetStringAsync(url, ct);
 
-        // 该接口返回单引号伪 JSON
         var start = raw.IndexOf('{');
         if (start < 0) return [];
-        var normalized = WebUtility.HtmlDecode(JsonQuotes.Replace(raw[start..], "\""));
 
-        using var doc = JsonDocument.Parse(normalized);
-        if (!doc.RootElement.TryGetProperty("abslist", out var listElement)) return [];
+        using var doc = JsonDocument.Parse(NormalizeQuotes(WebUtility.HtmlDecode(raw[start..])));
+        if (!doc.RootElement.TryGetProperty("abslist", out var listElement) ||
+            listElement.ValueKind != JsonValueKind.Array) return [];
 
         var list = new List<TagCandidate>();
         foreach (var item in listElement.EnumerateArray())
         {
-            var pic = item.TryGetProperty("web_albumpic_short", out var p) ? p.GetString() : null;
+            var pic = JsonRead.String(item, "web_albumpic_short");
             var cover = string.IsNullOrWhiteSpace(pic) ? null : $"https://img1.kuwo.cn/star/albumcover/{pic}";
-            var artist = item.TryGetProperty("ARTIST", out var a) ? a.GetString() : null;
-            var album = item.TryGetProperty("ALBUM", out var al) ? al.GetString() : null;
-            var duration = item.TryGetProperty("DURATION", out var d) && int.TryParse(d.GetString(), out var seconds)
+            var duration = JsonRead.String(item, "DURATION") is { } durationText
+                && int.TryParse(durationText, out var seconds) && seconds >= 0
                 ? TimeSpan.FromSeconds(seconds)
                 : (TimeSpan?)null;
 
             list.Add(new TagCandidate(
                 SourceId: Id,
-                Title: item.TryGetProperty("SONGNAME", out var sn) ? sn.GetString() ?? "" : "",
-                Artist: artist,
-                Album: album,
+                Title: JsonRead.String(item, "SONGNAME") ?? "",
+                Artist: JsonRead.String(item, "ARTIST"),
+                Album: JsonRead.String(item, "ALBUM"),
                 CoverUrl: cover,
-                ReleaseId: item.TryGetProperty("MUSICRID", out var rid) ? rid.GetString() : null,
+                ReleaseId: JsonRead.String(item, "MUSICRID"),
                 Detail: duration?.ToString(@"m\:ss")));
         }
 
         return list;
     }
+
+    /// <summary>
+    /// 把该接口的单引号伪 JSON 归一化成标准 JSON。不能简单地把所有 <c>'</c> 换成 <c>"</c>：
+    /// 歌名里的撇号（<c>Guns N' Roses</c>、<c>Don't Stop</c>）会被当成引号，导致整段 JSON 失效。
+    /// 规则：字符串外遇到 <c>'</c> 开始字符串；字符串内遇到 <c>'</c>，只有当其后（跳过空白）
+    /// 是 <c>, : } ]</c> 或输入结束时才视为结束引号，否则保留为 <c>\u0027</c>。
+    /// </summary>
+    private static string NormalizeQuotes(string raw)
+    {
+        var output = new StringBuilder(raw.Length + 16);
+        var inString = false;
+
+        for (var i = 0; i < raw.Length; i++)
+        {
+            var c = raw[i];
+
+            if (!inString)
+            {
+                if (c == '\'')
+                {
+                    output.Append('"');
+                    inString = true;
+                }
+                else
+                {
+                    output.Append(c);
+                }
+
+                continue;
+            }
+
+            if (c == '\\')
+            {
+                // 已是转义序列：保留转义语义，只把 \' 改成 JSON 合法的 \u0027。
+                if (i + 1 < raw.Length && raw[i + 1] == '\'')
+                {
+                    output.Append("\\u0027");
+                    i++;
+                }
+                else if (i + 1 < raw.Length)
+                {
+                    output.Append(c).Append(raw[i + 1]);
+                    i++;
+                }
+                else
+                {
+                    output.Append("\\\\");
+                }
+
+                continue;
+            }
+
+            if (c == '\'')
+            {
+                var next = i + 1;
+                while (next < raw.Length && char.IsWhiteSpace(raw[next])) next++;
+                var closesString = next >= raw.Length || raw[next] is ',' or ':' or '}' or ']';
+                if (closesString)
+                {
+                    output.Append('"');
+                    inString = false;
+                }
+                else
+                {
+                    output.Append("\\u0027");
+                }
+
+                continue;
+            }
+
+            // 单引号字符串里出现的裸双引号（含 HtmlDecode 解出的 &quot;）必须转义。
+            if (c == '"')
+            {
+                output.Append("\\\"");
+                continue;
+            }
+
+            output.Append(c);
+        }
+
+        // 未闭合的字符串补上引号，交给 JsonDocument 正常报错或解析。
+        if (inString) output.Append('"');
+        return output.ToString();
+    }
+}
+
+/// <summary>
+/// 国内平台接口的宽松读取：字段缺失、类型不符（数字/对象/数组混用）时返回 null，
+/// 而不是让 GetString()/GetInt64() 抛异常把整个源变成「无结果」。
+/// </summary>
+file static class JsonRead
+{
+    public static string? String(JsonElement element, string property) =>
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    public static string? AsString(JsonElement element) =>
+        element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+
+    public static long? Int64(JsonElement element, string property) =>
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.Number
+        && value.TryGetInt64(out var number)
+            ? number
+            : null;
+
+    public static int? Int32(JsonElement element, string property) =>
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.Number
+        && value.TryGetInt32(out var number)
+            ? number
+            : null;
 }

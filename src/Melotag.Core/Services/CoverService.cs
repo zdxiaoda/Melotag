@@ -14,19 +14,16 @@ public sealed class CoverService
     /// </summary>
     private const long MaxDecodePixels = 16_000_000;
 
-    /// <summary>原图校验时允许解码的像素上限；超过时只校验文件头，避免插入原图路径占用过多内存。</summary>
-    private const long MaxValidationPixels = 4_000_000;
-
     /// <summary>
     /// 校验格式与可解码性，原样返回图片字节（不缩放、不重编码、不受体积上限约束）。
-    /// 用于「插入原始封面」；超过校验上限的图片只校验文件头。
+    /// 用于「插入原始封面」；仍按缩略尺寸解码一次，截断/损坏的图片不能被当成有效封面。
     /// </summary>
     public CoverResult? ValidateOriginal(byte[] data, IReadOnlyCollection<string> allowedFormats)
     {
         if (data.Length == 0) return null;
 
-        var allowed = new HashSet<string>(allowedFormats.Select(f => f.TrimStart('.').ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
-        if (allowed.Count == 0) allowed = ["jpg", "png"];
+        var allowed = AllowedFormats(allowedFormats);
+        if (allowed.Count == 0) return null;
 
         try
         {
@@ -50,8 +47,8 @@ public sealed class CoverService
     }
 
     /// <summary>
-    /// 用编码器支持的小尺寸解码来发现截断/损坏图片。图片过大时不做解码，只保留文件头校验，
-    /// 避免「插入原始封面」在 UI 线程上产生大块临时位图。
+    /// 用编码器支持的小尺寸解码来发现截断/损坏图片。不能因为原图较大就只看文件头：
+    /// 截断文件的文件头同样可解析，返回值会是 SKCodecResult.IncompleteInput。
     /// </summary>
     private static bool ValidateDecodable(SKCodec codec, SKImageInfo sourceInfo)
     {
@@ -60,15 +57,31 @@ public sealed class CoverService
         var width = supported.Width > 0 && supported.Width < sourceInfo.Width ? supported.Width : sourceInfo.Width;
         var height = supported.Height > 0 && supported.Height < sourceInfo.Height ? supported.Height : sourceInfo.Height;
         if (width <= 0 || height <= 0) return false;
-        if ((long)width * height > MaxValidationPixels) return true;
 
         var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
         using var bitmap = new SKBitmap(info);
         var pixels = bitmap.GetPixels();
-        if (pixels == IntPtr.Zero) return true;
+        if (pixels == IntPtr.Zero) return false;
 
         var result = codec.GetPixels(info, pixels);
         return result is not (SKCodecResult.IncompleteInput or SKCodecResult.ErrorInInput or SKCodecResult.InvalidInput);
+    }
+
+    /// <summary>
+    /// 归一化允许格式：空集合表示「没有允许的格式」（调用方据此拒绝），不要回落到 jpg/png；
+    /// jpeg/jfif 等别名统一成 jpg，否则用户填 "jpeg" 会永远匹配不上编码器报告的 "jpg"。
+    /// </summary>
+    private static HashSet<string> AllowedFormats(IReadOnlyCollection<string> formats)
+    {
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var format in formats)
+        {
+            var normalized = format.Trim().TrimStart('.').ToLowerInvariant();
+            if (normalized.Length == 0) continue;
+            allowed.Add(normalized is "jpeg" or "jpe" or "jfif" ? "jpg" : normalized);
+        }
+
+        return allowed;
     }
 
     private static string FamilyOf(SKEncodedImageFormat format) => format switch
@@ -94,8 +107,8 @@ public sealed class CoverService
     {
         if (data.Length == 0) return null;
 
-        var allowed = new HashSet<string>(allowedFormats.Select(f => f.TrimStart('.').ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
-        if (allowed.Count == 0) allowed = ["jpg", "png"];
+        var allowed = AllowedFormats(allowedFormats);
+        if (allowed.Count == 0) return null;
 
         try
         {
@@ -131,14 +144,18 @@ public sealed class CoverService
 
             if ((long)decodeWidth * decodeHeight > MaxDecodePixels) return null;
 
-            SKBitmap? bitmap = Decode(codec, decodeWidth, decodeHeight);
-            if (bitmap is null) return null;
+            SKBitmap? decoded = Decode(codec, decodeWidth, decodeHeight);
+            if (decoded is null) return null;
+            SKBitmap bitmap = decoded;
 
             try
             {
                 if (bitmap.Width != targetWidth || bitmap.Height != targetHeight)
                 {
-                    var resized = Resize(bitmap, targetWidth, targetHeight);
+                    // 缩放失败就放弃这张图：返回原尺寸会写出超出用户设置上限的封面。
+                    if (Resize(bitmap, targetWidth, targetHeight) is not { } resized)
+                        return null;
+
                     bitmap.Dispose();
                     bitmap = resized;
                 }
@@ -155,7 +172,9 @@ public sealed class CoverService
 
                     if (bitmap.Width > 64 && bitmap.Height > 64)
                     {
-                        var smaller = Resize(bitmap, bitmap.Width * 4 / 5, bitmap.Height * 4 / 5);
+                        if (Resize(bitmap, bitmap.Width * 4 / 5, bitmap.Height * 4 / 5) is not { } smaller)
+                            return null;
+
                         bitmap.Dispose();
                         bitmap = smaller;
                     }
@@ -205,10 +224,10 @@ public sealed class CoverService
         }
     }
 
-    private static SKBitmap Resize(SKBitmap source, int width, int height)
+    private static SKBitmap? Resize(SKBitmap source, int width, int height)
     {
         var info = new SKImageInfo(Math.Max(1, width), Math.Max(1, height), SKColorType.Bgra8888, SKAlphaType.Premul);
-        return source.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear)) ?? source.Copy();
+        return source.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
     }
 
     private static byte[] Encode(SKBitmap bitmap, bool png, int quality)

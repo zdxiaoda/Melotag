@@ -51,4 +51,35 @@ public class RegexRenamePlanTests
         Assert.Throws<ArgumentException>(() =>
             RegexRenamePlan.Create("", new Dictionary<int, FieldKey> { [1] = FieldKey.Track }));
     }
+
+    /// <summary>两个捕获组写同一个字段会互相覆盖，结果取决于字典顺序，必须直接拒绝。</summary>
+    [Fact]
+    public void Create_RejectsSameFieldMappedTwice()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            RegexRenamePlan.Create(@"^(.+) - (.+)$", new Dictionary<int, FieldKey>
+            {
+                [1] = FieldKey.Title,
+                [2] = FieldKey.Title,
+            }));
+
+        Assert.Contains("同一个字段", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(3)]
+    public void Create_RejectsInvalidGroupNumbers(int group)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            RegexRenamePlan.Create(@"^(.+) - (.+)$", new Dictionary<int, FieldKey> { [group] = FieldKey.Title }));
+    }
+
+    [Fact]
+    public void Create_RejectsEmptyGroupMap()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            RegexRenamePlan.Create(@"^(.+)$", new Dictionary<int, FieldKey>()));
+    }
 }

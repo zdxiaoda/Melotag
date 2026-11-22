@@ -5,11 +5,22 @@ using Melotag.Core.Models;
 
 public sealed record RenamePreview(IFileHandle Source, string TargetName, string? Error)
 {
-    public bool IsValid => Error is null && !string.Equals(Source.FileName, TargetName, StringComparison.Ordinal);
+    /// <summary>
+    /// 有效 = 无错误且文件名确实有变化。用 Ordinal 比较，因此「仅大小写不同」也算有效变化
+    /// （大小写不敏感的文件系统上需要两步改名，由 <see cref="IFileHandle.Rename"/> 负责）。
+    /// </summary>
+    public bool IsValid => Error is null && RenameService.Differs(Source.FileName, TargetName);
+
     public string SourceName => Source.FileName;
 }
 
-public sealed record RenameResult(IFileHandle Old, IFileHandle New, IReadOnlyList<string> RenamedSiblings);
+public sealed record RenameResult(IFileHandle Old, IFileHandle New, IReadOnlyList<string> RenamedSiblings)
+{
+    /// <summary>
+    /// 连带改名失败的兄弟文件（记录失败时的原文件名）。主文件改名失败仍会抛异常，不会记在这里。
+    /// </summary>
+    public IReadOnlyList<string> FailedSiblings { get; init; } = [];
+}
 
 /// <summary>文件改名：模板渲染、冲突规避、连带改名 .lrc/封面。</summary>
 public sealed class RenameService
@@ -41,10 +52,25 @@ public sealed class RenameService
 
         var rendered = NamePattern.Render(pattern, tags);
         var name = policy.Sanitize(rendered);
-        if (string.IsNullOrWhiteSpace(name))
+        if (IsBlankName(name))
             return new RenamePreview(file, file.FileName, EmptyNameError);
 
         return new RenamePreview(file, MakeUnique(file, name + file.Extension), null);
+    }
+
+    /// <summary>渲染 + Sanitize 后为空，或只剩分隔符/括号/空白（如 "-"、" - "、"."、"_"、"()"）。</summary>
+    private static bool IsBlankName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return true;
+
+        foreach (var c in name)
+        {
+            if (char.IsWhiteSpace(c)) continue;
+            if (c is '-' or '_' or '.' or '(' or ')' or '[' or ']') continue;
+            return false;
+        }
+
+        return true;
     }
 
     public static string Describe(PatternError error) => error switch
@@ -63,50 +89,67 @@ public sealed class RenameService
         if (!preview.IsValid) throw new InvalidOperationException(preview.Error ?? "无变化");
 
         var source = preview.Source;
-        var siblings = source.GetSiblings();
         var oldBase = source.FileNameWithoutExtension;
         var newBase = Path.GetFileNameWithoutExtension(preview.TargetName);
         var renamed = new List<string>();
+        var failed = new List<string>();
 
-        var renamedFile = source.Rename(preview.TargetName);
-
-        foreach (var sibling in siblings)
+        try
         {
-            if (string.Equals(sibling.Key, source.Key, StringComparison.Ordinal)) continue;
+            var siblings = source.GetSiblings();
+            var renamedFile = source.Rename(preview.TargetName);
 
-            var name = sibling.FileName;
-            var ext = sibling.Extension;
-            if (!name.StartsWith(oldBase, StringComparison.OrdinalIgnoreCase)) continue;
-
-            var isLyrics = ext.Equals(".lrc", StringComparison.OrdinalIgnoreCase);
-            var isImage = ImageExtensions.Contains(ext);
-            if ((isLyrics && !alsoRenameLyrics) || (isImage && !alsoRenamePictures) || (!isLyrics && !isImage)) continue;
-
-            var suffix = name[oldBase.Length..];
-            var isCompanion = suffix.Length == 0
-                || suffix[0] == '.'
-                || suffix.StartsWith(" (", StringComparison.Ordinal)
-                || suffix.StartsWith("-cover", StringComparison.OrdinalIgnoreCase)
-                || suffix.StartsWith("_cover", StringComparison.OrdinalIgnoreCase);
-            if (!isCompanion) continue;
-
-            var target = newBase + suffix;
-            if (siblings.Any(s => string.Equals(s.FileName, target, StringComparison.OrdinalIgnoreCase))) continue;
-
-            try
+            foreach (var sibling in siblings)
             {
-                sibling.Rename(target);
-                renamed.Add(target);
+                if (string.Equals(sibling.Key, source.Key, StringComparison.Ordinal)) continue;
+
+                var name = sibling.FileName;
+                var ext = sibling.Extension;
+                if (!name.StartsWith(oldBase, StringComparison.OrdinalIgnoreCase)) continue;
+
+                var isLyrics = ext.Equals(".lrc", StringComparison.OrdinalIgnoreCase);
+                var isImage = ImageExtensions.Contains(ext);
+                if ((isLyrics && !alsoRenameLyrics) || (isImage && !alsoRenamePictures) || (!isLyrics && !isImage)) continue;
+
+                var suffix = name[oldBase.Length..];
+                var isCompanion = suffix.Length == 0
+                    || suffix[0] == '.'
+                    || suffix.StartsWith(" (", StringComparison.Ordinal)
+                    || suffix.StartsWith("-cover", StringComparison.OrdinalIgnoreCase)
+                    || suffix.StartsWith("_cover", StringComparison.OrdinalIgnoreCase);
+                if (!isCompanion) continue;
+
+                var target = newBase + suffix;
+                if (siblings.Any(s => string.Equals(s.FileName, target, StringComparison.OrdinalIgnoreCase))) continue;
+
+                try
+                {
+                    sibling.Rename(target);
+                    renamed.Add(target);
+                }
+                catch (IOException)
+                {
+                    // 单个兄弟文件失败不影响主文件，但要回传给调用方而不是静默吞掉
+                    failed.Add(name);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    failed.Add(name);
+                }
             }
-            catch
-            {
-                // 单个兄弟文件失败不影响主文件
-            }
+
+            return new RenameResult(source, renamedFile, renamed) { FailedSiblings = failed };
         }
-
-        Invalidate();
-        return new RenameResult(source, renamedFile, renamed);
+        finally
+        {
+            // 主文件或兄弟文件可能已经动过磁盘，无论成败都让目录名缓存失效
+            Invalidate();
+        }
     }
+
+    /// <summary>文件名是否有变化：Ordinal 比较，因此仅大小写不同也算变化。</summary>
+    internal static bool Differs(string currentName, string newName) =>
+        !string.Equals(currentName, newName, StringComparison.Ordinal);
 
     /// <summary>按显式文件名（不含扩展名）改名，用于简繁转换等场景。</summary>
     public RenameResult ApplyExact(IFileHandle file, string newBaseName, ISafeNamePolicy policy, bool alsoRenameLyrics, bool alsoRenamePictures)
@@ -114,10 +157,10 @@ public sealed class RenameService
         if (!file.CanRename) throw new InvalidOperationException(NotRenameableError);
 
         var name = policy.Sanitize(newBaseName);
-        if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("新文件名为空");
+        if (IsBlankName(name)) throw new InvalidOperationException("新文件名为空");
 
         var target = MakeUnique(file, name + file.Extension);
-        if (string.Equals(target, file.FileName, StringComparison.Ordinal))
+        if (!Differs(file.FileName, target))
             return new RenameResult(file, file, []);
 
         return Apply(new RenamePreview(file, target, null), alsoRenameLyrics, alsoRenamePictures);

@@ -71,7 +71,11 @@ public static class NamePattern
         for (var i = 0; i < pattern.Length; i++)
         {
             if (pattern[i] != '@' || i + 1 >= pattern.Length || !char.IsAsciiDigit(pattern[i + 1]))
+            {
+                // 普通字符（含不构成占位符的孤立 '@'）会打断相邻关系
+                previous = null;
                 continue;
+            }
 
             var digit = pattern[i + 1];
             if (digit > '8')
@@ -114,7 +118,7 @@ public static class NamePattern
         '1' => tags.Title,
         '2' => tags.Artist,
         '3' => tags.Album,
-        '4' => tags.Disc?.ToString(),
+        '4' => tags.Disc?.ToString("00"),
         '5' => tags.Track?.ToString("00"),
         '6' => tags.Year?.ToString(),
         '7' => tags.Comment,

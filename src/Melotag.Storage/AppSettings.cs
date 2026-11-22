@@ -20,13 +20,6 @@ public static class SourceDefaults
 
     public static readonly string[] All =
         ["netease", "qq", "kugou", "kuwo", "musicbrainz", "acoustid", "coverart", "itunes", "lastfm", "lrclib"];
-
-    public static string[] For(string category) => category switch
-    {
-        "pictures" => Pictures,
-        "lyrics" => Lyrics,
-        _ => Tags,
-    };
 }
 
 public sealed class SourceSettings
@@ -111,8 +104,23 @@ public sealed class AppSettings
 
     public void Migrate()
     {
-        Ui ??= new UiSettings();
+        // 旧配置（或 JSON 里显式写 null）会让所有子对象 / 集合为 null；
+        // 这里一次性兜底，后续迁移逻辑才能安全地假设它们非 null。
+        Search ??= new SearchSettings();
         Sources ??= new SourceSettings();
+        Lyrics ??= new LyricsSettings();
+        Pictures ??= new PictureSettings();
+        Writing ??= new WriteSettings();
+        Ui ??= new UiSettings();
+        RecentDirectories ??= [];
+        ManagedDirectories ??= [];
+
+        Sources.Tags ??= [];
+        Sources.Pictures ??= [];
+        Sources.Lyrics ??= [];
+
+        Pictures.AllowedFormats ??= ["jpg", "png"];
+        Ui.VisibleColumns ??= [];
 
         if (SettingsVersion < 4)
         {
@@ -150,9 +158,15 @@ public sealed class AppSettings
 
         static void MergeInto(List<string> list, string[] ids)
         {
+            // 先按 ids 顺序收集缺失项，再一次性插到最前面：
+            // 逐条 Insert(0, id) 会把新默认源顺序反转（旧配置升级后源顺序错乱）。
+            var missing = new List<string>();
             foreach (var id in ids)
-                if (!list.Contains(id, StringComparer.OrdinalIgnoreCase))
-                    list.Insert(0, id);
+            {
+                if (!list.Contains(id, StringComparer.OrdinalIgnoreCase)) missing.Add(id);
+            }
+
+            if (missing.Count > 0) list.InsertRange(0, missing);
         }
 
         static void Sanitize(List<string> list)

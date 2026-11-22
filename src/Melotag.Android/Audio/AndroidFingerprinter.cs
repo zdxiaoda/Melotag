@@ -1,5 +1,6 @@
 namespace Melotag.Droid.Audio;
 
+using System.Diagnostics;
 using AcoustID;
 using Android.Content;
 using Android.Media;
@@ -11,7 +12,7 @@ using Melotag.Core.Abstractions;
 /// </summary>
 public sealed class AndroidFingerprinter : IFingerprinter
 {
-    private const long AnalyzeSeconds = 120;
+    private const int AnalyzeSeconds = 120;
 
     // MediaCodec.Info* 常量（避免绑定枚举名差异）。
     private const int InfoTryAgainLater = -1;
@@ -20,6 +21,11 @@ public sealed class AndroidFingerprinter : IFingerprinter
     // AudioFormat.ENCODING_PCM_16BIT / ENCODING_PCM_FLOAT。
     private const int Pcm16Bit = 2;
     private const int PcmFloat = 4;
+
+    /// <summary>解码墙钟上限：正常解码 120 秒音频远快于此，超出说明解码器卡死。</summary>
+    private static readonly TimeSpan DecodeBudget = TimeSpan.FromSeconds(AnalyzeSeconds * 3.0 + 30);
+
+    private const string TimeoutMessage = "AcoustID：解码超时（文件可能不含音频轨）";
 
     private readonly Context _context;
 
@@ -30,7 +36,7 @@ public sealed class AndroidFingerprinter : IFingerprinter
     public string? LastError { get; private set; }
 
     public Task<FingerprintResult?> ComputeAsync(IFileHandle file, CancellationToken ct) =>
-        Task.Run(() => Compute(file, ct), CancellationToken.None);
+        Task.Run(() => Compute(file, ct), ct);
 
     private FingerprintResult? Compute(IFileHandle file, CancellationToken ct)
     {
@@ -57,7 +63,7 @@ public sealed class AndroidFingerprinter : IFingerprinter
                 return null;
             }
 
-            return Decode(fd, ct);
+            return Decode(fd, afd, ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -66,53 +72,119 @@ public sealed class AndroidFingerprinter : IFingerprinter
         }
     }
 
-    private FingerprintResult? Decode(Java.IO.FileDescriptor fd, CancellationToken ct)
+    private FingerprintResult? Decode(Java.IO.FileDescriptor fd, AssetFileDescriptor afd, CancellationToken ct)
     {
         using var extractor = new MediaExtractor();
-        extractor.SetDataSource(fd);
+
+        // SAF 打开的可能是一个容器内的子区间，只给 fd 会把整个容器当媒体文件解析。
+        // API 24+ 官方推荐直接传 AssetFileDescriptor（内部处理 offset/未知长度）；
+        // API 23 没有这个重载，已知长度时传 offset/length，未知长度只能退回 fd。
+        var offset = afd.StartOffset;
+        var length = afd.DeclaredLength;
+        if (length >= 0)
+            extractor.SetDataSource(fd, offset, length);
+        else if (OperatingSystem.IsAndroidVersionAtLeast(24))
+            extractor.SetDataSource(afd);
+        else
+            extractor.SetDataSource(fd);
 
         var trackIndex = -1;
         MediaFormat? format = null;
+        string? mime = null;
         for (var i = 0; i < extractor.TrackCount; i++)
         {
             var candidate = extractor.GetTrackFormat(i);
-            if (candidate.GetString(MediaFormat.KeyMime) is not { } mime
-                || !mime.StartsWith("audio/", StringComparison.Ordinal)) continue;
+            if (candidate is null) continue;
+            if (candidate.GetString(MediaFormat.KeyMime) is not { } candidateMime) continue;
+            if (!candidateMime.StartsWith("audio/", StringComparison.Ordinal)) continue;
 
             trackIndex = i;
             format = candidate;
+            mime = candidateMime;
             break;
         }
 
-        if (trackIndex < 0 || format is null) return null;
+        if (trackIndex < 0 || format is null || mime is null) return null;
         extractor.SelectTrack(trackIndex);
 
-        using var codec = MediaCodec.CreateDecoderByType(format.GetString(MediaFormat.KeyMime)!);
+        using var codec = MediaCodec.CreateDecoderByType(mime);
+
+        // 明确请求 16bit 整型 PCM：否则部分解码器输出 float，被当成 short 喂给指纹器。
+        try
+        {
+            format.SetInteger(MediaFormat.KeyPcmEncoding, Pcm16Bit);
+        }
+        catch (Exception)
+        {
+            // 部分平台/解码器不接受该键（或 API 级别过低），忽略即可：
+            // 仍按 OutputFormat 里声明的 pcm-encoding 做转换。
+        }
+
         codec.Configure(format, null, null, MediaCodecConfigFlags.None);
         codec.Start();
 
         var sampleRate = format.GetInteger(MediaFormat.KeySampleRate);
         var channels = Math.Max(1, format.GetInteger(MediaFormat.KeyChannelCount));
-        var pcmEncoding = Pcm16Bit;
 
+        // AcoustID 查询要整首时长（秒），而不是本次分析的 120 秒片段；拿不到时为 0（未知）。
+        var totalSeconds = ReadTotalSeconds(format);
+
+        // 官方文档要求以 getOutputFormat() 的声明为准：即使请求了 16bit，
+        // 部分解码器仍可能输出 float，不能只依赖 INFO_OUTPUT_FORMAT_CHANGED。
+        var pcmEncoding = Pcm16Bit;
+        try
+        {
+            var initialFormat = codec.OutputFormat;
+            if (OperatingSystem.IsAndroidVersionAtLeast(24)
+                && initialFormat.ContainsKey(MediaFormat.KeyPcmEncoding))
+                pcmEncoding = initialFormat.GetInteger(MediaFormat.KeyPcmEncoding);
+        }
+        catch (Exception)
+        {
+            // 个别设备在首帧前不允许查询 OutputFormat，退回请求值；格式变化时还会更新。
+        }
+
+        // ChromaContext 是纯托管实现（AcoustID.NET 1.3.3 只有 NativeChromaContext 实现
+        // IDisposable），没有 native 资源需要释放。
         var chroma = new ChromaContext();
         var fedSamples = 0L;
-        var maxSamples = sampleRate * AnalyzeSeconds;
+        var maxSamples = (long)sampleRate * AnalyzeSeconds;
+
+        // 已喂入的启动参数：OutputFormatChanged 只有参数真的变了才重启，否则保留已喂数据。
+        var startedRate = 0;
+        var startedChannels = 0;
+        if (!StartChroma(chroma, sampleRate, channels, ref startedRate, ref startedChannels))
+        {
+            LastError = "AcoustID：指纹初始化失败";
+            return null;
+        }
+
         var inputDone = false;
         var outputDone = false;
         var info = new MediaCodec.BufferInfo();
         const long TimeoutUs = 10_000;
 
-        // OutputFormatChanged 一般会先到，但个别解码器直接出数据；先按声明参数启动一次。
-        if (!chroma.Start(sampleRate, Math.Min(channels, 2))) return null;
+        // 墙钟上限，避免解码器卡死时永久循环。
+        var clock = Stopwatch.StartNew();
 
         while (!outputDone)
         {
-            if (ct.IsCancellationRequested) return null;
+            if (ct.IsCancellationRequested)
+            {
+                // 用户取消不是解码错误：清掉可能残留的错误文案。
+                LastError = null;
+                return null;
+            }
+
+            if (clock.Elapsed > DecodeBudget)
+            {
+                LastError = TimeoutMessage;
+                return null;
+            }
 
             if (!inputDone)
             {
-                int inIndex = (int)codec.DequeueInputBuffer(TimeoutUs);
+                var inIndex = (int)codec.DequeueInputBuffer(TimeoutUs);
                 if (inIndex >= 0)
                 {
                     var input = codec.GetInputBuffer(inIndex);
@@ -130,33 +202,49 @@ public sealed class AndroidFingerprinter : IFingerprinter
                 }
             }
 
-            int outIndex = (int)codec.DequeueOutputBuffer(info, TimeoutUs);
-            if (outIndex == InfoTryAgainLater)
-            {
-                continue;
-            }
+            var outIndex = (int)codec.DequeueOutputBuffer(info, TimeoutUs);
+            if (outIndex == InfoTryAgainLater) continue;
+
             if (outIndex == InfoOutputFormatChanged)
             {
                 // 解码器输出格式一般在此确认；重采样参数以输出为准。
                 var outputFormat = codec.OutputFormat;
-                sampleRate = outputFormat.GetInteger(MediaFormat.KeySampleRate);
-                channels = Math.Max(1, outputFormat.GetInteger(MediaFormat.KeyChannelCount));
-                if (outputFormat.ContainsKey(MediaFormat.KeyPcmEncoding))
+                var newRate = outputFormat.GetInteger(MediaFormat.KeySampleRate);
+                var newChannels = Math.Max(1, outputFormat.GetInteger(MediaFormat.KeyChannelCount));
+                // KEY_PCM_ENCODING 是 API 24+ 的键；低版本不访问，避免绑定字段缺失。
+                if (OperatingSystem.IsAndroidVersionAtLeast(24)
+                    && outputFormat.ContainsKey(MediaFormat.KeyPcmEncoding))
                     pcmEncoding = outputFormat.GetInteger(MediaFormat.KeyPcmEncoding);
-                maxSamples = sampleRate * AnalyzeSeconds;
-                if (!chroma.Start(sampleRate, Math.Min(channels, 2))) return null;
+
+                // 只有采样率/声道真的变化才重启指纹器，否则保留已经喂入的数据。
+                if (newRate != startedRate || Math.Min(newChannels, 2) != startedChannels)
+                {
+                    if (!StartChroma(chroma, newRate, newChannels, ref startedRate, ref startedChannels))
+                    {
+                        LastError = "AcoustID：指纹初始化失败";
+                        return null;
+                    }
+
+                    // 重启会丢掉此前喂入的数据，计数同步归零。
+                    fedSamples = 0;
+                }
+
+                sampleRate = newRate;
+                channels = newChannels;
+                maxSamples = (long)sampleRate * AnalyzeSeconds;
                 continue;
             }
-            if (outIndex < 0)
-            {
-                continue;
-            }
+
+            if (outIndex < 0) continue;
 
             var output = codec.GetOutputBuffer(outIndex);
             if (output is not null && info.Size > 0)
             {
+                // 显式从 info.Offset 读 info.Size 字节：直接 Get(bytes) 会读到 buffer 当前位置，
+                // 多数解码器的首块输出都带非 0 offset（codec-config 数据）。
                 var bytes = new byte[info.Size];
-                output.Get(bytes);
+                output.Get(bytes, info.Offset, info.Size);
+
                 var samples = pcmEncoding == PcmFloat
                     ? FloatToShort(bytes)
                     : BytesToShort(bytes);
@@ -168,11 +256,42 @@ public sealed class AndroidFingerprinter : IFingerprinter
             if (fedSamples >= maxSamples || endOfStream) outputDone = true;
         }
 
+        if (fedSamples == 0) return null;
+
         chroma.Finish();
         var fingerprint = chroma.GetFingerprint();
-        return string.IsNullOrEmpty(fingerprint)
-            ? null
-            : new FingerprintResult(fingerprint, (int)(fedSamples / Math.Max(1, sampleRate)));
+        if (string.IsNullOrEmpty(fingerprint)) return null;
+
+        // 0 表示时长未知：不能用参与指纹的片段长度冒充整首时长。
+        return new FingerprintResult(fingerprint, totalSeconds);
+    }
+
+    /// <summary>
+    /// 按当前解码参数启动指纹器；参数与会话内已启动的一致时不重启（保留已喂数据）。
+    /// </summary>
+    private static bool StartChroma(ChromaContext chroma, int sampleRate, int channels, ref int startedRate,
+        ref int startedChannels)
+    {
+        var target = Math.Min(channels, 2);
+        if (startedRate == sampleRate && startedChannels == target) return true;
+
+        if (!chroma.Start(sampleRate, target)) return false;
+
+        startedRate = sampleRate;
+        startedChannels = target;
+        return true;
+    }
+
+    /// <summary>
+    /// 从轨道格式读整首时长，四舍五入到秒。部分容器（如流式传送的 MP3）不含 durationUs，
+    /// 此时返回 0，表示时长未知——调用方不得把它当作有效时长。
+    /// </summary>
+    private static int ReadTotalSeconds(MediaFormat format)
+    {
+        if (!format.ContainsKey(MediaFormat.KeyDuration)) return 0;
+
+        var micros = format.GetLong(MediaFormat.KeyDuration);
+        return micros > 0 ? (int)Math.Round(micros / 1_000_000d) : 0;
     }
 
     /// <summary>按声道缩混到 2 声道后喂给指纹器；超出的部分截断。</summary>
@@ -195,6 +314,11 @@ public sealed class AndroidFingerprinter : IFingerprinter
                 payload[frame * 2 + 1] = average;
             }
         }
+
+        // 只喂完整帧，避免声道错位（解码块长度不保证是声道数的整数倍）。
+        var usable = payload.Length - payload.Length % targetChannels;
+        if (usable <= 0) return fed;
+        if (usable != payload.Length) payload = payload[..usable];
 
         var remaining = (max - fed) * targetChannels;
         if (payload.Length > remaining)
