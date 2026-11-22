@@ -85,6 +85,25 @@ public class AcoustIdSourceTests
     }
 
     [Fact]
+    public void Parse_SortsResultsByScore()
+    {
+        var json = """
+        {
+          "status": "ok",
+          "results": [
+            { "score": 0.41, "recordings": [{ "id": "low", "title": "Low" }] },
+            { "score": 0.98, "recordings": [{ "id": "high", "title": "High" }] }
+          ]
+        }
+        """;
+
+        var candidates = AcoustIdSource.Parse(json, "acoustid", 10);
+
+        Assert.Equal("High", candidates[0].Title);
+        Assert.Equal("Low", candidates[1].Title);
+    }
+
+    [Fact]
     public void TagQuery_From_CarriesFileHandle()
     {
         var path = Path.GetTempFileName();

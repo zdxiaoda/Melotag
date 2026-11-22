@@ -72,12 +72,23 @@ public sealed class AcoustIdSource : TagSourceBase
         {
             json = await Http.GetStringAsync(url, ct);
         }
-        catch (Exception) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (!ct.IsCancellationRequested)
         {
+            LastError = ex is HttpRequestException httpError
+                ? $"AcoustID：查询失败（{httpError.StatusCode?.ToString() ?? httpError.Message}）"
+                : $"AcoustID：查询失败（{ex.Message}）";
             return [];
         }
 
-        return Parse(json, Id, limit);
+        try
+        {
+            return Parse(json, Id, limit);
+        }
+        catch (JsonException)
+        {
+            LastError = "AcoustID：服务返回了无效数据";
+            return [];
+        }
     }
 
     /// <summary>解析 AcoustID 查询响应：按 result.score 排序取 recording，去重后映射为候选。</summary>
@@ -88,14 +99,22 @@ public sealed class AcoustIdSource : TagSourceBase
 
         var candidates = new List<TagCandidate>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var orderedResults = results.EnumerateArray()
+            .Select(result => new
+            {
+                Result = result,
+                Score = result.TryGetProperty("score", out var scoreEl) && scoreEl.ValueKind == JsonValueKind.Number
+                    ? scoreEl.GetDouble()
+                    : 0
+            })
+            .OrderByDescending(item => item.Score)
+            .ToList();
 
-        foreach (var result in results.EnumerateArray())
+        foreach (var item in orderedResults)
         {
+            var result = item.Result;
             if (!result.TryGetProperty("recordings", out var recordings)) continue;
-
-            var score = result.TryGetProperty("score", out var scoreEl) && scoreEl.ValueKind == JsonValueKind.Number
-                ? scoreEl.GetDouble()
-                : 0;
+            var score = item.Score;
 
             foreach (var recording in recordings.EnumerateArray())
             {
