@@ -3,6 +3,7 @@ namespace Melotag.Droid.Audio;
 using System.Diagnostics;
 using AcoustID;
 using Android.Content;
+using Android.Content.Res;
 using Android.Media;
 using Melotag.Core.Abstractions;
 
