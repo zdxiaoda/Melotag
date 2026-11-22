@@ -33,6 +33,7 @@ public partial class CoverDialog : ModalView
     private string _mime = "image/jpeg";
     private Bitmap? _previewBitmap;
     private int _previewVersion;
+    private int _searchVersion;
     private bool _dirty;
     private bool _initialLoadStarted;
     private bool _detached;
@@ -192,8 +193,11 @@ public partial class CoverDialog : ModalView
     {
         if (_search is null || _settings is null || _row is null) return;
 
+        // 与预览版本号分开：迟到的封面搜索结果不能覆盖新一次搜索的结果。
+        var version = ++_searchVersion;
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;
 
         Progress.IsVisible = true;
         Status.Text = Localizer.T("Search.CoverSearching");
@@ -216,7 +220,9 @@ public partial class CoverDialog : ModalView
                 _settings.Sources.Pictures,
                 _settings.Search.ItemsPerSource,
                 _settings.Search.Threads,
-                _cts.Token);
+                token);
+
+            if (version != _searchVersion) return;
 
             _results.AddRange(results.Where(r => !string.IsNullOrWhiteSpace(r.CoverUrl)));
             ResultCombo.ItemsSource = _results.Select(r => $"{r.SourceId} · {r.Summary}").ToList();
@@ -227,15 +233,18 @@ public partial class CoverDialog : ModalView
         }
         catch (OperationCanceledException)
         {
-            Status.Text = Localizer.T("Search.Cancelled");
+            if (version == _searchVersion)
+                Status.Text = Localizer.T("Search.Cancelled");
         }
         catch (Exception ex)
         {
-            Status.Text = Localizer.F("Search.Failed", ex.Message);
+            if (version == _searchVersion)
+                Status.Text = Localizer.F("Search.Failed", ex.Message);
         }
         finally
         {
-            Progress.IsVisible = false;
+            if (version == _searchVersion)
+                Progress.IsVisible = false;
         }
     }
 
@@ -362,6 +371,7 @@ public partial class CoverDialog : ModalView
 
     private void OnCancel(object? sender, RoutedEventArgs e)
     {
+        _searchVersion++;
         _cts?.Cancel();
         Close(false);
         SchedulePreviewDispose();

@@ -12,7 +12,7 @@ public static class AboutContent
 {
     private static readonly string[] SourceIds =
     [
-        "netease", "qq", "kugou", "kuwo", "musicbrainz", "coverart", "itunes", "lastfm", "lrclib",
+        "netease", "qq", "kugou", "kuwo", "musicbrainz", "acoustid", "coverart", "itunes", "lastfm", "lrclib",
     ];
 
     private static readonly Lazy<Avalonia.Media.Imaging.Bitmap> Logo = new(() =>

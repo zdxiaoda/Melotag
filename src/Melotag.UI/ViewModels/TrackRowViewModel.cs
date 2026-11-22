@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Melotag.Core.Abstractions;
+using Melotag.Core.Merge;
 using Melotag.Core.Models;
 using Melotag.UI.Localization;
 using Melotag.UI.Media;
@@ -16,6 +17,9 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
     private const int DetailCoverHeight = 560;
     private const int ThumbnailWidth = 64;
     private const int ThumbnailHeight = 64;
+
+    /// <summary>同一时刻最多并行解码的封面数，避免快速滚动时一次性解出大量位图。</summary>
+    private static readonly SemaphoreSlim DecodeGate = new(3, 3);
 
     /// <summary>仅保存用户待写入文件的封面改动；磁盘上的封面在需要时按需读取。</summary>
     private readonly List<TagPicture> _pictures = [];
@@ -254,8 +258,12 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         NotifyFieldLabels();
     }
 
-    /// <summary>只更新标签字段（用于在线匹配/正则解析），保留文件与技术信息。</summary>
-    public void ApplyTags(TrackTags tags)
+    /// <summary>
+    /// 只更新标签字段（用于在线匹配/正则解析），保留文件与技术信息。
+    /// <paramref name="lyricsRule"/> 为 <see cref="OverwriteRule.Replace"/> 时允许用空值清空歌词，
+    /// 与其它文本字段保持一致；其它规则下空值不会覆盖已有歌词。
+    /// </summary>
+    public void ApplyTags(TrackTags tags, OverwriteRule lyricsRule = OverwriteRule.KeepExisting)
     {
         Title = tags.Title;
         Artist = tags.Artist;
@@ -268,7 +276,8 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         Comment = tags.Comment;
         Composer = tags.Composer;
         Lyricist = tags.Lyricist;
-        if (tags.Lyrics is not null) Lyrics = tags.Lyrics;
+        if (lyricsRule == OverwriteRule.Replace || tags.Lyrics is not null)
+            Lyrics = tags.Lyrics;
         Status = TrackStatus.Modified;
     }
 
@@ -358,12 +367,23 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         ClearSpooledCover();
     }
 
-    /// <summary>先把绑定切到 null，再释放旧位图，避免界面短时间持有已释放的图像。</summary>
+    /// <summary>
+    /// 先把绑定切到 null，再排队释放旧位图：界面可能还在渲染上一帧，
+    /// 立即 Dispose 会让渲染线程读到已释放的图像，所以放到 UI 队列空闲时再释放。
+    /// </summary>
     private void ReleasePreview()
     {
         var previous = CoverPreview;
         CoverPreview = null;
-        previous?.Dispose();
+        DisposeLater(previous);
+    }
+
+    /// <summary>延迟到 UI 队列空闲再释放，避免和正在进行的渲染抢同一张位图。</summary>
+    private static void DisposeLater(Bitmap? bitmap)
+    {
+        if (bitmap is null) return;
+
+        Dispatcher.UIThread.Post(bitmap.Dispose, DispatcherPriority.Background);
     }
 
     public void RenameTo(IFileHandle newHandle)
@@ -434,9 +454,9 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         var cached = ThumbnailCache.Remove(Key);
         _thumbnail = null;
 
-        // 先让绑定刷新到 null，再释放缓存里的位图，避免界面短暂引用已释放图像。
+        // 先让绑定刷新到 null，再排队释放缓存里的位图，避免界面短暂引用已释放图像。
         OnPropertyChanged(nameof(CoverThumbnail));
-        cached?.Dispose();
+        DisposeLater(cached);
     }
 
     private async Task LoadThumbnailAsync()
@@ -501,7 +521,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
 
         var previous = CoverPreview;
         CoverPreview = bitmap;
-        previous?.Dispose();
+        DisposeLater(previous);
     }
 
     private async Task<Bitmap?> DecodeCoverAsync(int maxWidth, int maxHeight)
@@ -512,14 +532,14 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
             var spooledMime = _spooledCoverMime;
             if (spooledPath is not null)
             {
-                return await Task.Run(() => TryReadSpooledCover(spooledPath, spooledMime) is { } picture
+                return await DecodeThrottledAsync(() => TryReadSpooledCover(spooledPath, spooledMime) is { } picture
                     ? Decode(picture.Data, maxWidth, maxHeight)
                     : null);
             }
 
             if (_pictures.Count == 0) return null;
             var data = _pictures[0].Data;
-            return await Task.Run(() => Decode(data, maxWidth, maxHeight));
+            return await DecodeThrottledAsync(() => Decode(data, maxWidth, maxHeight));
         }
 
         if (!HasCover || _pictureLoader is null || Source is null) return null;
@@ -528,7 +548,7 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
         var handle = Source;
         try
         {
-            return await Task.Run(() =>
+            return await DecodeThrottledAsync(() =>
             {
                 var picture = loader(handle).FirstOrDefault();
                 return picture is null ? null : Decode(picture.Data, maxWidth, maxHeight);
@@ -539,6 +559,21 @@ public partial class TrackRowViewModel : ObservableObject, IDisposable
             return null;
         }
     }
+
+    /// <summary>解码放到后台线程，并用全局信号量限制并发，避免快速滚动时同时解出大量位图。</summary>
+    private static Task<Bitmap?> DecodeThrottledAsync(Func<Bitmap?> decode) =>
+        Task.Run(async () =>
+        {
+            await DecodeGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                return decode();
+            }
+            finally
+            {
+                DecodeGate.Release();
+            }
+        });
 
     private static Bitmap? Decode(byte[] data, int maxWidth, int maxHeight) =>
         CoverPreviewDecoder.Decode(data, maxWidth, maxHeight);

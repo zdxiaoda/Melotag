@@ -93,10 +93,13 @@
         <MenuItem Header="{loc:Tr Key=Menu.Tools.Cover}" Click="OnCover" />
         <MenuItem Header="{loc:Tr Key=Menu.Tools.History}" Click="OnHistory" />
         <Separator />
-        <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToTraditional}" Click="OnTagsToTraditional" />
-        <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToSimplified}" Click="OnTagsToSimplified" />
-        <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToTraditional}" Click="OnNamesToTraditional" />
-        <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToSimplified}" Click="OnNamesToSimplified" />
+        <MenuItem Header="{loc:Tr Key=Menu.Tools.Convert}">
+          <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToTraditional}" Click="OnTagsToTraditional" />
+          <MenuItem Header="{loc:Tr Key=Menu.Tools.TagsToSimplified}" Click="OnTagsToSimplified" />
+          <Separator />
+          <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToTraditional}" Click="OnNamesToTraditional" />
+          <MenuItem Header="{loc:Tr Key=Menu.Tools.NamesToSimplified}" Click="OnNamesToSimplified" />
+        </MenuItem>
         <Separator />
         <MenuItem Header="{loc:Tr Key=Menu.Tools.Settings}" Click="OnSettings" />
       </MenuItem>
@@ -222,7 +225,8 @@
                 CanUserResizeColumns="True"
                 CanUserSortColumns="True"
                 GridLinesVisibility="Horizontal"
-                RowHeight="32"
+                RowHeight="34"
+                ColumnHeaderHeight="36"
                 Margin="0">
         <DataGrid.Columns>
           <DataGridTextColumn Header="{loc:Tr Key=Column.FileName}" Tag="FileName"
@@ -268,7 +272,7 @@
               BorderThickness="1,0,0,0"
               BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
         <ScrollViewer>
-          <StackPanel Margin="14" Spacing="10"
+          <StackPanel Margin="16" Spacing="12"
                       IsEnabled="{Binding SelectedTrack, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="{loc:Tr Key=Editor.Title}" FontSize="18" FontWeight="SemiBold" />
             <TextBlock Text="{Binding SelectedTrack.Path}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />

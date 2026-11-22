@@ -41,7 +41,8 @@ public partial class RenameDialog : ModalView
 
     public RenameDialog(IReadOnlyList<TrackRowViewModel> rows, ISafeNamePolicy policy, IHistoryStore? history)
     {
-        _rows = rows;
+        // 取快照：对话框打开期间列表仍可能被导入/重载并发修改，遍历活集合会抛“集合已修改”。
+        _rows = rows.ToList();
         _policy = policy;
         _history = history;
 

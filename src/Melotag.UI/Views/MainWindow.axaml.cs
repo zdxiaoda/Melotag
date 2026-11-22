@@ -10,7 +10,9 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Melotag.Core.Merge;
+using Melotag.Core.Models;
 using Melotag.Core.Rename;
 using Melotag.UI.Dialogs;
 using Melotag.UI.Localization;
@@ -20,6 +22,8 @@ public partial class MainWindow : Window
 {
     private readonly UpdateUi _updates = new();
     private bool _applyingLayout;
+    private bool _forceClose;
+    private bool _exitPromptOpen;
 
     public MainWindow()
     {
@@ -37,6 +41,7 @@ public partial class MainWindow : Window
 
         TracksGrid.Sorting += OnGridSorting;
         TracksGrid.ColumnReordered += (_, _) => OnColumnReordered();
+        TracksGrid.ContextRequested += OnTracksContextRequested;
     }
 
     protected override void OnOpened(EventArgs e)
@@ -276,24 +281,37 @@ public partial class MainWindow : Window
 
         var selectedItems = TracksGrid.SelectedItems;
         if (selectedItems is null) return;
-        var selected = selectedItems.Cast<object>().ToList();
+
+        var previous = selectedItems.Cast<object>().ToList();
         var current = TracksGrid.SelectedItem as TrackRowViewModel ?? Vm?.SelectedTrack;
-        if (current is not null && !selected.Contains(current))
-            selected.Add(current);
 
-        view.Refresh();
-
-        if (selected.Count == 0) return;
-
-        selectedItems.Clear();
-        foreach (var item in selected)
+        // 恢复期间让 VM 忽略绑定的临时 null，避免选中项闪断触发封面反复解码。
+        Vm?.BeginSelectionRestore();
+        try
         {
-            if (item is TrackRowViewModel row && Vm?.Tracks.Contains(row) == true)
-                selectedItems.Add(row);
-        }
+            view.Refresh();
 
-        if (current is not null && Vm?.Tracks.Contains(current) == true)
-            TracksGrid.SelectedItem = current;
+            // Refresh 可能替换 SelectedItems 实例，重新取一次。
+            var items = TracksGrid.SelectedItems;
+            if (items is null) return;
+
+            // 只补回仍在列表里的行；不再无条件 Clear 整个选中集合。
+            foreach (var item in previous)
+            {
+                if (item is TrackRowViewModel row && Vm?.Tracks.Contains(row) != true) continue;
+                if (!items.Contains(item))
+                    items.Add(item);
+            }
+
+            if (current is not null &&
+                Vm?.Tracks.Contains(current) == true &&
+                !ReferenceEquals(TracksGrid.SelectedItem, current))
+                TracksGrid.SelectedItem = current;
+        }
+        finally
+        {
+            Vm?.EndSelectionRestore();
+        }
     }
 
     private void RestoreSort()
@@ -360,6 +378,73 @@ public partial class MainWindow : Window
 
             e.Handled = true;
         }
+    }
+
+    /// <summary>列表右键：单选与多选分别给出菜单；右键未选中的行时先切换为单行选中。</summary>
+    private void OnTracksContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+
+        var row = (e.Source as Visual)?.FindAncestorOfType<DataGridRow>(includeSelf: true);
+        if (row?.DataContext is TrackRowViewModel track && !TracksGrid.SelectedItems.Contains(track))
+        {
+            TracksGrid.SelectedItems.Clear();
+            TracksGrid.SelectedItems.Add(track);
+            TracksGrid.SelectedItem = track;
+            vm.SelectedTrack = track;
+        }
+
+        var selected = TracksGrid.SelectedItems?.OfType<TrackRowViewModel>().ToList() ?? [];
+        if (selected.Count == 0) return;
+
+        var items = selected.Count > 1 ? BuildMultiTrackMenu(selected) : BuildSingleTrackMenu();
+        var flyout = new MenuFlyout
+        {
+            ItemsSource = items,
+            Placement = PlacementMode.Pointer,
+        };
+        flyout.ShowAt(TracksGrid);
+        e.Handled = true;
+    }
+
+    private IReadOnlyList<object> BuildSingleTrackMenu()
+    {
+        var vm = Vm;
+        if (vm is null) return [];
+
+        return
+        [
+            TrackMenu(Localizer.T("Menu.File.SaveCurrent"), () => vm.SaveSelectedCommand.Execute(null)),
+            TrackMenu(Localizer.T("Toolbar.TagSearch"), () => OnTagSearch(null, new RoutedEventArgs())),
+            TrackMenu(Localizer.T("Toolbar.Rename"), () => OnRename(null, new RoutedEventArgs())),
+            TrackMenu(Localizer.T("Toolbar.Lyrics"), () => OnLyrics(null, new RoutedEventArgs())),
+            TrackMenu(Localizer.T("Toolbar.Cover"), () => OnCover(null, new RoutedEventArgs())),
+            TrackMenu(Localizer.T("Toolbar.History"), () => OnHistory(null, new RoutedEventArgs())),
+            new Separator(),
+            TrackMenu(Localizer.T("Menu.Edit.Remove"), () => vm.RemoveSelectedCommand.Execute(null)),
+        ];
+    }
+
+    private IReadOnlyList<object> BuildMultiTrackMenu(IReadOnlyList<TrackRowViewModel> rows)
+    {
+        var vm = Vm;
+        if (vm is null) return [];
+
+        return
+        [
+            TrackMenu(Localizer.T("Context.SaveSelected"), () => _ = vm.SaveSelectedRowsAsync(rows)),
+            TrackMenu(Localizer.T("Context.AutoMatchSelected"), () => _ = ShowAutoMatchAsync(rows)),
+            TrackMenu(Localizer.T("Menu.Edit.ClearTags"), () => _ = vm.ClearTagsAsync(rows)),
+            new Separator(),
+            TrackMenu(Localizer.T("Context.RemoveSelected"), () => vm.RemoveRange(rows)),
+        ];
+    }
+
+    private static MenuItem TrackMenu(string header, Action action)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += (_, _) => action();
+        return item;
     }
 
     /// <summary>复制为 TSV，列集合跟随当前可见列。</summary>
@@ -452,19 +537,29 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
+        // 传快照：对话框存续期间列表可能被后台导入并发修改。
+        var dialog = new RenameDialog(Vm.AllTracks.ToList(), new WindowsSafeNamePolicy(), Vm.HistoryStore);
         await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.Rename"), 780, 640);
         Vm.RefreshSort();
     }
 
-    private async void OnAutoMatch(object? sender, RoutedEventArgs e)
+    private async void OnAutoMatch(object? sender, RoutedEventArgs e) => await ShowAutoMatchAsync(null);
+
+    /// <summary>rows 为 null 时处理全部；多选右键时只处理选中行。</summary>
+    private async Task ShowAutoMatchAsync(IReadOnlyList<TrackRowViewModel>? rows)
     {
         if (Vm is null) return;
 
-        var dialog = new AutoMatchDialog(Vm.Settings, Vm.Search.Sources, Vm.AllTracks.Count);
-        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.AutoMatch"), 860, 720) is true &&
-            dialog.Options is { } options)
+        var count = rows?.Count ?? Vm.AllTracks.Count;
+        var dialog = new AutoMatchDialog(Vm.Settings, Vm.Search.Sources, count);
+        if (await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.AutoMatch"), 860, 720) is not true ||
+            dialog.Options is not { } options)
+            return;
+
+        if (rows is null)
             await Vm.AutoMatchAllAsync(options);
+        else
+            await Vm.AutoMatchAsync(rows, options);
     }
 
     private async void OnTagsToTraditional(object? sender, RoutedEventArgs e)
@@ -608,6 +703,46 @@ public partial class MainWindow : Window
 
     private void OnExit(object? sender, RoutedEventArgs e) => Close();
 
+    /// <summary>有未保存修改时先确认；保存失败则留在当前窗口。</summary>
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        if (_forceClose || _exitPromptOpen || Vm is not { HasUnsavedChanges: true } vm)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        _ = ConfirmExitAsync(vm);
+    }
+
+    private async Task ConfirmExitAsync(MainWindowViewModel vm)
+    {
+        if (_exitPromptOpen) return;
+        _exitPromptOpen = true;
+        try
+        {
+            var dialog = new ExitConfirmDialog(vm.UnsavedCount);
+            var result = await ModalHost.ShowAsync(this, dialog, Localizer.T("Dialog.ExitConfirm"), 480, 280);
+
+            if (result is not ExitChoice choice || choice == ExitChoice.Cancel) return;
+
+            if (choice == ExitChoice.SaveAndExit)
+            {
+                await vm.SaveUnsavedAsync();
+                // 保存失败/被其他操作占用时不要静默丢掉修改。
+                if (vm.HasUnsavedChanges) return;
+            }
+
+            _forceClose = true;
+            Close();
+        }
+        finally
+        {
+            _exitPromptOpen = false;
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         Localizer.Instance.LanguageChanged -= LocalizeColumns;
@@ -615,6 +750,8 @@ public partial class MainWindow : Window
         {
             vm.SortRefreshRequested -= OnSortRefreshRequested;
             vm.SaveSettings();
+            // 退订全局语言事件并取消仍在跑的导入/匹配，避免 VM 比窗口活得更久。
+            vm.Dispose();
         }
 
         base.OnClosed(e);

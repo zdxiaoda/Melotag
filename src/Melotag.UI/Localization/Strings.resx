@@ -82,6 +82,9 @@
   <data name="Menu.Tools.History" xml:space="preserve">
     <value>标签历史…</value>
   </data>
+  <data name="Menu.Tools.Convert" xml:space="preserve">
+    <value>简繁转换</value>
+  </data>
   <data name="Menu.Tools.TagsToTraditional" xml:space="preserve">
     <value>标签简→繁</value>
   </data>
@@ -334,6 +337,30 @@
   <data name="Dialog.AutoMatch" xml:space="preserve">
     <value>批量自动匹配</value>
   </data>
+  <data name="Context.SaveSelected" xml:space="preserve">
+    <value>保存所选</value>
+  </data>
+  <data name="Context.RemoveSelected" xml:space="preserve">
+    <value>移除所选</value>
+  </data>
+  <data name="Context.AutoMatchSelected" xml:space="preserve">
+    <value>批量自动匹配所选</value>
+  </data>
+  <data name="Dialog.ExitConfirm" xml:space="preserve">
+    <value>退出确认</value>
+  </data>
+  <data name="Exit.UnsavedMessage" xml:space="preserve">
+    <value>有 {0} 个文件尚未保存。要保存后退出吗？</value>
+  </data>
+  <data name="Exit.Hint" xml:space="preserve">
+    <value>保存失败时会留在当前窗口，不会丢失修改。</value>
+  </data>
+  <data name="Exit.SaveAndExit" xml:space="preserve">
+    <value>保存并退出</value>
+  </data>
+  <data name="Exit.ExitWithoutSave" xml:space="preserve">
+    <value>不保存退出</value>
+  </data>
   <data name="Status.Ready" xml:space="preserve">
     <value>就绪</value>
   </data>
@@ -448,6 +475,12 @@
   <data name="Status.FolderPickUnsupported" xml:space="preserve">
     <value>当前平台不支持选择文件夹，请用「添加文件」多选</value>
   </data>
+  <data name="Status.ImportFailed" xml:space="preserve">
+    <value>导入文件失败：{0}</value>
+  </data>
+  <data name="Status.FolderScanFailed" xml:space="preserve">
+    <value>扫描文件夹失败：{0}</value>
+  </data>
   <data name="Status.FolderScanning" xml:space="preserve">
     <value>正在扫描文件夹…</value>
   </data>
@@ -497,7 +530,19 @@
     <value>全部来源</value>
   </data>
   <data name="Search.NoResults" xml:space="preserve">
-    <value>没有结果（检查网络或 Last.fm API key）</value>
+    <value>没有结果（检查网络或搜索源设置）</value>
+  </data>
+  <data name="Search.AcoustIdNoMatch" xml:space="preserve">
+    <value>AcoustID 未匹配到指纹（该曲目可能未收录）</value>
+  </data>
+  <data name="Search.Conditions" xml:space="preserve">
+    <value>搜索条件</value>
+  </data>
+  <data name="Search.EmptyHint" xml:space="preserve">
+    <value>输入关键词后点击搜索</value>
+  </data>
+  <data name="Field.Source" xml:space="preserve">
+    <value>来源</value>
   </data>
   <data name="Search.CandidateCount" xml:space="preserve">
     <value>共 {0} 条候选</value>
@@ -744,6 +789,42 @@
   </data>
   <data name="Settings.SourceOrder" xml:space="preserve">
     <value>启用与顺序（每类单独配置，越靠上越先查询）</value>
+  </data>
+  <data name="Settings.SourceIntro" xml:space="preserve">
+    <value>标签源介绍</value>
+  </data>
+  <data name="Settings.SourceIntroHint" xml:space="preserve">
+    <value>各源的能力、凭据与限制；查询顺序在上方列表中调整。</value>
+  </data>
+  <data name="Source.Intro.netease" xml:space="preserve">
+    <value>中文曲库搜索，提供标签、封面与歌词。</value>
+  </data>
+  <data name="Source.Intro.qq" xml:space="preserve">
+    <value>中文曲库搜索，提供标签与歌词。</value>
+  </data>
+  <data name="Source.Intro.kugou" xml:space="preserve">
+    <value>中文曲库搜索，提供标签、封面与 KRC 歌词。</value>
+  </data>
+  <data name="Source.Intro.kuwo" xml:space="preserve">
+    <value>中文曲库搜索与封面；歌词接口暂不可用。</value>
+  </data>
+  <data name="Source.Intro.musicbrainz" xml:space="preserve">
+    <value>开放音乐元数据；要求可识别 User-Agent，限速约 1 次/秒。</value>
+  </data>
+  <data name="Source.Intro.acoustid" xml:space="preserve">
+    <value>音频指纹识别；需要整首时长，封面来自 Cover Art Archive。</value>
+  </data>
+  <data name="Source.Intro.coverart" xml:space="preserve">
+    <value>MusicBrainz 关联封面库；按 release 获取封面。</value>
+  </data>
+  <data name="Source.Intro.itunes" xml:space="preserve">
+    <value>Apple iTunes Search；按国家/地区搜索，无需 API Key。</value>
+  </data>
+  <data name="Source.Intro.lastfm" xml:space="preserve">
+    <value>需要自备 API Key；未填写时自动跳过，不参与搜索。</value>
+  </data>
+  <data name="Source.Intro.lrclib" xml:space="preserve">
+    <value>公开歌词库；提供原文与同步歌词，无需 Key。</value>
   </data>
   <data name="Settings.TabTags" xml:space="preserve">
     <value>标签</value>
@@ -1001,9 +1082,9 @@
     <value>更新</value>
   </data>
   <data name="About.Features" xml:space="preserve">
-    <value>支持标题、艺术家、专辑、年份、音轨、流派、歌词与封面的读取和写入。</value>
+    <value>支持标题、艺术家、专辑、专辑艺术家、年份、音轨、碟号、流派、作曲、注释、歌词与封面的读取和写入。</value>
   </data>
   <data name="About.Formats" xml:space="preserve">
-    <value>支持 MP3、FLAC、M4A、OGG、WAV 等常见音频格式。</value>
+    <value>支持 MP3、FLAC、M4A、OGG/Opus、WAV、APE、WMA、DSF 等常见音频格式。</value>
   </data>
 </root>

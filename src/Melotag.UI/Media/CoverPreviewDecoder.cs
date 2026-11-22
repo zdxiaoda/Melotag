@@ -29,12 +29,9 @@ internal static class CoverPreviewDecoder
 
             var (targetWidth, targetHeight) = Fit(info.Width, info.Height, maxWidth, maxHeight);
             var desiredScale = Math.Min((float)targetWidth / info.Width, (float)targetHeight / info.Height);
-            var supported = codec.GetScaledDimensions(desiredScale);
-            var decodeWidth = supported.Width > 0 ? Math.Min(info.Width, supported.Width) : info.Width;
-            var decodeHeight = supported.Height > 0 ? Math.Min(info.Height, supported.Height) : info.Height;
 
+            var (decodeWidth, decodeHeight) = ResolveDecodeSize(codec, info, desiredScale);
             if (decodeWidth <= 0 || decodeHeight <= 0) return null;
-            if ((long)decodeWidth * decodeHeight > MaxDecodePixels) return null;
 
             using var decoded = Decode(codec, decodeWidth, decodeHeight);
             if (decoded is null) return null;
@@ -68,6 +65,34 @@ internal static class CoverPreviewDecoder
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// 求一个既满足目标尺寸上限、又不超 <see cref="MaxDecodePixels"/> 的解码尺寸。
+    /// 编解码器的采样档位给不出足够小的尺寸时继续降档：宁可解出小图，也不直接放弃预览。
+    /// 返回值超出像素上限（编解码器不支持这么小的采样）时返回 (0, 0)，由调用方放弃。
+    /// </summary>
+    private static (int Width, int Height) ResolveDecodeSize(SKCodec codec, SKImageInfo info, float desiredScale)
+    {
+        var scale = Math.Clamp(desiredScale, 0.01f, 1f);
+
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var supported = codec.GetScaledDimensions(scale);
+            var width = supported.Width > 0 ? Math.Min(info.Width, supported.Width) : info.Width;
+            var height = supported.Height > 0 ? Math.Min(info.Height, supported.Height) : info.Height;
+
+            if (width <= 0 || height <= 0) return (0, 0);
+            if ((long)width * height <= MaxDecodePixels) return (width, height);
+
+            // 按超出比例再降一档采样；编解码器若忽略请求，下一轮会拿到同样的尺寸并最终放弃。
+            var ratio = Math.Sqrt((double)MaxDecodePixels / ((double)width * height));
+            var next = Math.Max(1f / Math.Max(info.Width, info.Height), scale * (float)ratio);
+            if (next >= scale) break;
+            scale = next;
+        }
+
+        return (0, 0);
     }
 
     private static SKBitmap? Decode(SKCodec codec, int width, int height)

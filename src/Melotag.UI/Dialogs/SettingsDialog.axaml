@@ -128,6 +128,25 @@
                     </TabControl>
                   </StackPanel>
                 </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Classes="section" Text="{loc:Tr Key=Settings.SourceIntro}" />
+                    <TextBlock Classes="hint" Text="{loc:Tr Key=Settings.SourceIntroHint}" />
+                    <ItemsControl x:Name="SourceIntroList">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Grid ColumnDefinitions="150,*" ColumnSpacing="10" Margin="0,3">
+                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1" Text="{Binding Description}" FontSize="12"
+                                       Opacity="0.7" TextWrapping="Wrap" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
               </StackPanel>
             </ScrollViewer>
           </TabItem>

@@ -12,6 +12,13 @@ public partial class SettingsDialog : ModalView
 {
     public sealed record LanguageOption(string Code, string Label);
     public sealed record CountryOption(string Code, string Display);
+    public sealed record SourceIntroRow(string Name, string Description);
+
+    private static readonly string[] SourceIntroIds =
+    [
+        "netease", "qq", "kugou", "kuwo", "musicbrainz", "acoustid",
+        "coverart", "itunes", "lastfm", "lrclib",
+    ];
 
     private readonly AppSettings _settings;
     private readonly Action? _onSaved;
@@ -49,6 +56,12 @@ public partial class SettingsDialog : ModalView
         TagSources.Load(sources, settings.Sources.Tags, SourceDefaults.Tags);
         CoverSources.Load(sources, settings.Sources.Pictures, SourceDefaults.Pictures);
         LyricSources.Load(sources, settings.Sources.Lyrics, SourceDefaults.Lyrics);
+
+        SourceIntroList.ItemsSource = SourceIntroIds
+            .Select(id => new SourceIntroRow(
+                Localizer.SourceName(id, id),
+                Localizer.T($"Source.Intro.{id}")))
+            .ToList();
 
         ReformatBox.IsChecked = settings.Lyrics.ReformatTimeTags;
         RemoveTagsBox.IsChecked = settings.Lyrics.RemoveTimeTags;

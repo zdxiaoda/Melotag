@@ -1,5 +1,6 @@
 namespace Melotag.UI.Views;
 
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -23,14 +24,42 @@ public partial class MobileShellView : UserControl
         InitializeComponent();
 
         Loaded += HookBackRequested;
+        Loaded += (_, _) =>
+        {
+            SubscribeTracks();
+            UpdateEmptyHint();
+        };
+        Unloaded += (_, _) => UnsubscribeTracks();
 
         DataContextChanged += (_, _) =>
         {
-            if (Vm is { } vm)
-                vm.Tracks.CollectionChanged += (_, _) => UpdateEmptyHint();
+            // 切换 DataContext 时先退订旧集合，避免每次变化都叠加一个 lambda 订阅。
+            UnsubscribeTracks();
+            SubscribeTracks();
             UpdateEmptyHint();
         };
     }
+
+    private INotifyCollectionChanged? _tracks;
+
+    private void SubscribeTracks()
+    {
+        if (_tracks is not null) return;
+        if (Vm is not { } vm) return;
+
+        _tracks = vm.Tracks;
+        _tracks.CollectionChanged += OnTracksChanged;
+    }
+
+    private void UnsubscribeTracks()
+    {
+        if (_tracks is null) return;
+
+        _tracks.CollectionChanged -= OnTracksChanged;
+        _tracks = null;
+    }
+
+    private void OnTracksChanged(object? sender, NotifyCollectionChangedEventArgs e) => UpdateEmptyHint();
 
     private MainWindowViewModel? Vm => DataContext as MainWindowViewModel;
 
@@ -252,7 +281,8 @@ public partial class MobileShellView : UserControl
             return;
         }
 
-        var dialog = new RenameDialog(Vm.AllTracks, new WindowsSafeNamePolicy(), Vm.HistoryStore);
+        // 传快照：对话框存续期间列表可能被后台导入并发修改。
+        var dialog = new RenameDialog(Vm.AllTracks.ToList(), new WindowsSafeNamePolicy(), Vm.HistoryStore);
         await ModalHost.ShowAsync(Top, dialog, Localizer.T("Dialog.Rename"), 780, 640);
         Vm.RefreshSort();
     }

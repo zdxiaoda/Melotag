@@ -8,6 +8,14 @@ using Melotag.Storage;
 using Melotag.UI.Localization;
 using Melotag.UI.ViewModels;
 
+/// <summary>结果列表的展示行：空字段自动省略，来源显示为本地化名称。</summary>
+public sealed record TagSearchResultRow(
+    TagCandidate Candidate,
+    string Title,
+    string Meta,
+    string SourceLabel,
+    string Detail);
+
 public partial class TagSearchDialog : ModalView
 {
     private readonly TagSearchService? _search;
@@ -17,6 +25,7 @@ public partial class TagSearchDialog : ModalView
     private IReadOnlyList<TagCandidate> _allResults = [];
     private bool _updatingFilter;
     private CancellationTokenSource? _cts;
+    private int _searchVersion;
 
     private sealed record SourceFilterOption(string? Id, string Label)
     {
@@ -74,13 +83,17 @@ public partial class TagSearchDialog : ModalView
     {
         if (_search is null || _settings is null) return;
 
+        // 每次搜索拿一个新的版本号；迟到的旧结果直接丢弃，进度条也只有最新一次能收起。
+        var version = ++_searchVersion;
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;
 
         Progress.IsVisible = true;
         Status.Text = Localizer.T("Search.Searching");
         ResultsList.ItemsSource = null;
         _allResults = [];
+        EmptyHint.IsVisible = true;
 
         var query = new TagQuery
         {
@@ -101,27 +114,38 @@ public partial class TagSearchDialog : ModalView
                 _settings.Sources.Tags,
                 _settings.Search.ItemsPerSource,
                 _settings.Search.Threads,
-                _cts.Token);
+                token);
+
+            if (version != _searchVersion) return;
 
             _allResults = results;
             UpdateFilterOptions(results);
             ApplyFilter();
 
             // 解码失败等源级错误随结果一起提示（如缺 GStreamer 解码插件）。
-            if (_search.Find("acoustid")?.LastError is { } decodeError)
-                Status.Text = $"{Status.Text} · {decodeError}";
+            var acoustId = _search.Find("acoustid");
+            if (acoustId?.LastError is { } acoustIdError)
+                Status.Text = $"{Status.Text} · {acoustIdError}";
+            else if (results.Count == 0
+                     && acoustId is { IsConfigured: true }
+                     && _row?.Source is not null
+                     && _settings.Sources.Tags.Contains("acoustid", StringComparer.OrdinalIgnoreCase))
+                Status.Text = $"{Status.Text} · {Localizer.T("Search.AcoustIdNoMatch")}";
         }
         catch (OperationCanceledException)
         {
-            Status.Text = Localizer.T("Search.Cancelled");
+            if (version == _searchVersion)
+                Status.Text = Localizer.T("Search.Cancelled");
         }
         catch (Exception ex)
         {
-            Status.Text = Localizer.F("Search.Failed", ex.Message);
+            if (version == _searchVersion)
+                Status.Text = Localizer.F("Search.Failed", ex.Message);
         }
         finally
         {
-            Progress.IsVisible = false;
+            if (version == _searchVersion)
+                Progress.IsVisible = false;
         }
     }
 
@@ -169,28 +193,48 @@ public partial class TagSearchDialog : ModalView
                 .Where(r => string.Equals(r.SourceId, filter, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-        ResultsList.ItemsSource = visible;
-        if (visible.Count > 0) ResultsList.SelectedItem = visible[0];
+        var rows = visible.Select(ToRow).ToList();
+        ResultsList.ItemsSource = rows;
+        EmptyHint.IsVisible = rows.Count == 0;
+        if (rows.Count > 0) ResultsList.SelectedItem = rows[0];
 
-        Status.Text = visible.Count == 0
+        Status.Text = rows.Count == 0
             ? Localizer.T("Search.NoResults")
-            : Localizer.F("Search.CandidateCount", visible.Count);
+            : Localizer.F("Search.CandidateCount", rows.Count);
+    }
+
+    private TagSearchResultRow ToRow(TagCandidate candidate)
+    {
+        var meta = string.Join(" · ", new[]
+        {
+            candidate.Artist,
+            candidate.Album,
+            candidate.Year?.ToString(),
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var source = _sourceNames.TryGetValue(candidate.SourceId, out var name)
+            ? name
+            : candidate.SourceId;
+
+        return new TagSearchResultRow(candidate, candidate.Title, meta, source, candidate.Detail ?? "");
     }
 
     private void OnApply(object? sender, RoutedEventArgs e)
     {
-        if (ResultsList.SelectedItem is not TagCandidate candidate)
+        if (ResultsList.SelectedItem is not TagSearchResultRow row)
         {
             Status.Text = Localizer.T("Search.SelectCandidate");
             return;
         }
 
-        Selected = candidate;
+        Selected = row.Candidate;
         Close(true);
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e)
     {
+        // 关闭后不再接受任何迟到的搜索结果。
+        _searchVersion++;
         _cts?.Cancel();
         Close(false);
     }

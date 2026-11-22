@@ -17,6 +17,7 @@ public partial class LyricsDialog : ModalView
     private readonly TrackRowViewModel? _row;
     private readonly List<TagCandidate> _results = [];
     private CancellationTokenSource? _cts;
+    private int _searchVersion;
 
     public LyricsDialog()
     {
@@ -48,8 +49,11 @@ public partial class LyricsDialog : ModalView
     {
         if (_search is null || _settings is null || _row is null) return;
 
+        // 版本号守卫：迟到的旧搜索结果不能覆盖新一次搜索，进度条也只有最新一次能收起。
+        var version = ++_searchVersion;
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;
 
         Progress.IsVisible = true;
         Status.Text = Localizer.T("Search.LyricsSearching");
@@ -73,7 +77,9 @@ public partial class LyricsDialog : ModalView
                 _settings.Sources.Lyrics,
                 _settings.Search.ItemsPerSource,
                 _settings.Search.Threads,
-                _cts.Token);
+                token);
+
+            if (version != _searchVersion) return;
 
             _results.AddRange(results);
             ResultCombo.ItemsSource = results.Select(DescribeResult).ToList();
@@ -84,15 +90,18 @@ public partial class LyricsDialog : ModalView
         }
         catch (OperationCanceledException)
         {
-            Status.Text = Localizer.T("Search.Cancelled");
+            if (version == _searchVersion)
+                Status.Text = Localizer.T("Search.Cancelled");
         }
         catch (Exception ex)
         {
-            Status.Text = Localizer.F("Search.Failed", ex.Message);
+            if (version == _searchVersion)
+                Status.Text = Localizer.F("Search.Failed", ex.Message);
         }
         finally
         {
-            Progress.IsVisible = false;
+            if (version == _searchVersion)
+                Progress.IsVisible = false;
         }
     }
 
@@ -181,6 +190,8 @@ public partial class LyricsDialog : ModalView
 
     private void OnCancel(object? sender, RoutedEventArgs e)
     {
+        // 关闭后不再接受任何迟到的搜索结果。
+        _searchVersion++;
         _cts?.Cancel();
         Close(false);
     }

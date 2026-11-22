@@ -82,6 +82,9 @@
   <data name="Menu.Tools.History" xml:space="preserve">
     <value>Tag History…</value>
   </data>
+  <data name="Menu.Tools.Convert" xml:space="preserve">
+    <value>Traditional / Simplified</value>
+  </data>
   <data name="Menu.Tools.TagsToTraditional" xml:space="preserve">
     <value>Tags: Simplified → Traditional</value>
   </data>
@@ -334,6 +337,30 @@
   <data name="Dialog.AutoMatch" xml:space="preserve">
     <value>Batch Auto Match</value>
   </data>
+  <data name="Context.SaveSelected" xml:space="preserve">
+    <value>Save Selected</value>
+  </data>
+  <data name="Context.RemoveSelected" xml:space="preserve">
+    <value>Remove Selected</value>
+  </data>
+  <data name="Context.AutoMatchSelected" xml:space="preserve">
+    <value>Auto-match Selected</value>
+  </data>
+  <data name="Dialog.ExitConfirm" xml:space="preserve">
+    <value>Confirm Exit</value>
+  </data>
+  <data name="Exit.UnsavedMessage" xml:space="preserve">
+    <value>{0} files have unsaved changes. Save before exiting?</value>
+  </data>
+  <data name="Exit.Hint" xml:space="preserve">
+    <value>If saving fails, the app stays open so your changes are not lost.</value>
+  </data>
+  <data name="Exit.SaveAndExit" xml:space="preserve">
+    <value>Save and Exit</value>
+  </data>
+  <data name="Exit.ExitWithoutSave" xml:space="preserve">
+    <value>Exit Without Saving</value>
+  </data>
   <data name="Status.Ready" xml:space="preserve">
     <value>Ready</value>
   </data>
@@ -448,6 +475,12 @@
   <data name="Status.FolderPickUnsupported" xml:space="preserve">
     <value>This platform cannot pick folders; use Add Files with multi-select.</value>
   </data>
+  <data name="Status.ImportFailed" xml:space="preserve">
+    <value>Failed to import files: {0}</value>
+  </data>
+  <data name="Status.FolderScanFailed" xml:space="preserve">
+    <value>Failed to scan folder: {0}</value>
+  </data>
   <data name="Status.FolderScanning" xml:space="preserve">
     <value>Scanning folder…</value>
   </data>
@@ -497,7 +530,19 @@
     <value>All sources</value>
   </data>
   <data name="Search.NoResults" xml:space="preserve">
-    <value>No results (check the network or Last.fm API key)</value>
+    <value>No results (check the network or source settings)</value>
+  </data>
+  <data name="Search.AcoustIdNoMatch" xml:space="preserve">
+    <value>AcoustID found no fingerprint match (this track may not be indexed)</value>
+  </data>
+  <data name="Search.Conditions" xml:space="preserve">
+    <value>Search Criteria</value>
+  </data>
+  <data name="Search.EmptyHint" xml:space="preserve">
+    <value>Enter keywords and press Search</value>
+  </data>
+  <data name="Field.Source" xml:space="preserve">
+    <value>Source</value>
   </data>
   <data name="Search.CandidateCount" xml:space="preserve">
     <value>{0} candidates</value>
@@ -743,7 +788,43 @@
     <value>Last.fm requires an API key; leave it empty to skip this source.</value>
   </data>
   <data name="Settings.SourceOrder" xml:space="preserve">
-    <value>Enable and order (configured per category; higher is queried first)</value>
+    <value>Enable and order (configured per category; higher entries are queried first)</value>
+  </data>
+  <data name="Settings.SourceIntro" xml:space="preserve">
+    <value>Tag Sources</value>
+  </data>
+  <data name="Settings.SourceIntroHint" xml:space="preserve">
+    <value>Capabilities, credentials and limits; adjust the query order in the list above.</value>
+  </data>
+  <data name="Source.Intro.netease" xml:space="preserve">
+    <value>Chinese music search; tags, covers and lyrics.</value>
+  </data>
+  <data name="Source.Intro.qq" xml:space="preserve">
+    <value>Chinese music search; tags and lyrics.</value>
+  </data>
+  <data name="Source.Intro.kugou" xml:space="preserve">
+    <value>Chinese music search; tags, covers and KRC lyrics.</value>
+  </data>
+  <data name="Source.Intro.kuwo" xml:space="preserve">
+    <value>Chinese music search and covers; the lyrics endpoint is currently unavailable.</value>
+  </data>
+  <data name="Source.Intro.musicbrainz" xml:space="preserve">
+    <value>Open music metadata; requires an identifiable User-Agent and is limited to about 1 request/second.</value>
+  </data>
+  <data name="Source.Intro.acoustid" xml:space="preserve">
+    <value>Audio fingerprint lookup; needs the whole-track duration. Covers come from Cover Art Archive.</value>
+  </data>
+  <data name="Source.Intro.coverart" xml:space="preserve">
+    <value>Cover Art Archive; MusicBrainz-linked covers by release.</value>
+  </data>
+  <data name="Source.Intro.itunes" xml:space="preserve">
+    <value>Apple iTunes Search; search by country/region, no API key required.</value>
+  </data>
+  <data name="Source.Intro.lastfm" xml:space="preserve">
+    <value>Requires your own API key; skipped automatically when empty.</value>
+  </data>
+  <data name="Source.Intro.lrclib" xml:space="preserve">
+    <value>Public lyrics library; plain and synced lyrics, no key required.</value>
   </data>
   <data name="Settings.TabTags" xml:space="preserve">
     <value>Tags</value>
@@ -1001,9 +1082,9 @@
     <value>Updates</value>
   </data>
   <data name="About.Features" xml:space="preserve">
-    <value>Read and write title, artist, album, year, track, genre, lyrics and cover art.</value>
+    <value>Read and write title, artist, album, album artist, year, track, disc, genre, composer, comment, lyrics and cover art.</value>
   </data>
   <data name="About.Formats" xml:space="preserve">
-    <value>Supports MP3, FLAC, M4A, OGG, WAV and other common audio formats.</value>
+    <value>Supports MP3, FLAC, M4A, OGG/Opus, WAV, APE, WMA, DSF and other common audio formats.</value>
   </data>
 </root>

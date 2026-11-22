@@ -13,7 +13,7 @@ using Melotag.Core.Sources;
 using Melotag.Storage;
 using Melotag.UI.Localization;
 
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly ITagStore _tagStore;
     private readonly TagSearchService _search;
@@ -27,8 +27,20 @@ public partial class MainWindowViewModel : ObservableObject
     private const int LoadBatchSize = 40;
 
     private CancellationTokenSource? _loadCts;
+    private CancellationTokenSource? _autoMatchCts;
+    private CancellationTokenSource? _convertCts;
     private int _operationVersion;
     private TrackSortField? _sortField;
+
+    // 批量操作守卫：重复点击直接返回，避免两次操作并发写同一批文件。
+    private bool _isSaving;
+    private bool _isAutoMatching;
+    private bool _isConverting;
+
+    // 恢复 DataGrid 原生选中项期间，忽略绑定回写的临时 null，避免封面反复解码。
+    private int _selectionRestoreDepth;
+    private TrackRowViewModel? _previewRow;
+    private bool _disposed;
 
     /// <summary>列表数据变化后请求桌面 DataGrid 重新应用当前原生排序（移动端不订阅）。</summary>
     public event Action? SortRefreshRequested;
@@ -129,25 +141,58 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnSelectedTrackChanged(TrackRowViewModel? oldValue, TrackRowViewModel? newValue)
     {
-        oldValue?.ReleaseCoverPreview();
-        newValue?.RequestCoverPreview();
+        // 恢复原生选中项（DataGrid.Refresh）期间的临时 null 不触发释放/重解码。
+        if (_selectionRestoreDepth > 0) return;
+
+        SyncCoverPreview(newValue);
+    }
+
+    /// <summary>只让当前选中项持有详情大图；重复选中同一行时不再重新解码。</summary>
+    private void SyncCoverPreview(TrackRowViewModel? target)
+    {
+        if (ReferenceEquals(_previewRow, target)) return;
+
+        _previewRow?.ReleaseCoverPreview();
+        target?.RequestCoverPreview();
+        _previewRow = target;
+    }
+
+    /// <summary>
+    /// 开始恢复 DataGrid 原生选中项：期间选中项变化（含 Refresh 造成的临时 null）不驱动封面预览，
+    /// 结束时会按最终选中项补一次同步，避免选中项闪断导致封面重复解码。
+    /// </summary>
+    public void BeginSelectionRestore() => _selectionRestoreDepth++;
+
+    public void EndSelectionRestore()
+    {
+        if (_selectionRestoreDepth == 0) return;
+        if (--_selectionRestoreDepth > 0) return;
+
+        SyncCoverPreview(SelectedTrack);
     }
 
     [RelayCommand]
     private void CancelLoad()
     {
-        // 取消当前导入/重载，并让仍在扫描目录的旧请求失效。
+        // 取消当前导入/重载/自动匹配/转换，并让仍在扫描目录的旧请求失效。
         _operationVersion++;
         CancelActiveLoad();
+        CancelAutoMatch();
+        CancelConvert();
         _loadCts = null;
         IsLoading = false;
         StatusText = Localizer.T("Status.LoadingCanceled");
         ReapplyView();
     }
 
-    private void CancelActiveLoad()
+    private void CancelActiveLoad() => Cancel(_loadCts);
+
+    private void CancelAutoMatch() => Cancel(_autoMatchCts);
+
+    private void CancelConvert() => Cancel(_convertCts);
+
+    private static void Cancel(CancellationTokenSource? cts)
     {
-        var cts = _loadCts;
         if (cts is null) return;
 
         try
@@ -160,6 +205,21 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>窗口关闭时退订全局事件并释放仍占用的令牌源/位图。</summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        Localizer.Instance.LanguageChanged -= OnLanguageChanged;
+        CancelActiveLoad();
+        CancelAutoMatch();
+        CancelConvert();
+
+        foreach (var row in _all)
+            row.Dispose();
+    }
+
     /// <summary>桌面入口：把路径展开成文件句柄（目录递归枚举），再走 <see cref="AddFilesAsync"/>。</summary>
     public async Task AddPathsAsync(IEnumerable<string> paths, bool recursive = true)
     {
@@ -169,30 +229,57 @@ public partial class MainWindowViewModel : ObservableObject
         IsLoading = true;
         StatusText = Localizer.T("Status.FolderScanning");
 
-        var candidates = await Task.Run(() =>
+        try
         {
-            var result = new List<IFileHandle>();
-            foreach (var path in list)
+            List<IFileHandle> candidates;
+            try
             {
-                if (Directory.Exists(path))
+                candidates = await Task.Run(() =>
                 {
-                    foreach (var file in EnumerateAudioFiles(path, recursive))
-                        result.Add(new PhysicalFileHandle(file));
-                }
-                else if (File.Exists(path))
-                {
-                    result.Add(new PhysicalFileHandle(path));
-                }
+                    var result = new List<IFileHandle>();
+                    foreach (var path in list)
+                    {
+                        if (Directory.Exists(path))
+                        {
+                            foreach (var file in EnumerateAudioFiles(path, recursive))
+                                result.Add(new PhysicalFileHandle(file));
+                        }
+                        else if (File.Exists(path))
+                        {
+                            result.Add(new PhysicalFileHandle(path));
+                        }
+                    }
+
+                    return result;
+                });
+            }
+            catch (Exception ex) when (IsScanFailure(ex))
+            {
+                // 目录被删除/无权限/路径非法：给出可见提示，不能把界面留在“正在加载”。
+                if (version != _operationVersion) return;
+
+                IsLoading = false;
+                StatusText = Localizer.F("Status.FolderScanFailed", ex.Message);
+                return;
             }
 
-            return result;
-        });
+            // 目录扫描期间又来了新的导入/重载/取消请求：旧扫描结果不能覆盖新状态。
+            if (version != _operationVersion) return;
 
-        // 目录扫描期间又来了新的导入/重载/取消请求：旧扫描结果不能覆盖新状态。
-        if (version != _operationVersion) return;
-
-        await AddFilesCoreAsync(candidates, version);
+            await AddFilesCoreAsync(candidates, version);
+        }
+        finally
+        {
+            // 已经被新操作取代时由新操作负责 IsLoading，这里不能误清。
+            if (version == _operationVersion)
+                IsLoading = false;
+        }
     }
+
+    /// <summary>扫描目录时应当转成用户提示（而不是崩溃）的异常集合。</summary>
+    private static bool IsScanFailure(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException or System.Security.SecurityException
+            or ArgumentException or NotSupportedException;
 
     /// <summary>平台无关入口：接收已经展开好的文件句柄（Android SAF 用这个）。</summary>
     public async Task AddFilesAsync(IEnumerable<IFileHandle> files)
@@ -209,23 +296,56 @@ public partial class MainWindowViewModel : ObservableObject
 
         var version = ++_operationVersion;
         CancelActiveLoad();
-        await LoadInBatchesAsync(todo, version);
+
+        try
+        {
+            await LoadInBatchesAsync(todo, version);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            // 平台选择器（SAF）给出的句柄可能在读取时失效，不能让它冒泡到 async void 事件处理。
+            if (version == _operationVersion)
+            {
+                IsLoading = false;
+                StatusText = Localizer.F("Status.ImportFailed", ex.Message);
+            }
+        }
     }
 
     private async Task AddFilesCoreAsync(IEnumerable<IFileHandle> files, int version)
     {
         if (version != _operationVersion) return;
 
-        var todo = CollectNewFiles(files);
-        if (todo.Count == 0)
+        var current = version == _operationVersion;
+        try
         {
-            if (version != _operationVersion) return;
-            IsLoading = false;
-            StatusText = Localizer.T("Status.NoNewFiles");
-            return;
-        }
+            var todo = CollectNewFiles(files);
+            if (todo.Count == 0)
+            {
+                if (version != _operationVersion) return;
+                StatusText = Localizer.T("Status.NoNewFiles");
+                return;
+            }
 
-        await LoadInBatchesAsync(todo, version);
+            await LoadInBatchesAsync(todo, version);
+            current = version == _operationVersion;
+        }
+        catch (OperationCanceledException)
+        {
+            // 取消由 LoadInBatchesAsync 内部记账，这里只保证状态复位。
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            current = version == _operationVersion;
+            if (current)
+                StatusText = Localizer.F("Status.ImportFailed", ex.Message);
+        }
+        finally
+        {
+            // 被新操作取代时由新操作维护 IsLoading，不能在这里误清。
+            if (current && version == _operationVersion)
+                IsLoading = false;
+        }
     }
 
     private List<IFileHandle> CollectNewFiles(IEnumerable<IFileHandle> files)
@@ -257,6 +377,8 @@ public partial class MainWindowViewModel : ObservableObject
         var failed = 0;
         var canceled = false;
         var current = true;
+        // 过滤词只归一化一次，避免每行重复 Trim。
+        var filter = FilterText?.Trim() ?? "";
 
         try
         {
@@ -290,7 +412,7 @@ public partial class MainWindowViewModel : ObservableObject
                     var row = new TrackRowViewModel(item, Remove, _tagStore.ReadPictures);
                     _all.Add(row);
 
-                    if (MatchesFilter(row)) Tracks.Add(row);
+                    if (MatchesFilter(row, filter)) Tracks.Add(row);
 
                     if (item.Status == TrackStatus.Loaded) loaded++;
                     else if (item.Status is TrackStatus.Failed or TrackStatus.Skipped) failed++;
@@ -420,25 +542,81 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveSelectedAsync()
     {
+        // 与「保存全部」「自动匹配」共用写入门闩，避免同一文件被两个流程同时写。
+        if (_isSaving || _isAutoMatching) return;
+
         if (SelectedTrack is null)
         {
             StatusText = Localizer.T("Status.SelectFile");
             return;
         }
 
-        await SaveRowsAsync([SelectedTrack]);
+        _isSaving = true;
+        try
+        {
+            await SaveRowsAsync([SelectedTrack]);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     public async Task SaveAllAsync()
     {
-        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
+        // 重复点击/与自动匹配并发会同时写同一批文件：直接用守卫挡掉后来的请求。
+        if (_isSaving || _isAutoMatching) return;
+
+        _isSaving = true;
+        try
+        {
+            var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
+            if (rows.Count == 0)
+            {
+                StatusText = Localizer.T("Status.NoSavableFiles");
+                return;
+            }
+
+            await SaveRowsAsync(rows);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    /// <summary>尚未写回文件的修改行数。</summary>
+    public int UnsavedCount => _all.Count(r => r.Status == TrackStatus.Modified);
+
+    public bool HasUnsavedChanges => UnsavedCount > 0;
+
+    /// <summary>保存所有尚未写回文件的修改行（退出确认用）。</summary>
+    public Task SaveUnsavedAsync() =>
+        SaveSelectedRowsAsync(_all.Where(r => r.Status == TrackStatus.Modified));
+
+    /// <summary>保存右键菜单里选中的多行（不是整个列表）。</summary>
+    public async Task SaveSelectedRowsAsync(IEnumerable<TrackRowViewModel> selection)
+    {
+        if (_isSaving || _isAutoMatching) return;
+
+        var rows = selection
+            .Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped))
+            .ToList();
         if (rows.Count == 0)
         {
             StatusText = Localizer.T("Status.NoSavableFiles");
             return;
         }
 
-        await SaveRowsAsync(rows);
+        _isSaving = true;
+        try
+        {
+            await SaveRowsAsync(rows);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     private async Task SaveRowsAsync(IReadOnlyList<TrackRowViewModel> rows)
@@ -482,7 +660,17 @@ public partial class MainWindowViewModel : ObservableObject
                     }
                 });
                 if (previous is not null)
-                    await Task.Run(() => _historyStore.AddSnapshot(row.Key, previous));
+                {
+                    try
+                    {
+                        // 历史是辅助功能：写失败不能把已经成功的标签写入标记成失败。
+                        await Task.Run(() => _historyStore.AddSnapshot(row.Key, previous));
+                    }
+                    catch
+                    {
+                        // 忽略历史写入失败，标签本身已保存。
+                    }
+                }
 
                 row.ApplyFrom(new TrackItem
                 {
@@ -513,18 +701,25 @@ public partial class MainWindowViewModel : ObservableObject
             : Localizer.F("Status.SavedPartial", ok, failed);
     }
 
-    public async Task ClearTagsAsync()
+    public Task ClearTagsAsync() => ClearTagsAsync(_all);
+
+    /// <summary>清空指定行的标签（右键多选菜单用）。</summary>
+    public Task ClearTagsAsync(IEnumerable<TrackRowViewModel> selection)
     {
-        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
+        var rows = selection
+            .Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped))
+            .ToList();
+        if (rows.Count == 0) return Task.CompletedTask;
+
         foreach (var row in rows)
         {
             row.ApplyTags(new TrackTags());
             row.ClearCover();
         }
 
-        await Task.CompletedTask;
         ReapplyView();
         StatusText = Localizer.F("Status.ClearedTags", rows.Count);
+        return Task.CompletedTask;
     }
 
     /// <summary>从列表移除一行（只影响列表，不改文件）。</summary>
@@ -582,18 +777,21 @@ public partial class MainWindowViewModel : ObservableObject
         OverwriteOptions overwrite,
         bool includeCover = true,
         bool resort = true,
-        bool spoolCoverToDisk = false)
+        bool spoolCoverToDisk = false,
+        CancellationToken cancellationToken = default)
     {
         // 合并只涉及文本字段；不要为批量匹配把已暂存的封面额外读回内存。
         var merged = TagMerger.Merge(row.ToTags(includePictures: false), candidate.ToTags(), overwrite);
-        row.ApplyTags(merged);
+        row.ApplyTags(merged, overwrite.RuleFor(FieldKey.Lyrics));
 
-        if (includeCover && !string.IsNullOrWhiteSpace(candidate.CoverUrl) && overwrite.Default != OverwriteRule.KeepExisting)
+        if (includeCover && ShouldApplyCover(row, overwrite) && !string.IsNullOrWhiteSpace(candidate.CoverUrl))
         {
             var source = _search.Find(candidate.SourceId);
             if (source is not null)
             {
-                var bytes = await source.DownloadCoverAsync(candidate.CoverUrl, CancellationToken.None);
+                var bytes = await source.DownloadCoverAsync(candidate.CoverUrl, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (bytes is not null)
                 {
                     var normalized = await Task.Run(() => Settings.Pictures.KeepOriginal
@@ -603,7 +801,9 @@ public partial class MainWindowViewModel : ObservableObject
                             Settings.Pictures.MaxWidth,
                             Settings.Pictures.MaxHeight,
                             Settings.Pictures.MaxSizeKb,
-                            Settings.Pictures.AllowedFormats));
+                            Settings.Pictures.AllowedFormats), cancellationToken);
+
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     if (normalized is not null &&
                         !row.SetCover(normalized.Data, normalized.MimeType, spoolCoverToDisk))
@@ -618,79 +818,145 @@ public partial class MainWindowViewModel : ObservableObject
         StatusText = Localizer.F("Status.AppliedCandidate", candidate.SourceId);
     }
 
-    /// <summary>批量自动匹配：每首歌取第一个候选，按用户选择的字段、源和覆盖方式合并。</summary>
-    public async Task AutoMatchAllAsync(AutoMatchOptions? options = null)
+    /// <summary>
+    /// 按覆盖规则决定要不要替换封面：只填空字段时仅当当前行没有封面才下载，
+    /// 保留已有封面时一律不动，替换时才无条件覆盖。
+    /// </summary>
+    private static bool ShouldApplyCover(TrackRowViewModel row, OverwriteOptions overwrite) =>
+        overwrite.Default switch
+        {
+            OverwriteRule.Replace => true,
+            OverwriteRule.FillEmptyOnly => !row.HasCover,
+            _ => false,
+        };
+
+    /// <summary>对全部可匹配行执行批量自动匹配。</summary>
+    public Task AutoMatchAllAsync(AutoMatchOptions? options = null) => AutoMatchAsync(_all, options);
+
+    /// <summary>对指定行（右键多选）执行批量自动匹配。</summary>
+    public async Task AutoMatchAsync(IEnumerable<TrackRowViewModel> selection, AutoMatchOptions? options = null)
     {
+        // 重复点击会并发写同一批文件（尤其包含封面时），直接返回。
+        if (_isAutoMatching || _isSaving) return;
+
         options ??= new AutoMatchOptions(
             OverwriteRule.Replace,
             Enum.GetValues<FieldKey>().ToHashSet(),
             IncludeCover: false,
             Settings.Sources.Tags);
 
-        var rows = _all.Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped)).ToList();
-        if (rows.Count == 0)
+        _isAutoMatching = true;
+        using var cts = new CancellationTokenSource();
+        _autoMatchCts = cts;
+        var token = cts.Token;
+
+        try
         {
-            StatusText = Localizer.T("Status.NoMatchFiles");
-            return;
-        }
-
-        var overwrite = new OverwriteOptions { Default = options.Rule };
-        foreach (var key in Enum.GetValues<FieldKey>())
-            if (!options.Fields.Contains(key))
-                overwrite.PerField[key] = OverwriteRule.Ignore;
-
-        var capability = SourceCapability.Tags
-            | (options.IncludeCover ? SourceCapability.Cover : SourceCapability.None)
-            | (options.Fields.Contains(FieldKey.Lyrics) ? SourceCapability.Lyrics : SourceCapability.None);
-
-        var hit = 0;
-        var miss = 0;
-        for (var index = 0; index < rows.Count; index++)
-        {
-            var row = rows[index];
-            StatusText = Localizer.F("Status.AutoMatching", index + 1, rows.Count, row.FileName);
-
-            var query = new TagQuery
+            var rows = selection
+                .Where(r => r.Status is not (TrackStatus.Failed or TrackStatus.Skipped))
+                .ToList();
+            if (rows.Count == 0)
             {
-                Title = row.Title,
-                Artist = row.Artist,
-                Album = row.Album,
-                FileName = row.FileName,
-                Duration = row.Info?.Duration,
-                File = row.Source,
-            };
+                StatusText = Localizer.T("Status.NoMatchFiles");
+                return;
+            }
 
-            try
+            var overwrite = new OverwriteOptions { Default = options.Rule };
+            foreach (var key in Enum.GetValues<FieldKey>())
+                if (!options.Fields.Contains(key))
+                    overwrite.PerField[key] = OverwriteRule.Ignore;
+
+            var capability = SourceCapability.Tags
+                | (options.IncludeCover ? SourceCapability.Cover : SourceCapability.None)
+                | (options.Fields.Contains(FieldKey.Lyrics) ? SourceCapability.Lyrics : SourceCapability.None);
+
+            var hit = 0;
+            var miss = 0;
+            var failed = 0;
+            var canceled = false;
+
+            for (var index = 0; index < rows.Count; index++)
             {
-                var results = await _search.SearchAsync(
-                    query, capability, options.SourceOrder,
-                    Settings.Search.ItemsPerSource, Settings.Search.Threads, CancellationToken.None);
-
-                var best = results.FirstOrDefault();
-                if (best is null)
+                if (token.IsCancellationRequested)
                 {
-                    miss++;
-                    continue;
+                    canceled = true;
+                    break;
                 }
 
-                await ApplyCandidateAsync(
-                    row, best, overwrite, options.IncludeCover,
-                    resort: false, spoolCoverToDisk: true);
-                hit++;
+                var row = rows[index];
+                StatusText = Localizer.F("Status.AutoMatching", index + 1, rows.Count, row.FileName);
+
+                var query = new TagQuery
+                {
+                    Title = row.Title,
+                    Artist = row.Artist,
+                    Album = row.Album,
+                    FileName = row.FileName,
+                    Duration = row.Info?.Duration,
+                    File = row.Source,
+                };
+
+                try
+                {
+                    var results = await _search.SearchAsync(
+                        query, capability, options.SourceOrder,
+                        Settings.Search.ItemsPerSource, Settings.Search.AutoMatchThreads, token);
+
+                    if (token.IsCancellationRequested)
+                    {
+                        canceled = true;
+                        break;
+                    }
+
+                    var best = results.FirstOrDefault();
+                    if (best is null)
+                    {
+                        // 搜索正常但没有候选：不算错误。
+                        miss++;
+                        continue;
+                    }
+
+                    await ApplyCandidateAsync(
+                        row, best, overwrite, options.IncludeCover,
+                        resort: false, spoolCoverToDisk: true, cancellationToken: token);
+                    hit++;
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    canceled = true;
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    // 搜索成功但合并/下载/暂存失败：单独计数并记到行上便于定位。
+                    // 不改 Status，避免这行被后续「全部保存」当成不可保存的行跳过。
+                    failed++;
+                    row.ErrorText = ex.Message;
+                }
             }
-            catch
+
+            ReapplyView();
+
+            if (canceled)
             {
-                miss++;
+                StatusText = Localizer.T("Search.Cancelled");
+                return;
             }
+
+            StatusText = Localizer.F("Status.AutoMatchDone", hit, miss);
+            if (failed > 0)
+                StatusText = $"{StatusText} · {Localizer.T("TrackStatus.Failed")} {failed}";
+
+            // 指纹解码失败（如 Linux 缺 GStreamer 解码插件）随批量结果一并提示。
+            if (_search.Find("acoustid")?.LastError is { } decodeError)
+                StatusText = $"{StatusText} · {decodeError}";
         }
-
-        ReapplyView();
-
-        StatusText = Localizer.F("Status.AutoMatchDone", hit, miss);
-
-        // 指纹解码失败（如 Linux 缺 GStreamer 解码插件）随批量结果一并提示。
-        if (_search.Find("acoustid")?.LastError is { } decodeError)
-            StatusText = $"{StatusText} · {decodeError}";
+        finally
+        {
+            if (ReferenceEquals(_autoMatchCts, cts))
+                _autoMatchCts = null;
+            _isAutoMatching = false;
+        }
     }
 
     /// <summary>把已有封面导出到音频同目录，命名为 "文件名-cover.jpg/png"。</summary>
@@ -737,83 +1003,185 @@ public partial class MainWindowViewModel : ObservableObject
 
     private readonly ChineseConversionService _chinese = new();
 
+    /// <summary>简繁转换服务不是线程安全的：后台转换与重命名共用同一把锁串行使用。</summary>
+    private readonly SemaphoreSlim _chineseGate = new(1, 1);
+
+    private sealed record ConvertedFields(
+        TrackRowViewModel Row,
+        string? Title,
+        string? Artist,
+        string? Album,
+        string? AlbumArtist,
+        string? Genre,
+        string? Comment,
+        string? Composer);
+
     /// <summary>把列表中所有标签做简繁转换（只改内存，保存后写入）。</summary>
-    public Task ConvertTagsAsync(bool toTraditional)
+    public async Task ConvertTagsAsync(bool toTraditional, CancellationToken cancellationToken = default)
     {
-        foreach (var row in _all)
+        if (_isConverting) return;
+
+        var rows = _all.ToList();
+        if (rows.Count == 0) return;
+
+        _isConverting = true;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _convertCts = cts;
+        var token = cts.Token;
+
+        try
         {
-            Convert(row);
+            // 纯 CPU 的字符转换放到后台线程，UI 线程只做属性写回。
+            var converted = await Task.Run(() =>
+            {
+                _chineseGate.Wait(token);
+                try
+                {
+                    var result = new List<ConvertedFields>(rows.Count);
+                    foreach (var row in rows)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        result.Add(new ConvertedFields(
+                            row,
+                            Convert(row.Title),
+                            Convert(row.Artist),
+                            Convert(row.Album),
+                            Convert(row.AlbumArtist),
+                            Convert(row.Genre),
+                            Convert(row.Comment),
+                            Convert(row.Composer)));
+                    }
+
+                    return result;
+                }
+                finally
+                {
+                    _chineseGate.Release();
+                }
+            }, token).ConfigureAwait(true);
+
+            foreach (var item in converted)
+            {
+                item.Row.Title = item.Title;
+                item.Row.Artist = item.Artist;
+                item.Row.Album = item.Album;
+                item.Row.AlbumArtist = item.AlbumArtist;
+                item.Row.Genre = item.Genre;
+                item.Row.Comment = item.Comment;
+                item.Row.Composer = item.Composer;
+            }
+
+            ReapplyView();
+            StatusText = Localizer.T(toTraditional ? "Status.TagsToTraditional" : "Status.TagsToSimplified");
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = Localizer.T("Search.Cancelled");
+        }
+        finally
+        {
+            if (ReferenceEquals(_convertCts, cts))
+                _convertCts = null;
+            _isConverting = false;
         }
 
-        ReapplyView();
-        StatusText = Localizer.T(toTraditional ? "Status.TagsToTraditional" : "Status.TagsToSimplified");
-        return Task.CompletedTask;
+        return;
 
-        void Convert(TrackRowViewModel row)
-        {
-            string? C(string? value) => value is null ? null : toTraditional
-                ? _chinese.ToTraditional(value)
-                : _chinese.ToSimplified(value);
-
-            row.Title = C(row.Title);
-            row.Artist = C(row.Artist);
-            row.Album = C(row.Album);
-            row.AlbumArtist = C(row.AlbumArtist);
-            row.Genre = C(row.Genre);
-            row.Comment = C(row.Comment);
-            row.Composer = C(row.Composer);
-        }
+        string? Convert(string? value) => value is null ? null : toTraditional
+            ? _chinese.ToTraditional(value)
+            : _chinese.ToSimplified(value);
     }
 
     /// <summary>把列表中的文件名做简繁转换（直接改磁盘文件）。</summary>
-    public Task ConvertFileNamesAsync(bool toTraditional, ISafeNamePolicy policy)
+    public async Task ConvertFileNamesAsync(bool toTraditional, ISafeNamePolicy policy, CancellationToken cancellationToken = default)
     {
-        if (!_all.Any(r => ResolveHandle(r)?.CanRename == true))
+        if (_isConverting) return;
+
+        var rows = _all.ToList();
+        if (!rows.Any(r => ResolveHandle(r)?.CanRename == true))
         {
             StatusText = Localizer.T("Status.RenameUnsupported");
-            return Task.CompletedTask;
+            return;
         }
 
-        var renamed = 0;
-        var failed = 0;
-        var service = new RenameService();
+        _isConverting = true;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _convertCts = cts;
+        var token = cts.Token;
 
-        foreach (var row in _all.ToList())
+        try
         {
-            var handle = ResolveHandle(row);
-            var baseName = handle?.FileNameWithoutExtension ?? Path.GetFileNameWithoutExtension(row.FileName);
-            var converted = toTraditional ? _chinese.ToTraditional(baseName) : _chinese.ToSimplified(baseName);
-            if (string.Equals(baseName, converted, StringComparison.Ordinal)) continue;
-
-            if (handle is not { CanRename: true })
+            // 重命名是磁盘操作：整批放后台，UI 线程只负责把新句柄写回行。
+            var outcome = await Task.Run(() =>
             {
-                failed++;
-                continue;
-            }
+                var renames = new List<(TrackRowViewModel Row, IFileHandle Handle)>();
+                var done = 0;
+                var failed = 0;
 
-            try
-            {
-                var result = service.ApplyExact(handle, converted, policy,
-                    alsoRenameLyrics: true,
-                    alsoRenamePictures: true);
-                if (!string.Equals(result.New.Key, result.Old.Key, StringComparison.Ordinal))
+                _chineseGate.Wait(token);
+                try
                 {
-                    row.RenameTo(result.New);
-                    renamed++;
+                    var service = new RenameService();
+
+                    foreach (var row in rows)
+                    {
+                        token.ThrowIfCancellationRequested();
+
+                        var handle = ResolveHandle(row);
+                        var baseName = handle?.FileNameWithoutExtension ?? Path.GetFileNameWithoutExtension(row.FileName);
+                        var converted = toTraditional ? _chinese.ToTraditional(baseName) : _chinese.ToSimplified(baseName);
+                        if (string.Equals(baseName, converted, StringComparison.Ordinal)) continue;
+
+                        if (handle is not { CanRename: true })
+                        {
+                            failed++;
+                            continue;
+                        }
+
+                        try
+                        {
+                            var result = service.ApplyExact(handle, converted, policy,
+                                alsoRenameLyrics: true,
+                                alsoRenamePictures: true);
+                            if (!string.Equals(result.New.Key, result.Old.Key, StringComparison.Ordinal))
+                            {
+                                renames.Add((row, result.New));
+                                done++;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            failed++;
+                        }
+                    }
                 }
-            }
-            catch
-            {
-                failed++;
-            }
+                finally
+                {
+                    _chineseGate.Release();
+                }
+
+                return (Renames: renames, Renamed: done, Failed: failed);
+            }, token).ConfigureAwait(true);
+
+            foreach (var (row, handle) in outcome.Renames)
+                row.RenameTo(handle);
+
+            ReapplyView();
+
+            StatusText = outcome.Failed > 0
+                ? Localizer.F("Status.FileNameConvertedPartial", outcome.Renamed, outcome.Failed)
+                : Localizer.F("Status.FileNameConverted", outcome.Renamed);
         }
-
-        ReapplyView();
-
-        StatusText = failed > 0
-            ? Localizer.F("Status.FileNameConvertedPartial", renamed, failed)
-            : Localizer.F("Status.FileNameConverted", renamed);
-        return Task.CompletedTask;
+        catch (OperationCanceledException)
+        {
+            StatusText = Localizer.T("Search.Cancelled");
+        }
+        finally
+        {
+            if (ReferenceEquals(_convertCts, cts))
+                _convertCts = null;
+            _isConverting = false;
+        }
     }
 
     private static IFileHandle? ResolveHandle(TrackRowViewModel row)
@@ -866,8 +1234,11 @@ public partial class MainWindowViewModel : ObservableObject
     /// <summary>过滤/排序改为增量维护 Tracks，避免整表 Clear/Add 丢失选中项和移动端详情。</summary>
     private void ApplyFilter()
     {
+        // 过滤词只 Trim 一次，避免每行都重新分配字符串。
+        var filter = FilterText?.Trim() ?? "";
+
         var previous = SelectedTrack;
-        var desired = TrackSorter.Sort(_all.Where(MatchesFilter), _sortField, SortDescending);
+        var desired = TrackSorter.Sort(_all.Where(row => MatchesFilter(row, filter)), _sortField, SortDescending);
         var desiredSet = new HashSet<TrackRowViewModel>(desired);
 
         // 选中行仍保留在列表中时，Move 不应让移动端把详情页当成“选中项被移除”。
@@ -923,15 +1294,13 @@ public partial class MainWindowViewModel : ObservableObject
         UpdateCounts();
     }
 
-    private bool MatchesFilter(TrackRowViewModel row)
-    {
-        var filter = FilterText?.Trim();
-        return string.IsNullOrEmpty(filter) || Matches(row, filter);
-    }
+    private static bool MatchesFilter(TrackRowViewModel row, string filter) =>
+        filter.Length == 0 || Matches(row, filter);
 
     private static bool Matches(TrackRowViewModel row, string filter) =>
         Contains(row.FileName, filter) || Contains(row.Title, filter) ||
-        Contains(row.Artist, filter) || Contains(row.Album, filter);
+        Contains(row.Artist, filter) || Contains(row.Album, filter) ||
+        Contains(row.AlbumArtist, filter) || Contains(row.Genre, filter);
 
     private static bool Contains(string? value, string filter) =>
         value is not null && value.Contains(filter, StringComparison.OrdinalIgnoreCase);
