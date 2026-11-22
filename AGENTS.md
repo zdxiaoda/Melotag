@@ -13,7 +13,7 @@ src/
   Melotag.Desktop/    桌面入口（net10.0）
   Melotag.Android/    Android 头项目（net10.0-android，不在 Melotag.slnx 中）
 tests/
-  Melotag.Core.Tests/ 92 个单元测试
+  Melotag.Core.Tests/ 223 个单元测试
 tools/
   Melotag.Probe/      在线源诊断
   Melotag.Branding/   LOGO / .ico / MSIX 图标生成
@@ -65,7 +65,7 @@ Android 数据目录是应用私有空间 `files/data`。
 
 ### 版本规则
 
-- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.5.0`）；桌面端、
+- 应用版本只在 `Directory.Build.props` 的 `Version` 维护（当前 `1.7.0`）；桌面端、
   Android 的 `ApplicationDisplayVersion` 与默认 User-Agent 都由程序集版本自动派生，
   发布流水线也可用 `-p:Version=...` 覆盖。
 - Android `ApplicationVersion`（versionCode）每次发布递增。
